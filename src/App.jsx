@@ -953,7 +953,20 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                       <td className="p-3 text-gray-700">{app.role}</td>
                       <td className="p-3"><span className="px-2.5 py-0.5 bg-gray-100 text-gray-800 rounded-full text-xs font-medium border">{app.type || 'CDI'}</span></td>
                       <td className="p-3 text-gray-500">{app.date}</td>
-                      <td className="p-3"><span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[app.status]}`}>{app.status}</span></td>
+                      <td className="p-3">
+                        <select
+                          value={app.status}
+                          onChange={(e) => setApplications(applications.map(item => item.id === app.id ? { ...item, status: e.target.value } : item))}
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity ${STATUS_COLORS[app.status]}`}
+                          style={{ textAlignLast: 'center' }}
+                        >
+                          {Object.keys(STATUS_COLORS).map(status => (
+                            <option key={status} value={status} className="bg-white text-gray-900 font-medium">
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="p-3 text-right space-x-2">
                         <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium cursor-pointer">Modifier</button>
                         <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded text-xs font-medium cursor-pointer">Supprimer</button>
