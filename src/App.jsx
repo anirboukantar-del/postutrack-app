@@ -20,7 +20,10 @@ import {
   HelpCircle,
   Layout,
   ExternalLink,
-  Copy
+  Copy,
+  Sun,
+  Moon,
+  Monitor
 } from 'lucide-react';
 
 
@@ -62,33 +65,33 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 dark:text-white border dark:border-gray-700">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-800">{editingApp ? 'Modifier la candidature' : 'Ajouter une candidature'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-300">
             <XCircle size={24} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Entreprise</label>
-            <input required type="text" className="w-full p-2 border rounded-md bg-white" 
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Entreprise</label>
+            <input required type="text" className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
               value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} placeholder="Ex: Google" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Poste</label>
-            <input required type="text" className="w-full p-2 border rounded-md bg-white" 
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Poste</label>
+            <input required type="text" className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
               value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} placeholder="Ex: Développeur React" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-              <input type="date" className="w-full p-2 border rounded-md bg-white" 
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+              <input type="date" className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                 value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat</label>
-              <select className="w-full p-2 border rounded-md bg-white"
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de contrat</label>
+              <select className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
                 <option value="CDI">CDI</option>
                 <option value="CDD">CDD</option>
@@ -100,8 +103,8 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-            <select className="w-full p-2 border rounded-md bg-white"
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Statut</label>
+            <select className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
               {Object.keys(STATUS_COLORS).map(status => (
                 <option key={status} value={status}>{status}</option>
@@ -109,8 +112,8 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Lien de l'offre (URL)</label>
-            <input type="url" className="w-full p-2 border rounded-md bg-white text-sm" 
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lien de l'offre (URL)</label>
+            <input type="url" className="w-full p-2 border rounded-md bg-white text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
               value={formData.url || ''} onChange={e => setFormData({...formData, url: e.target.value})} placeholder="https://..." />
           </div>
           
@@ -127,7 +130,7 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
           )}
 
           <div className="pt-4 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-md text-gray-600 cursor-pointer">Annuler</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-md text-gray-600 dark:text-gray-400 cursor-pointer">Annuler</button>
             <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer">Enregistrer</button>
           </div>
         </form>
@@ -285,6 +288,32 @@ export default function App() {
     // On réinitialise l'input pour pouvoir réimporter le même fichier si besoin
     e.target.value = ''; 
   };
+
+  // --- 4. GESTION DU THÈME SOMBRE DIRECTE ---
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('postutrack_theme') || 'light'; } catch (e) { return 'light'; }
+  });
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(nextTheme);
+    try { localStorage.setItem('postutrack_theme', nextTheme); } catch (e) {}
+    
+    if (nextTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  };
+
+  // S'assure que le thème est bien appliqué au chargement
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, []);
 
   const handleCopyLetter = () => {
     if (!aiResult?.coverLetter) return;
@@ -828,7 +857,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
           {/* En-tête */}
           <div className="text-center mb-1">
             <h1 className="text-3xl font-normal mb-1">{displayName}</h1>
-            <div className="text-[12px] flex justify-center items-center gap-3 flex-wrap text-gray-700">
+            <div className="text-[12px] flex justify-center items-center gap-3 flex-wrap text-gray-700 dark:text-gray-300">
               {displayLocation && <span>{displayLocation}</span>}
               {displayEmail && <span>| {displayEmail}</span>}
               {displayPhone && <span>| {displayPhone}</span>}
@@ -852,7 +881,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                   <div key={idx}>
                     <div className="flex justify-between items-baseline mb-0.5">
                       <div className="font-bold text-[13px]">{exp.company}</div>
-                      <div className="text-[12px] text-gray-700">{exp.period}</div>
+                      <div className="text-[12px] text-gray-700 dark:text-gray-300">{exp.period}</div>
                     </div>
                     <div className="italic text-[12.5px] mb-0.5 text-gray-800">{exp.role}</div>
                     <ul className="list-disc list-inside text-[12px] space-y-0.5 pl-1.5 text-gray-900">
@@ -873,10 +902,10 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                   <div key={idx}>
                     <div className="flex justify-between items-baseline mb-0.5">
                       <strong className="text-[13px]">{edu.school}</strong>
-                      <span className="text-[12px] text-gray-700">{edu.year}</span>
+                      <span className="text-[12px] text-gray-700 dark:text-gray-300">{edu.year}</span>
                     </div>
                     <div className="italic text-[12.5px] text-gray-800">{edu.degree}</div>
-                    {edu.description && <p className="text-[12px] text-gray-700 mt-0.5 leading-snug">{edu.description}</p>}
+                    {edu.description && <p className="text-[12px] text-gray-700 dark:text-gray-300 mt-0.5 leading-snug">{edu.description}</p>}
                   </div>
                 ))}
               </div>
@@ -906,24 +935,24 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
   };
 
   const renderSidebar = () => (
-    <aside className="w-64 bg-white border-r border-gray-200 h-screen hidden md:flex flex-col sticky top-0 print:hidden">
+    <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 print:hidden transition-colors duration-200">
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-blue-600 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2">
           <Briefcase size={28} />
           PostuTrack
         </h1>
       </div>
       <nav className="flex-1 px-4 space-y-2">
-        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
           <LayoutDashboard size={20} /> Tableau de bord
         </button>
-        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'applications' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
           <ListTodo size={20} /> Mes Candidatures
         </button>
-        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
           <Sparkles size={20} className="text-amber-500" /> Adaptateur CV & IA
         </button>
-        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'profile' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
           <UserCheck size={20} className="text-emerald-500" /> Mon Profil
         </button>
       </nav>
@@ -931,34 +960,45 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-sans flex text-gray-900">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-gray-900 font-sans flex text-gray-900 dark:text-gray-100 transition-colors duration-200">
       {renderSidebar()}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-20 px-6 py-4 flex justify-between items-center print:hidden">
-          <h2 className="text-xl font-bold text-gray-800 capitalize">{activeTab === 'tailor' ? 'Adaptateur CV & IA' : activeTab}</h2>
-          <div className="flex items-center gap-4">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 px-6 py-4 flex justify-between items-center print:hidden transition-colors duration-200">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white capitalize">{activeTab === 'tailor' ? 'Adaptateur CV & IA' : activeTab}</h2>
+          <div className="flex items-center gap-4"><div className="flex items-center gap-4">
+            
+            {/* BOUTON DU THÈME */}
+            <button 
+  onClick={toggleTheme} 
+  className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center cursor-pointer"
+  title="Changer de thème"
+>
+  {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
+</button>
+
             <Bell size={20} className="text-gray-500 cursor-pointer" />
-            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 hover:bg-blue-100">
+            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-blue-50 dark:bg-blue-900/30 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-blue-100 dark:border-gray-700 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors">
               <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
                 {getInitials(profile.fullName)}
               </div>
-              <span className="text-xs font-semibold text-blue-900">{profile.fullName || 'Utilisateur'}</span>
+              <span className="text-xs font-semibold text-blue-900 dark:text-blue-400 dark:text-gray-200">{profile.fullName || 'Utilisateur'}</span>
             </div>
+          </div>
           </div>
         </header>
 
         <div className="flex-1 p-6 overflow-auto">
           {activeTab === 'dashboard' && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                <div className="p-3 bg-blue-100 text-blue-600 rounded-lg"><Briefcase size={24} /></div>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+                <div className="p-3 bg-blue-100 text-blue-600 dark:text-blue-400 rounded-lg"><Briefcase size={24} /></div>
                 <div><p className="text-sm text-gray-500 font-medium">Total Candidatures</p><p className="text-2xl font-bold text-gray-800">{totalApplications}</p></div>
               </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                 <div className="p-3 bg-purple-100 text-purple-600 rounded-lg"><Clock size={24} /></div>
                 <div><p className="text-sm text-gray-500 font-medium">Entretiens</p><p className="text-2xl font-bold text-gray-800">{interviewsCount}</p></div>
               </div>
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                 <div className="p-3 bg-green-100 text-green-600 rounded-lg"><CheckCircle size={24} /></div>
                 <div><p className="text-sm text-gray-500 font-medium">Offres reçues</p><p className="text-2xl font-bold text-gray-800">{offersCount}</p></div>
               </div>
@@ -966,16 +1006,16 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
           )}
 
           {activeTab === 'applications' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-800">Mes Candidatures</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
+              <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Mes Candidatures</h3>
                 <button onClick={() => { setEditingApplication(null); setIsAddModalOpen(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 cursor-pointer">
                   + Nouvelle Candidature
                 </button>
               </div>
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-100 text-gray-600 text-xs uppercase tracking-wider">
+                  <tr className="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-300 text-xs uppercase tracking-wider">
                     <th className="p-3">Entreprise</th>
                     <th className="p-3">Poste</th>
                     <th className="p-3">Contrat</th>
@@ -984,15 +1024,15 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 text-sm">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
                   {applications.map(app => (
                     <tr key={app.id} className="hover:bg-gray-50">
                       <td className="p-3 font-semibold text-gray-900 flex items-center gap-2">
                         {app.company}
-                        {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700"><ExternalLink size={14} /></a>}
+                        {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-500"><ExternalLink size={14} /></a>}
                       </td>
-                      <td className="p-3 text-gray-700">{app.role}</td>
-                      <td className="p-3"><span className="px-2.5 py-0.5 bg-gray-100 text-gray-800 rounded-full text-xs font-medium border">{app.type || 'CDI'}</span></td>
+                      <td className="p-3 text-gray-700 dark:text-gray-300">{app.role}</td>
+                      <td className="p-3"><span className="px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-full text-xs font-medium border">{app.type || 'CDI'}</span></td>
                       <td className="p-3 text-gray-500">{app.date}</td>
                       <td className="p-3">
                         <select
@@ -1009,8 +1049,8 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                         </select>
                       </td>
                       <td className="p-3 text-right space-x-2">
-                        <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium cursor-pointer">Modifier</button>
-                        <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded text-xs font-medium cursor-pointer">Supprimer</button>
+                        <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:text-gray-700 rounded text-xs font-medium cursor-pointer">Modifier</button>
+                        <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2.5 py-1 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded text-xs font-medium cursor-pointer">Supprimer</button>
                       </td>
                     </tr>
                   ))}
@@ -1024,25 +1064,25 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
 
           {activeTab === 'tailor' && (
             <div className="space-y-6 max-w-6xl mx-auto">
-              <div className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-6 print:hidden ${isPrinting ? 'print:hidden' : ''}`}>
+              <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 print:hidden transition-colors ${isPrinting ? 'print:hidden' : ''}`}>
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl"><Sparkles size={24} /></div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-800">Adaptateur CV & IA</h2>
+                      <h2 className="text-xl font-bold text-gray-800 dark:text-white">Adaptateur CV & IA</h2>
                       <p className="text-sm text-gray-500">Générez un CV ou une Lettre optimisés pour l'offre.</p>
                     </div>
                   </div>
-                  <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-lg">
                     <button 
                       onClick={() => setGenerationMode('cv')} 
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:bg-gray-200'}`}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white dark:bg-gray-700 shadow text-blue-700 dark:text-blue-500 dark:text-white' : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     >
                       Mode CV
                     </button>
                     <button 
                       onClick={() => setGenerationMode('letter')} 
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white shadow text-blue-700' : 'text-gray-600 hover:bg-gray-200'}`}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white shadow text-blue-700 dark:text-blue-500' : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     >
                       Mode Lettre
                     </button>
@@ -1052,8 +1092,8 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                 <form onSubmit={handleGenerateAI} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Offre associée</label>
-                      <select className="w-full p-2.5 border rounded-lg text-sm bg-white" value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)}>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Offre associée</label>
+                      <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)}>
                         <option value="">-- Sans candidature --</option>
                         {applications.map(app => <option key={app.id} value={app.id}>{app.company} - {app.role}</option>)}
                       </select>
@@ -1062,24 +1102,24 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     {generationMode === 'cv' ? (
                       <>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Stratégie (Fidélité)</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white" value={modificationStrategy} onChange={(e) => setModificationStrategy(e.target.value)}>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stratégie (Fidélité)</label>
+                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={modificationStrategy} onChange={(e) => setModificationStrategy(e.target.value)}>
                             <option value="strict">Strict (Ne rien supprimer)</option>
                             <option value="balanced">Équilibré (Recommandé)</option>
                             <option value="rewrite">Adaptation Totale</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Densité Mots-clés ATS</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white" value={keywordDensity} onChange={(e) => setKeywordDensity(e.target.value)}>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Densité Mots-clés ATS</label>
+                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={keywordDensity} onChange={(e) => setKeywordDensity(e.target.value)}>
                             <option value="low">Subtile (2-3 ajouts)</option>
                             <option value="moderate">Modérée (Équilibrée)</option>
                             <option value="high">Agressive (Maximiser le score)</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Densité du texte CV</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white" value={cvDensity} onChange={(e) => setCvDensity(e.target.value)}>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Densité du texte CV</label>
+                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={cvDensity} onChange={(e) => setCvDensity(e.target.value)}>
                             <option value="expanded">Maximiser (Remplir page)</option>
                             <option value="standard">Standard</option>
                             <option value="compact">Compact</option>
@@ -1088,8 +1128,8 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                       </>
                     ) : (
                       <div className="md:col-span-3">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Ton de la lettre de motivation</label>
-                        <select className="w-full p-2.5 border rounded-lg text-sm bg-white" value={letterTone} onChange={(e) => setLetterTone(e.target.value)}>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ton de la lettre de motivation</label>
+                        <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={letterTone} onChange={(e) => setLetterTone(e.target.value)}>
                           <option value="professional">Professionnel & Formel</option>
                           <option value="audacious">Audacieux & Percutant</option>
                           <option value="original">Original & Narratif</option>
@@ -1102,39 +1142,39 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     {generationMode === 'cv' ? (
                       <div>
                         <div className="flex justify-between items-end mb-1">
-                          <label className="block text-sm font-medium text-gray-700">Source : CV Maître</label>
-                          <button type="button" onClick={() => setBaseCV(profile.masterCV)} className="text-xs text-blue-600 hover:underline">Restaurer</button>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Source : CV Maître</label>
+                          <button type="button" onClick={() => setBaseCV(profile.masterCV)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Restaurer</button>
                         </div>
-                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-sm font-mono text-xs bg-gray-50" value={baseCV} onChange={(e) => setBaseCV(e.target.value)} />
+                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-sm font-mono text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={baseCV} onChange={(e) => setBaseCV(e.target.value)} />
                       </div>
                     ) : (
                       <div>
                         <div className="flex justify-between items-end mb-1">
-                          <label className="block text-sm font-medium text-gray-700">Source : Lettre Maître</label>
-                          <button type="button" onClick={() => setBaseLetter(profile.masterLetter)} className="text-xs text-blue-600 hover:underline">Restaurer</button>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Source : Lettre Maître</label>
+                          <button type="button" onClick={() => setBaseLetter(profile.masterLetter)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Restaurer</button>
                         </div>
-                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-sm font-mono text-xs bg-gray-50" value={baseLetter} onChange={(e) => setBaseLetter(e.target.value)} placeholder="Modèle de lettre de base..." />
+                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-sm font-mono text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={baseLetter} onChange={(e) => setBaseLetter(e.target.value)} placeholder="Modèle de lettre de base..." />
                       </div>
                     )}
                     <div>
                       <div className="flex justify-between items-end mb-1">
-                        <label className="block text-sm font-medium text-gray-700">Description de l'offre</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description de l'offre</label>
                         <div className="flex items-center gap-2">
-                          <input type="url" placeholder="Lien URL (Jina AI)" className="px-3 py-1 text-xs border rounded-md w-36 bg-white" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} />
-                          <button type="button" onClick={handleExtractUrl} disabled={isExtracting || !jobUrl} className="text-xs bg-gray-100 px-3 py-1 rounded border hover:bg-gray-200 disabled:opacity-50">
+                          <input type="url" placeholder="Lien URL (Jina AI)" className="px-3 py-1 text-xs border rounded-md w-36 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} />
+                          <button type="button" onClick={handleExtractUrl} disabled={isExtracting || !jobUrl} className="text-xs bg-gray-100 px-3 py-1 rounded border hover:bg-gray-200 dark:text-gray-700 disabled:opacity-50">
                             {isExtracting ? <Loader2 size={14} className="animate-spin" /> : 'Extraire'}
                           </button>
                         </div>
                       </div>
-                      <textarea rows={5} className="w-full p-3 border rounded-lg text-sm bg-white" placeholder="Collez l'annonce ici ou utilisez l'extracteur URL..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
+                      <textarea rows={5} className="w-full p-3 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Collez l'annonce ici ou utilisez l'extracteur URL..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Consignes personnalisées pour l'IA (Optionnel)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Consignes personnalisées pour l'IA (Optionnel)</label>
                     <textarea 
                       rows={2} 
-                      className="w-full p-2.5 border rounded-lg text-sm bg-white" 
+                      className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                       placeholder="Ex: Traduis en anglais, insiste sur mon expérience..." 
                       value={customInstruction} 
                       onChange={(e) => setCustomInstruction(e.target.value)} 
@@ -1155,10 +1195,10 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                 <div className="space-y-6">
                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
                     <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                      <FileText className="text-blue-600" size={20} /> CV Format RenderCV
+                      <FileText className="text-blue-600 dark:text-blue-400" size={20} /> CV Format RenderCV
                     </h3>
                     <div className="flex gap-2">
-                      <button onClick={handleExportRenderCV} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 hover:bg-emerald-100 font-medium cursor-pointer">
+                      <button onClick={handleExportRenderCV} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-emerald-700 hover:bg-emerald-100 font-medium cursor-pointer">
                         <Download size={16} /> YAML
                       </button>
                       <button onClick={triggerPrint} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm cursor-pointer">
@@ -1182,7 +1222,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     <div className="flex gap-2">
                       <button 
                         onClick={handleCopyLetter} 
-                        className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium shadow-sm cursor-pointer transition-all"
+                        className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-100 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 font-medium shadow-sm cursor-pointer transition-all"
                       >
                         {isCopied ? <CheckCircle size={16} className="text-emerald-600" /> : <Copy size={16} />} 
                         {isCopied ? <span className="text-emerald-700">Copié !</span> : 'Copier le texte'}
@@ -1227,7 +1267,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                           <p>{profile.email}</p>
                           <p>{profile.phone}</p>
                         </div>
-                        <div className="text-right text-gray-600">
+                        <div className="text-right text-gray-600 dark:text-gray-400">
                           <p>{profile.location?.split(',')[0] || 'Paris'}, le {new Date().toLocaleDateString()}</p>
                         </div>
                       </div>
@@ -1242,14 +1282,14 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
           )}
 
           {activeTab === 'profile' && (
-            <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-6">Profil & Documents Maîtres</h2>
+            <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">Profil & Documents Maîtres</h2>
               <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('postutrack_profile', JSON.stringify(profile)); setSavedNotice(true); setTimeout(() => setSavedNotice(false), 3000); }} className="space-y-6">
                 
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
                   <div className="flex justify-between items-center flex-wrap gap-4">
                     <div>
-                      <h4 className="font-bold text-emerald-900 text-sm">⚡ Importation automatique du profil</h4>
+                      <h4 className="font-bold text-emerald-700 dark:text-emerald-500text-sm">⚡ Importation automatique du profil</h4>
                       <p className="text-xs text-emerald-700 mt-0.5">Importez votre CV (PDF ou TXT) pour remplir vos coordonnées et votre CV Maître en un clic.</p>
                     </div>
                     <label className="cursor-pointer text-xs flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-emerald-700 font-medium transition-colors">
@@ -1260,39 +1300,39 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-medium mb-1">Nom</label><input type="text" className="w-full p-2 border rounded-lg bg-white" value={profile.fullName || ''} onChange={e => setProfile({...profile, fullName: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">Email</label><input type="email" className="w-full p-2 border rounded-lg bg-white" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">Téléphone</label><input type="text" className="w-full p-2 border rounded-lg bg-white" value={profile.phone || ''} onChange={e => setProfile({...profile, phone: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">Localisation</label><input type="text" className="w-full p-2 border rounded-lg bg-white" value={profile.location || ''} onChange={e => setProfile({...profile, location: e.target.value})} /></div>
-                  <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Site Web / LinkedIn</label><input type="text" className="w-full p-2 border rounded-lg bg-white" value={profile.website || ''} onChange={e => setProfile({...profile, website: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium mb-1">Nom</label><input type="text" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.fullName || ''} onChange={e => setProfile({...profile, fullName: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium mb-1">Email</label><input type="email" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium mb-1">Téléphone</label><input type="text" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.phone || ''} onChange={e => setProfile({...profile, phone: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium mb-1">Localisation</label><input type="text" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.location || ''} onChange={e => setProfile({...profile, location: e.target.value})} /></div>
+                  <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Site Web / LinkedIn</label><input type="text" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.website || ''} onChange={e => setProfile({...profile, website: e.target.value})} /></div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">CV Maître</label>
-                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white" value={profile.masterCV || ''} onChange={e => setProfile({...profile, masterCV: e.target.value})} />
+                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.masterCV || ''} onChange={e => setProfile({...profile, masterCV: e.target.value})} />
                 </div>
                 <div>
                   <div className="flex justify-between items-end mb-1">
                     <label className="block text-sm font-medium">Lettre de Motivation Maître (Optionnelle)</label>
-                    <label className="cursor-pointer text-xs flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-gray-700 font-medium transition-colors">
+                    <label className="cursor-pointer text-xs flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-gray-700 dark:text-gray-300 font-medium transition-colors">
                       <Upload size={14} /> Importer (PDF/TXT)
                       <input type="file" accept=".pdf,.txt" className="hidden" onChange={(e) => handleFileUpload(e, (text) => setProfile(prev => ({ ...prev, masterLetter: text })))} />
                     </label>
                   </div>
-                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white" placeholder="Votre lettre de motivation de base..." value={profile.masterLetter || ''} onChange={e => setProfile({...profile, masterLetter: e.target.value})} />
+                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Votre lettre de motivation de base..." value={profile.masterLetter || ''} onChange={e => setProfile({...profile, masterLetter: e.target.value})} />
                 </div>
 
                 {/* Section Sauvegarde */}
-                <div className="mt-8 p-5 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="mt-8 p-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl">
                   <div className="flex items-center gap-2 mb-2">
                     <Download className="text-amber-600" size={20} />
-                    <h4 className="font-bold text-amber-900">Sauvegarde & Transfert (Backup)</h4>
+                    <h4 className="font-bold text-amber-700 dark:text-amber-500">Sauvegarde & Transfert (Backup)</h4>
                   </div>
                   <p className="text-xs text-amber-700 mb-4">Exportez vos données pour les transférer vers la version logicielle ou pour les mettre en sécurité.</p>
                   <div className="flex flex-wrap gap-3">
                     <button type="button" onClick={handleExportData} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 shadow-sm transition-colors cursor-pointer">
                       Exporter mes données (.json)
                     </button>
-                    <label className="cursor-pointer px-4 py-2 bg-white border border-amber-300 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100 shadow-sm transition-colors">
+                    <label className="cursor-pointer px-4 py-2 bg-white border-amber-300 text-amber-700 dark:bg-gray-800 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-gray-700 rounded-lg text-sm font-medium hover:bg-amber-100 shadow-sm transition-colors">
                       Importer une sauvegarde
                       <input type="file" accept=".json" className="hidden" onChange={handleImportData} />
                     </label>
@@ -1300,14 +1340,14 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                 </div>
 
                 {/* Section API Key */}
-                <div className="mt-8 p-5 bg-blue-50 border border-blue-200 rounded-xl">
+                <div className="mt-8 p-5 bg-blue-50 dark:bg-blue-900/30 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl">
                   <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
                     <div className="flex items-center gap-2">
-                      <Settings className="text-blue-600" size={20} />
-                      <h4 className="font-bold text-blue-900">Configuration de l'IA</h4>
+                      <Settings className="text-blue-600 dark:text-blue-400" size={20} />
+                      <h4 className="font-bold text-blue-900 dark:text-blue-400">Configuration de l'IA</h4>
                     </div>
                     <select 
-                      className="p-2 border border-blue-200 rounded-lg text-sm bg-white text-blue-900 font-medium shadow-sm outline-none"
+                      className="p-2 border border-blue-200 rounded-lg text-sm bg-white text-blue-900 dark:text-blue-400 font-medium shadow-sm outline-none"
                       value={selectedAiModel}
                       onChange={(e) => setSelectedAiModel(e.target.value)}
                     >
@@ -1317,16 +1357,16 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     </select>
                   </div>
                   
-                  <p className="text-xs text-blue-700 mb-4">Vos clés API sont stockées uniquement sur votre navigateur local. Elles ne sont jamais partagées.</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-500 mb-4">Vos clés API sont stockées uniquement sur votre navigateur local. Elles ne sont jamais partagées.</p>
                   
                   <div className="space-y-3">
                     {selectedAiModel === 'gemini' && (
                       <div>
-                        <label className="block text-xs font-semibold text-blue-900 mb-1">Clé API Google Gemini</label>
+                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-400 mb-1">Clé API Google Gemini</label>
                         <input 
                           type="password" 
                           placeholder="Collez votre clé commençant par AIzaSy..." 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                           value={apiKey} 
                           onChange={e => setApiKey(e.target.value)} 
                         />
@@ -1335,11 +1375,11 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     
                     {selectedAiModel === 'openai' && (
                       <div>
-                        <label className="block text-xs font-semibold text-blue-900 mb-1">Clé API OpenAI</label>
+                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-400 mb-1">Clé API OpenAI</label>
                         <input 
                           type="password" 
                           placeholder="Collez votre clé commençant par sk-proj-..." 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                           value={openAiKey} 
                           onChange={e => setOpenAiKey(e.target.value)} 
                         />
@@ -1348,11 +1388,11 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
 
                     {selectedAiModel === 'anthropic' && (
                       <div>
-                        <label className="block text-xs font-semibold text-blue-900 mb-1">Clé API Anthropic</label>
+                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-400 mb-1">Clé API Anthropic</label>
                         <input 
                           type="password" 
                           placeholder="Collez votre clé commençant par sk-ant-..." 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                           value={anthropicKey} 
                           onChange={e => setAnthropicKey(e.target.value)} 
                         />
