@@ -684,7 +684,6 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
       }
       // --- FIN DU BLOC MULTI-IA ---
 
-      let text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) {
         let parsed;
         text = text.trim();
