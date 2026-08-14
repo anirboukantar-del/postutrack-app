@@ -28,16 +28,16 @@ import {
 
 
 const STATUS_COLORS = {
-  Applied: 'bg-blue-100 text-blue-800',
-  Screening: 'bg-yellow-100 text-yellow-800',
-  Interview: 'bg-purple-100 text-purple-800',
-  Offer: 'bg-green-100 text-green-800',
-  Rejected: 'bg-red-100 text-red-800',
+  'Postulé': 'bg-blue-100 text-blue-800',
+  'En cours': 'bg-yellow-100 text-yellow-800',
+  'Entretien': 'bg-purple-100 text-purple-800',
+  'Offre': 'bg-green-100 text-green-800',
+  'Refusé': 'bg-red-100 text-red-800',
 };
 
 function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor }) {
   const [formData, setFormData] = useState({
-    company: '', role: '', date: new Date().toISOString().split('T')[0], status: 'Applied', type: 'CDI', location: '', url: ''
+    company: '', role: '', date: new Date().toISOString().split('T')[0], status: 'Postulé', type: 'CDI', location: '', url: ''
   });
 
   useEffect(() => {
@@ -45,7 +45,7 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
       setFormData(editingApp);
     } else {
       setFormData({
-        company: '', role: '', date: new Date().toISOString().split('T')[0], status: 'Applied', type: 'CDI', location: '', url: ''
+        company: '', role: '', date: new Date().toISOString().split('T')[0], status: 'Postulé', type: 'CDI', location: '', url: ''
       });
     }
   }, [editingApp, isOpen]);
@@ -390,8 +390,8 @@ ${aiResult.coverLetter}`;
   }, []);
 
   const totalApplications = applications.length;
-  const interviewsCount = applications.filter(app => app.status === 'Interview').length;
-  const offersCount = applications.filter(app => app.status === 'Offer').length;
+  const interviewsCount = applications.filter(app => app.status === 'Entretien').length;
+  const offersCount = applications.filter(app => app.status === 'Offre').length;
 
   const parseAndFillProfile = (text) => {
     const emailMatch = text.match(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/);
@@ -976,7 +976,6 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
   {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
 </button>
 
-            <Bell size={20} className="text-gray-500 cursor-pointer" />
             <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-blue-50 dark:bg-blue-900/30 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-blue-100 dark:border-gray-700 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors">
               <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
                 {getInitials(profile.fullName)}
@@ -1026,8 +1025,8 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
                   {applications.map(app => (
-                    <tr key={app.id} className="hover:bg-gray-50">
-                      <td className="p-3 font-semibold text-gray-900 flex items-center gap-2">
+                    <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <td className="p-3 font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                         {app.company}
                         {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-500"><ExternalLink size={14} /></a>}
                       </td>
@@ -1313,7 +1312,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                 <div>
                   <div className="flex justify-between items-end mb-1">
                     <label className="block text-sm font-medium">Lettre de Motivation Maître (Optionnelle)</label>
-                    <label className="cursor-pointer text-xs flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-gray-700 dark:text-gray-300 font-medium transition-colors">
+                    <label className="cursor-pointer text-xs flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-gray-700 dark:text-gray-700 font-medium transition-colors">
                       <Upload size={14} /> Importer (PDF/TXT)
                       <input type="file" accept=".pdf,.txt" className="hidden" onChange={(e) => handleFileUpload(e, (text) => setProfile(prev => ({ ...prev, masterLetter: text })))} />
                     </label>
