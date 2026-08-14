@@ -189,15 +189,30 @@ export default function App() {
     }
   }, [profile]);
 
-  // --- 3. SAUVEGARDE DE LA CLÉ API ---
+  // --- 3. SAUVEGARDE DES CLÉS API ET DU MODÈLE ---
   const [apiKey, setApiKey] = useState(() => {
+    try { return localStorage.getItem('postutrack_apikey') || ''; } catch (e) { return ''; }
+  });
+  const [openAiKey, setOpenAiKey] = useState(() => {
+    try { return localStorage.getItem('postutrack_openaikey') || ''; } catch (e) { return ''; }
+  });
+  const [anthropicKey, setAnthropicKey] = useState(() => {
+    try { return localStorage.getItem('postutrack_anthropickey') || ''; } catch (e) { return ''; }
+  });
+  const [selectedAiModel, setSelectedAiModel] = useState(() => {
+    try { return localStorage.getItem('postutrack_aimodel') || 'gemini'; } catch (e) { return 'gemini'; }
+  });
+
+  useEffect(() => {
     try {
-      return localStorage.getItem('postutrack_apikey') || '';
+      localStorage.setItem('postutrack_apikey', apiKey);
+      localStorage.setItem('postutrack_openaikey', openAiKey);
+      localStorage.setItem('postutrack_anthropickey', anthropicKey);
+      localStorage.setItem('postutrack_aimodel', selectedAiModel);
     } catch (e) {
       console.error(e);
-      return '';
     }
-  });
+  }, [apiKey, openAiKey, anthropicKey, selectedAiModel]);
 
   useEffect(() => {
     try {
@@ -448,10 +463,12 @@ ${aiResult.coverLetter}`;
 
   const handleGenerateAI = async (e) => {
     e.preventDefault();
-    if (!apiKey.trim()) {
-      setAiError("Veuillez configurer votre clé API Gemini dans l'onglet 'Mon Profil'.");
-      return;
-    }
+    
+    // Vérification de la bonne clé selon le modèle sélectionné
+    if (selectedAiModel === 'gemini' && !apiKey.trim()) return setAiError("Veuillez configurer votre clé API Gemini.");
+    if (selectedAiModel === 'openai' && !openAiKey.trim()) return setAiError("Veuillez configurer votre clé API OpenAI.");
+    if (selectedAiModel === 'anthropic' && !anthropicKey.trim()) return setAiError("Veuillez configurer votre clé API Anthropic.");
+
     if (!jobDescription.trim()) {
       setAiError("Veuillez coller la description de l'offre d'emploi avant de générer.");
       return;
@@ -605,25 +622,67 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
         };
       }
 
-      const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 8192,
-          responseMimeType: "application/json",
-          responseSchema: responseSchema
-        }
-      };
+      // --- DÉBUT DU BLOC MULTI-IA ---
+      let text = "";
 
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error?.message || "Erreur de connexion à l'IA.");
+      // OpenAI et Anthropic ont besoin qu'on leur injecte le schéma JSON directement dans le texte du prompt
+      const finalPrompt = selectedAiModel !== 'gemini' 
+        ? `${prompt}\n\nSchéma JSON STRICT à respecter impérativement pour ta réponse :\n${JSON.stringify(responseSchema, null, 2)}` 
+        : prompt;
+
+      if (selectedAiModel === 'gemini') {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: finalPrompt }] }],
+            generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema }
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || "Erreur de connexion à Gemini.");
+        text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      } else if (selectedAiModel === 'openai') {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${openAiKey}` 
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini", // Modèle le plus rapide et abordable d'OpenAI
+            temperature: 0.1,
+            response_format: { type: "json_object" }, // Force OpenAI à renvoyer un JSON
+            messages: [{ role: "user", content: finalPrompt }]
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || "Erreur de connexion à OpenAI.");
+        text = result.choices[0].message.content;
+
+      } else if (selectedAiModel === 'anthropic') {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerously-allow-browser': 'true' // Requis par Anthropic pour les appels depuis le navigateur
+          },
+          body: JSON.stringify({
+            model: "claude-3-haiku-20240307", // Modèle rapide de Claude
+            max_tokens: 4096,
+            temperature: 0.1,
+            system: "Tu dois renvoyer UNIQUEMENT un objet JSON valide, sans aucun texte avant ou après.",
+            messages: [{ role: "user", content: finalPrompt }]
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || "Erreur de connexion à Anthropic.");
+        text = result.content[0].text;
+      }
+      // --- FIN DU BLOC MULTI-IA ---
 
       let text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) {
@@ -1171,18 +1230,64 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
 
                 {/* Section API Key */}
                 <div className="mt-8 p-5 bg-blue-50 border border-blue-200 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Settings className="text-blue-600" size={20} />
-                    <h4 className="font-bold text-blue-900">Configuration IA (Google Gemini)</h4>
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+                    <div className="flex items-center gap-2">
+                      <Settings className="text-blue-600" size={20} />
+                      <h4 className="font-bold text-blue-900">Configuration de l'IA</h4>
+                    </div>
+                    <select 
+                      className="p-2 border border-blue-200 rounded-lg text-sm bg-white text-blue-900 font-medium shadow-sm outline-none"
+                      value={selectedAiModel}
+                      onChange={(e) => setSelectedAiModel(e.target.value)}
+                    >
+                      <option value="gemini">Google Gemini (Recommandé)</option>
+                      <option value="openai">OpenAI - ChatGPT</option>
+                      <option value="anthropic">Anthropic - Claude</option>
+                    </select>
                   </div>
-                  <p className="text-xs text-blue-700 mb-3">Votre clé API est stockée uniquement sur votre navigateur local. Elle n'est jamais partagée.</p>
-                  <input 
-                    type="password" 
-                    placeholder="Collez votre clé API commençant par AIzaSy..." 
-                    className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
-                    value={apiKey} 
-                    onChange={e => setApiKey(e.target.value)} 
-                  />
+                  
+                  <p className="text-xs text-blue-700 mb-4">Vos clés API sont stockées uniquement sur votre navigateur local. Elles ne sont jamais partagées.</p>
+                  
+                  <div className="space-y-3">
+                    {selectedAiModel === 'gemini' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-blue-900 mb-1">Clé API Google Gemini</label>
+                        <input 
+                          type="password" 
+                          placeholder="Collez votre clé commençant par AIzaSy..." 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                          value={apiKey} 
+                          onChange={e => setApiKey(e.target.value)} 
+                        />
+                      </div>
+                    )}
+                    
+                    {selectedAiModel === 'openai' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-blue-900 mb-1">Clé API OpenAI</label>
+                        <input 
+                          type="password" 
+                          placeholder="Collez votre clé commençant par sk-proj-..." 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                          value={openAiKey} 
+                          onChange={e => setOpenAiKey(e.target.value)} 
+                        />
+                      </div>
+                    )}
+
+                    {selectedAiModel === 'anthropic' && (
+                      <div>
+                        <label className="block text-xs font-semibold text-blue-900 mb-1">Clé API Anthropic</label>
+                        <input 
+                          type="password" 
+                          placeholder="Collez votre clé commençant par sk-ant-..." 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" 
+                          value={anthropicKey} 
+                          onChange={e => setAnthropicKey(e.target.value)} 
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {savedNotice && <div className="p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium flex items-center gap-2"><CheckCircle size={18} /> Profil et Documents sauvegardés !</div>}
