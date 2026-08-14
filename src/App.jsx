@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   ListTodo,
   Settings,
-  Bell,
   UserCheck,
   Sparkles,
   FileText,
