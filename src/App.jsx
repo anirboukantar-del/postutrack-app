@@ -992,15 +992,15 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                 <div className="p-3 bg-blue-100 text-blue-600 dark:text-blue-400 rounded-lg"><Briefcase size={24} /></div>
-                <div><p className="text-sm text-gray-500 font-medium">Total Candidatures</p><p className="text-2xl font-bold text-gray-800">{totalApplications}</p></div>
+                <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Candidatures</p><p className="text-3xl font-bold text-gray-800 dark:text-white">{totalApplications}</p></div>
               </div>
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                 <div className="p-3 bg-purple-100 text-purple-600 rounded-lg"><Clock size={24} /></div>
-                <div><p className="text-sm text-gray-500 font-medium">Entretiens</p><p className="text-2xl font-bold text-gray-800">{interviewsCount}</p></div>
+                <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Entretiens</p><p className="text-3xl font-bold text-gray-800 dark:text-white">{interviewsCount}</p></div>
               </div>
               <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
                 <div className="p-3 bg-green-100 text-green-600 rounded-lg"><CheckCircle size={24} /></div>
-                <div><p className="text-sm text-gray-500 font-medium">Offres reçues</p><p className="text-2xl font-bold text-gray-800">{offersCount}</p></div>
+                <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Offres reçues</p><p className="text-3xl font-bold text-gray-800 dark:text-white">{offersCount}</p></div>
               </div>
             </div>
           )}
