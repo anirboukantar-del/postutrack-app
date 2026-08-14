@@ -245,6 +245,47 @@ export default function App() {
   const [letterTone, setLetterTone] = useState('professional');
   const [isCopied, setIsCopied] = useState(false);
 
+  // --- SAUVEGARDE ET RESTAURATION ---
+  const handleExportData = () => {
+    // On rassemble les données (on exclut les clés API par sécurité)
+    const backup = {
+      applications: applications,
+      profile: profile
+    };
+    
+    // On crée un fichier JSON téléchargeable
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PostuTrack_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportData = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const backup = JSON.parse(event.target.result);
+        if (backup.applications) setApplications(backup.applications);
+        if (backup.profile) setProfile(backup.profile);
+        
+        // Afficher le message de succès
+        setSavedNotice(true);
+        setTimeout(() => setSavedNotice(false), 3000);
+      } catch (err) {
+        alert("Fichier de sauvegarde invalide ou corrompu.");
+      }
+    };
+    reader.readAsText(file);
+    // On réinitialise l'input pour pouvoir réimporter le même fichier si besoin
+    e.target.value = ''; 
+  };
+
   const handleCopyLetter = () => {
     if (!aiResult?.coverLetter) return;
     const letterText = `${profile.fullName || 'Candidat'}
@@ -1238,6 +1279,24 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     </label>
                   </div>
                   <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white" placeholder="Votre lettre de motivation de base..." value={profile.masterLetter || ''} onChange={e => setProfile({...profile, masterLetter: e.target.value})} />
+                </div>
+
+                {/* Section Sauvegarde */}
+                <div className="mt-8 p-5 bg-amber-50 border border-amber-200 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Download className="text-amber-600" size={20} />
+                    <h4 className="font-bold text-amber-900">Sauvegarde & Transfert (Backup)</h4>
+                  </div>
+                  <p className="text-xs text-amber-700 mb-4">Exportez vos données pour les transférer vers la version logicielle ou pour les mettre en sécurité.</p>
+                  <div className="flex flex-wrap gap-3">
+                    <button type="button" onClick={handleExportData} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 shadow-sm transition-colors cursor-pointer">
+                      Exporter mes données (.json)
+                    </button>
+                    <label className="cursor-pointer px-4 py-2 bg-white border border-amber-300 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100 shadow-sm transition-colors">
+                      Importer une sauvegarde
+                      <input type="file" accept=".json" className="hidden" onChange={handleImportData} />
+                    </label>
+                  </div>
                 </div>
 
                 {/* Section API Key */}
