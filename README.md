@@ -14,7 +14,7 @@ Contiens du code généré par intelligence artificielle avec vérification syst
 
 ## 📦 Installation et Premier Démarrage (Utilisateurs)
 
-Si vous avez téléchargé le fichier d'installation final dans releases (`.exe` ou `.msi` sous Windows) :
+Si vous avez téléchargé le fichier d'installation final dans [releases](https://github.com/anirboukantar-del/postutrack-app/releases) (`.exe` ou `.msi` sous Windows) :
 
 1.  **Installation :** Double-cliquez sur le fichier d'installation et suivez les instructions classiques à l'écran.
 2.  **Configuration du Profil :** Au premier lancement, allez dans l'onglet **Mon Profil**. Vous pouvez importer directement votre CV au format PDF pour que l'application remplisse automatiquement vos coordonnées et votre "CV Maître".
