@@ -54,22 +54,30 @@ import { translations } from './i18n';
 const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé'];
 const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
 const SOURCE_KEYS = [
+  'Workday',
   'LinkedIn',
-  'Indeed',
   'Welcome to the Jungle',
+  'Greenhouse',
+  'Lever',
+  'SmartRecruiters',
+  'Taleo',
+  'Teamtailor',
+  'Ashby',
+  'Indeed',
   'France Travail',
   'Site Entreprise',
+  'Email direct',
   'Cooptation',
   'Candidature Spontanée',
   'Autre'
 ];
 
 const DEFAULT_APPLICATIONS = [
-  { id: 1, company: 'Google', role: 'Software Engineer', date: '2026-08-01', responseDate: '2026-08-08', source: 'LinkedIn', status: 'Entretien', type: 'CDI', url: 'https://careers.google.com' },
-  { id: 2, company: 'Datadog', role: 'Frontend Engineer', date: '2026-08-04', responseDate: '2026-08-11', source: 'Welcome to the Jungle', status: 'Offre', type: 'CDI', url: 'https://www.welcometothejungle.com' },
-  { id: 3, company: 'Doctolib', role: 'Fullstack Developer', date: '2026-08-07', responseDate: '2026-08-12', source: 'Indeed', status: 'Refusé', type: 'CDI', url: 'https://fr.indeed.com' },
+  { id: 1, company: 'Google', role: 'Software Engineer', date: '2026-08-01', responseDate: '2026-08-08', source: 'Workday', status: 'Entretien', type: 'CDI', url: 'https://careers.google.com' },
+  { id: 2, company: 'Datadog', role: 'Frontend Engineer', date: '2026-08-04', responseDate: '2026-08-11', source: 'Greenhouse', status: 'Offre', type: 'CDI', url: 'https://www.welcometothejungle.com' },
+  { id: 3, company: 'Doctolib', role: 'Fullstack Developer', date: '2026-08-07', responseDate: '2026-08-12', source: 'SmartRecruiters', status: 'Refusé', type: 'CDI', url: 'https://fr.indeed.com' },
   { id: 4, company: 'Mirakl', role: 'React Engineer', date: '2026-08-10', responseDate: '', source: 'LinkedIn', status: 'En cours', type: 'CDI', url: '' },
-  { id: 5, company: 'Qonto', role: 'Product Engineer', date: '2026-08-15', responseDate: '', source: 'Site Entreprise', status: 'Postulé', type: 'CDI', url: '' }
+  { id: 5, company: 'Qonto', role: 'Product Engineer', date: '2026-08-15', responseDate: '', source: 'Lever', status: 'Postulé', type: 'CDI', url: '' }
 ];
 
 const getStatusLabel = (status, t) => {
@@ -130,13 +138,26 @@ const getContractLabel = (type, t) => {
 
 const getSourceLabel = (src, t) => {
   switch (src) {
+    case 'Workday': return t.sourceWorkday || 'Workday';
     case 'LinkedIn': return t.sourceLinkedIn;
-    case 'Indeed': return t.sourceIndeed;
     case 'Welcome to the Jungle': return t.sourceWTTJ;
+    case 'Greenhouse': return t.sourceGreenhouse || 'Greenhouse';
+    case 'Lever': return t.sourceLever || 'Lever';
+    case 'SmartRecruiters': return t.sourceSmartRecruiters || 'SmartRecruiters';
+    case 'Taleo':
+    case 'Taleo / Oracle':
+      return t.sourceTaleo || 'Taleo / Oracle';
+    case 'Teamtailor': return t.sourceTeamtailor || 'Teamtailor';
+    case 'Ashby': return t.sourceAshby || 'Ashby';
+    case 'Indeed': return t.sourceIndeed;
     case 'France Travail': return t.sourceFranceTravail;
     case 'Site Entreprise':
     case 'Company Website':
+    case 'Company Career Site':
       return t.sourceCompanySite;
+    case 'Email direct':
+    case 'Direct Email':
+      return t.sourceEmail || 'Email direct';
     case 'Cooptation':
     case 'Referral':
     case 'Cooptation / Réseau':
@@ -149,23 +170,42 @@ const getSourceLabel = (src, t) => {
     case 'Other':
       return t.sourceOther;
     default:
-      return src || 'LinkedIn';
+      return src || 'Workday';
   }
 };
 
 const getSourceBadgeStyle = (src) => {
   switch (src) {
+    case 'Workday':
+      return 'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700';
     case 'LinkedIn':
-      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800';
-    case 'Indeed':
-      return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800';
+      return 'bg-sky-50 text-sky-800 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800';
     case 'Welcome to the Jungle':
       return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
+    case 'Greenhouse':
+      return 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800';
+    case 'Lever':
+      return 'bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800';
+    case 'SmartRecruiters':
+      return 'bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800';
+    case 'Taleo':
+    case 'Taleo / Oracle':
+      return 'bg-red-50 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800';
+    case 'Teamtailor':
+      return 'bg-pink-50 text-pink-800 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-800';
+    case 'Ashby':
+      return 'bg-violet-50 text-violet-800 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800';
+    case 'Indeed':
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800';
     case 'France Travail':
-      return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800';
+      return 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800';
     case 'Site Entreprise':
     case 'Company Website':
-      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800';
+    case 'Company Career Site':
+      return 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800';
+    case 'Email direct':
+    case 'Direct Email':
+      return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800';
     case 'Cooptation':
     case 'Referral':
     case 'Cooptation / Réseau':
@@ -195,11 +235,30 @@ const getResponseDays = (app) => {
   return diffDays;
 };
 
+const openExternalLink = async (url, e) => {
+  if (e) {
+    e.preventDefault();
+  }
+  if (!url) return;
+  try {
+    if (typeof window !== 'undefined' && (window.__TAURI_INTERNALS__ || window.__TAURI__)) {
+      const { openUrl } = await import('@tauri-apps/plugin-opener');
+      if (typeof openUrl === 'function') {
+        await openUrl(url);
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not open external link with Tauri opener plugin:', err);
+  }
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
+
 function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor, t }) {
   const [formData, setFormData] = useState({
     company: '',
     role: '',
-    source: 'LinkedIn',
+    source: 'Workday',
     customSource: '',
     date: new Date().toISOString().split('T')[0],
     responseDate: '',
@@ -228,7 +287,7 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
       setFormData({
         company: '',
         role: '',
-        source: 'LinkedIn',
+        source: 'Workday',
         customSource: '',
         date: new Date().toISOString().split('T')[0],
         responseDate: '',
@@ -1102,7 +1161,8 @@ function OnboardingStartingPage({
                     href="https://aistudio.google.com/app/apikey"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                    onClick={(e) => openExternalLink("https://aistudio.google.com/app/apikey", e)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
                   >
                     {t.onboardingGetFreeGeminiBtn}
                   </a>
@@ -1508,7 +1568,7 @@ export default function App() {
       isEn ? 'Position' : 'Poste',
       isEn ? 'Status' : 'Statut',
       isEn ? 'Contract' : 'Type de contrat',
-      isEn ? 'Source' : 'Source / Canal',
+      isEn ? 'Application Platform / ATS' : 'Site de candidature (ATS / Plateforme)',
       isEn ? 'Application Date' : 'Date de candidature',
       isEn ? 'Response Date' : 'Date de réponse',
       isEn ? 'Response Time (Days)' : 'Délai de réponse (Jours)',
@@ -2446,6 +2506,7 @@ STRICT FORMAT RULES:
               href="https://github.com/anirboukantar-del/postutrack-app"
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => openExternalLink("https://github.com/anirboukantar-del/postutrack-app", e)}
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 2xl:py-2 text-xs 2xl:text-sm font-semibold rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all cursor-pointer shadow-xs shrink-0"
               title={t.viewOnGithub}
               aria-label={t.viewOnGithub}
@@ -2884,7 +2945,14 @@ STRICT FORMAT RULES:
                         <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
                           <span>{app.company}</span>
                           {app.url && (
-                            <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center" title="Lien vers l'offre">
+                            <a 
+                              href={app.url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              onClick={(e) => openExternalLink(app.url, e)}
+                              className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer" 
+                              title="Lien vers l'offre"
+                            >
                               <ExternalLink size={13} />
                             </a>
                           )}
@@ -2965,7 +3033,18 @@ STRICT FORMAT RULES:
                         <td className="p-3.5 2xl:p-4 font-semibold text-gray-900 dark:text-gray-100">
                           <div className="flex items-center gap-2">
                             {app.company}
-                            {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center" title="Lien vers l'offre"><ExternalLink size={14} /></a>}
+                            {app.url && (
+                              <a 
+                                href={app.url} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                onClick={(e) => openExternalLink(app.url, e)}
+                                className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer" 
+                                title="Lien vers l'offre"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            )}
                           </div>
                         </td>
                         <td className="p-3.5 2xl:p-4 text-gray-700 dark:text-gray-300 font-medium">{app.role}</td>
