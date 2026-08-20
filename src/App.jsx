@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Briefcase,
   CheckCircle,
@@ -22,12 +22,37 @@ import {
   Copy,
   Sun,
   Moon,
-  Languages
+  Languages,
+  TrendingUp,
+  TrendingDown,
+  Timer,
+  Percent,
+  Share2,
+  Layers,
+  Globe
 } from 'lucide-react';
 import { translations } from './i18n';
 
 const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé'];
 const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
+const SOURCE_KEYS = [
+  'LinkedIn',
+  'Indeed',
+  'Welcome to the Jungle',
+  'France Travail',
+  'Site Entreprise',
+  'Cooptation',
+  'Candidature Spontanée',
+  'Autre'
+];
+
+const DEFAULT_APPLICATIONS = [
+  { id: 1, company: 'Google', role: 'Software Engineer', date: '2026-08-01', responseDate: '2026-08-08', source: 'LinkedIn', status: 'Entretien', type: 'CDI', url: 'https://careers.google.com' },
+  { id: 2, company: 'Datadog', role: 'Frontend Engineer', date: '2026-08-04', responseDate: '2026-08-11', source: 'Welcome to the Jungle', status: 'Offre', type: 'CDI', url: 'https://www.welcometothejungle.com' },
+  { id: 3, company: 'Doctolib', role: 'Fullstack Developer', date: '2026-08-07', responseDate: '2026-08-12', source: 'Indeed', status: 'Refusé', type: 'CDI', url: 'https://fr.indeed.com' },
+  { id: 4, company: 'Mirakl', role: 'React Engineer', date: '2026-08-10', responseDate: '', source: 'LinkedIn', status: 'En cours', type: 'CDI', url: '' },
+  { id: 5, company: 'Qonto', role: 'Product Engineer', date: '2026-08-15', responseDate: '', source: 'Site Entreprise', status: 'Postulé', type: 'CDI', url: '' }
+];
 
 const getStatusLabel = (status, t) => {
   switch (status) {
@@ -85,37 +110,160 @@ const getContractLabel = (type, t) => {
   }
 };
 
+const getSourceLabel = (src, t) => {
+  switch (src) {
+    case 'LinkedIn': return t.sourceLinkedIn;
+    case 'Indeed': return t.sourceIndeed;
+    case 'Welcome to the Jungle': return t.sourceWTTJ;
+    case 'France Travail': return t.sourceFranceTravail;
+    case 'Site Entreprise':
+    case 'Company Website':
+      return t.sourceCompanySite;
+    case 'Cooptation':
+    case 'Referral':
+    case 'Cooptation / Réseau':
+    case 'Referral / Network':
+      return t.sourceReferral;
+    case 'Candidature Spontanée':
+    case 'Cold Outreach':
+      return t.sourceSpontaneous;
+    case 'Autre':
+    case 'Other':
+      return t.sourceOther;
+    default:
+      return src || 'LinkedIn';
+  }
+};
+
+const getSourceBadgeStyle = (src) => {
+  switch (src) {
+    case 'LinkedIn':
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800';
+    case 'Indeed':
+      return 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800';
+    case 'Welcome to the Jungle':
+      return 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
+    case 'France Travail':
+      return 'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-300 dark:border-sky-800';
+    case 'Site Entreprise':
+    case 'Company Website':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800';
+    case 'Cooptation':
+    case 'Referral':
+    case 'Cooptation / Réseau':
+    case 'Referral / Network':
+      return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800';
+    case 'Candidature Spontanée':
+    case 'Cold Outreach':
+      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800';
+    default:
+      return 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+  }
+};
+
+const getResponseDays = (app) => {
+  const isAnswered = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(app.status) || Boolean(app.responseDate);
+  if (!isAnswered || !app.date) return null;
+  
+  const appDate = new Date(app.date);
+  const respDateStr = app.responseDate || app.statusModifiedAt || new Date().toISOString().split('T')[0];
+  const respDate = new Date(respDateStr);
+  
+  if (isNaN(appDate.getTime()) || isNaN(respDate.getTime())) return null;
+  
+  const d1 = Date.UTC(appDate.getFullYear(), appDate.getMonth(), appDate.getDate());
+  const d2 = Date.UTC(respDate.getFullYear(), respDate.getMonth(), respDate.getDate());
+  const diffDays = Math.max(0, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+  return diffDays;
+};
+
 function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor, t }) {
   const [formData, setFormData] = useState({
-    company: '', role: '', date: new Date().toISOString().split('T')[0], status: 'Postulé', type: 'CDI', location: '', url: ''
+    company: '',
+    role: '',
+    source: 'LinkedIn',
+    customSource: '',
+    date: new Date().toISOString().split('T')[0],
+    responseDate: '',
+    status: 'Postulé',
+    type: 'CDI',
+    location: '',
+    url: ''
   });
 
   useEffect(() => {
     if (editingApp) {
-      setFormData(editingApp);
+      const isKnown = SOURCE_KEYS.includes(editingApp.source);
+      setFormData({
+        company: editingApp.company || '',
+        role: editingApp.role || '',
+        source: isKnown ? editingApp.source : 'Autre',
+        customSource: isKnown ? '' : (editingApp.source || ''),
+        date: editingApp.date || new Date().toISOString().split('T')[0],
+        responseDate: editingApp.responseDate || '',
+        status: editingApp.status || 'Postulé',
+        type: editingApp.type || 'CDI',
+        location: editingApp.location || '',
+        url: editingApp.url || ''
+      });
     } else {
       setFormData({
-        company: '', role: '', date: new Date().toISOString().split('T')[0], status: 'Postulé', type: 'CDI', location: '', url: ''
+        company: '',
+        role: '',
+        source: 'LinkedIn',
+        customSource: '',
+        date: new Date().toISOString().split('T')[0],
+        responseDate: '',
+        status: 'Postulé',
+        type: 'CDI',
+        location: '',
+        url: ''
       });
     }
   }, [editingApp, isOpen]);
 
   if (!isOpen) return null;
 
+  const handleStatusChange = (newStatus) => {
+    const isAnswered = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(newStatus);
+    const todayStr = new Date().toISOString().split('T')[0];
+    setFormData(prev => ({
+      ...prev,
+      status: newStatus,
+      responseDate: isAnswered ? (prev.status !== newStatus ? todayStr : (prev.responseDate || todayStr)) : ''
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    const finalSource = formData.source === 'Autre' && formData.customSource.trim()
+      ? formData.customSource.trim()
+      : formData.source;
+
+    const isAnswered = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(formData.status);
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const payload = {
+      ...formData,
+      source: finalSource,
+      responseDate: isAnswered ? (formData.responseDate || todayStr) : '',
+      statusModifiedAt: todayStr
+    };
+
     if (editingApp) {
-      onSave({ ...formData, id: editingApp.id }, true);
+      onSave({ ...payload, id: editingApp.id }, true);
     } else {
-      const newApp = { ...formData, id: Date.now() };
+      const newApp = { ...payload, id: Date.now() };
       onSave(newApp, false);
     }
     onClose();
   };
 
+  const isAnsweredStatus = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(formData.status);
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-xs">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 dark:text-white border dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 dark:text-white border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-800 dark:text-white">
             {editingApp ? t.editApplication : t.addApplication}
@@ -135,6 +283,30 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
             <input required type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
               value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} placeholder={t.rolePlaceholder} />
           </div>
+          
+          {/* Source selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.source}</label>
+            <select 
+              className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              value={formData.source}
+              onChange={e => setFormData({...formData, source: e.target.value})}
+            >
+              {SOURCE_KEYS.map(sourceKey => (
+                <option key={sourceKey} value={sourceKey}>{getSourceLabel(sourceKey, t)}</option>
+              ))}
+            </select>
+            {formData.source === 'Autre' && (
+              <input
+                type="text"
+                className="mt-2 w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder={t.sourceCustomPlaceholder || "Préciser la source..."}
+                value={formData.customSource}
+                onChange={e => setFormData({...formData, customSource: e.target.value})}
+              />
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.date}</label>
@@ -151,15 +323,33 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
               </select>
             </div>
           </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.status}</label>
             <select className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-              value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+              value={formData.status} onChange={e => handleStatusChange(e.target.value)}>
               {STATUS_KEYS.map(statusKey => (
                 <option key={statusKey} value={statusKey}>{getStatusLabel(statusKey, t)}</option>
               ))}
             </select>
           </div>
+
+          {/* Response Date (shown if answered status) */}
+          {isAnsweredStatus && (
+            <div className="p-3 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg">
+              <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1 flex items-center gap-1.5">
+                <Timer size={14} /> {t.responseDate}
+              </label>
+              <input 
+                type="date" 
+                className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none" 
+                value={formData.responseDate} 
+                onChange={e => setFormData({...formData, responseDate: e.target.value})} 
+              />
+              <p className="text-[11px] text-blue-700 dark:text-blue-400 mt-1">{t.responseDateHelp || "Permet de calculer le délai moyen de réponse."}</p>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.offerUrl}</label>
             <input type="url" className="w-full p-2.5 border rounded-lg bg-white text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
@@ -220,11 +410,20 @@ export default function App() {
   const [applications, setApplications] = useState(() => {
     try {
       const saved = localStorage.getItem('postutrack_applications');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map(app => ({
+            ...app,
+            source: app.source || 'LinkedIn',
+            responseDate: app.responseDate || ''
+          }));
+        }
+      }
     } catch (e) {
       console.error(e);
     }
-    return [];
+    return DEFAULT_APPLICATIONS;
   });
 
   useEffect(() => {
@@ -446,6 +645,118 @@ ${aiResult.coverLetter}`;
   const totalApplications = applications.length;
   const interviewsCount = applications.filter(app => app.status === 'Entretien' || app.status === 'Interview').length;
   const offersCount = applications.filter(app => app.status === 'Offre' || app.status === 'Offer').length;
+  const rejectionsCount = applications.filter(app => app.status === 'Refusé' || app.status === 'Rejected').length;
+
+  const answeredApps = useMemo(() => {
+    return applications.filter(app => ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(app.status) || Boolean(app.responseDate));
+  }, [applications]);
+
+  const avgResponseDays = useMemo(() => {
+    const responseTimes = answeredApps
+      .map(getResponseDays)
+      .filter(days => days !== null && !isNaN(days));
+
+    return responseTimes.length > 0
+      ? (responseTimes.reduce((acc, curr) => acc + curr, 0) / responseTimes.length).toFixed(1)
+      : null;
+  }, [answeredApps]);
+
+  const overallReplyRate = useMemo(() => {
+    if (totalApplications === 0) return 0;
+    return Math.round((answeredApps.length / totalApplications) * 100);
+  }, [answeredApps.length, totalApplications]);
+
+  const sourceStats = useMemo(() => {
+    const map = {};
+
+    applications.forEach(app => {
+      const rawSource = app.source || 'LinkedIn';
+      if (!map[rawSource]) {
+        map[rawSource] = {
+          source: rawSource,
+          total: 0,
+          interviews: 0,
+          offers: 0,
+          rejections: 0,
+          pending: 0,
+          answered: 0,
+          responseTimes: []
+        };
+      }
+      const item = map[rawSource];
+      item.total += 1;
+
+      const isInterview = app.status === 'Entretien' || app.status === 'Interview';
+      const isOffer = app.status === 'Offre' || app.status === 'Offer';
+      const isRejected = app.status === 'Refusé' || app.status === 'Rejected';
+      const isAnswered = isInterview || isOffer || isRejected || Boolean(app.responseDate);
+
+      if (isInterview) item.interviews += 1;
+      if (isOffer) item.offers += 1;
+      if (isRejected) item.rejections += 1;
+
+      if (isAnswered) {
+        item.answered += 1;
+        const days = getResponseDays(app);
+        if (days !== null && !isNaN(days)) {
+          item.responseTimes.push(days);
+        }
+      } else {
+        item.pending += 1;
+      }
+    });
+
+    const list = Object.values(map).map(item => {
+      const replyRate = item.total > 0 ? Math.round((item.answered / item.total) * 100) : 0;
+      const positiveCount = item.interviews + item.offers;
+      const positiveRate = item.total > 0 ? Math.round((positiveCount / item.total) * 100) : 0;
+      const avgDays = item.responseTimes.length > 0
+        ? (item.responseTimes.reduce((a, b) => a + b, 0) / item.responseTimes.length).toFixed(1)
+        : null;
+      return {
+        ...item,
+        replyRate,
+        positiveCount,
+        positiveRate,
+        avgDays
+      };
+    });
+
+    list.sort((a, b) => b.total - a.total);
+
+    let mostReplies = null;
+    let leastReplies = null;
+
+    if (list.length > 0) {
+      const sortedByReplies = [...list].sort((a, b) => {
+        if (b.replyRate !== a.replyRate) return b.replyRate - a.replyRate;
+        return b.answered - a.answered;
+      });
+      mostReplies = sortedByReplies[0];
+
+      const sortedByLeast = [...list].sort((a, b) => {
+        if (a.replyRate !== b.replyRate) return a.replyRate - b.replyRate;
+        return a.answered - b.answered;
+      });
+      leastReplies = sortedByLeast[0];
+    }
+
+    return { list, mostReplies, leastReplies };
+  }, [applications]);
+
+  const handleInlineStatusChange = (appId, newStatus) => {
+    const isAnswered = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(newStatus);
+    const todayStr = new Date().toISOString().split('T')[0];
+    setApplications(prev => prev.map(item => {
+      if (item.id !== appId) return item;
+      return {
+        ...item,
+        status: newStatus,
+        responseDate: isAnswered ? todayStr : '',
+        statusModifiedAt: todayStr
+      };
+    }));
+  };
 
   const parseAndFillProfile = (text) => {
     const emailMatch = text.match(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/);
@@ -1112,26 +1423,225 @@ STRICT FORMAT RULES:
 
         <div className="flex-1 p-6 overflow-auto">
           {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-                <div className="p-3.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl"><Briefcase size={26} /></div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.totalApplications}</p>
-                  <p className="text-3xl font-bold text-gray-800 dark:text-white mt-1">{totalApplications}</p>
+            <div className="space-y-8 max-w-6xl mx-auto">
+              {/* Top Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                {/* Total Applications */}
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0"><Briefcase size={22} /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.totalApplications}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{totalApplications}</p>
+                  </div>
+                </div>
+
+                {/* Interviews */}
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
+                  <div className="p-3 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl shrink-0"><Clock size={22} /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.interviews}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{interviewsCount}</p>
+                  </div>
+                </div>
+
+                {/* Offers */}
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
+                  <div className="p-3 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0"><CheckCircle size={22} /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.offersReceived}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{offersCount}</p>
+                  </div>
+                </div>
+
+                {/* Rejections */}
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
+                  <div className="p-3 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl shrink-0"><XCircle size={22} /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.rejections}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{rejectionsCount}</p>
+                  </div>
+                </div>
+
+                {/* Average Response Time */}
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl shrink-0"><Timer size={22} /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.avgResponseTime}</p>
+                    {avgResponseDays !== null ? (
+                      <div>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5 flex items-baseline gap-1">
+                          {avgResponseDays} <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{avgResponseDays <= 1 ? t.avgDaySingle : t.avgDays}</span>
+                        </p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{t.basedOnAnswers ? t.basedOnAnswers.replace('{count}', answeredApps.length) : `${answeredApps.length} réponses`}</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-1">{t.noResponseData}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Overall Reply Rate */}
+                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
+                  <div className="p-3 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0"><Percent size={22} /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.replyRate}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{overallReplyRate}%</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{answeredApps.length} / {totalApplications} {t.repliesCount?.toLowerCase() || 'réponses'}</p>
+                  </div>
                 </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-                <div className="p-3.5 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl"><Clock size={26} /></div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.interviews}</p>
-                  <p className="text-3xl font-bold text-gray-800 dark:text-white mt-1">{interviewsCount}</p>
+
+              {/* Platform / Source Analytics Section */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-6">
+                <div className="flex justify-between items-start flex-wrap gap-4 mb-6">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Globe className="text-blue-600 dark:text-blue-400" size={20} />
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.sourceAnalysis}</h3>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t.sourceAnalysisSubtitle}</p>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('applications')} 
+                    className="px-3.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <ListTodo size={14} /> {t.applications}
+                  </button>
                 </div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-                <div className="p-3.5 bg-green-50 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded-xl"><CheckCircle size={26} /></div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.offersReceived}</p>
-                  <p className="text-3xl font-bold text-gray-800 dark:text-white mt-1">{offersCount}</p>
+
+                {/* Highlights: Best & Worst Source cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {/* Most replies source */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 dark:from-emerald-950/40 dark:to-teal-950/20 border border-emerald-200/80 dark:border-emerald-800/60">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                        <TrendingUp size={16} /> {t.mostRepliesSource}
+                      </span>
+                      {sourceStats.mostReplies && (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+                          {sourceStats.mostReplies.replyRate}% {t.replyRate.toLowerCase()}
+                        </span>
+                      )}
+                    </div>
+                    {sourceStats.mostReplies ? (
+                      <div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`px-3 py-1 rounded-lg text-sm font-bold border ${getSourceBadgeStyle(sourceStats.mostReplies.source)}`}>
+                            {getSourceLabel(sourceStats.mostReplies.source, t)}
+                          </span>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                            {sourceStats.mostReplies.answered} / {sourceStats.mostReplies.total} {t.repliesCount.toLowerCase()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          {sourceStats.mostReplies.interviews} {t.interviews.toLowerCase()} • {sourceStats.mostReplies.offers} {t.offersReceived.toLowerCase()} • {sourceStats.mostReplies.rejections} {t.rejections.toLowerCase()}
+                          {sourceStats.mostReplies.avgDays && ` • ~${sourceStats.mostReplies.avgDays} ${t.avgDays}`}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{t.noRepliesYet}</p>
+                    )}
+                  </div>
+
+                  {/* Least replies source */}
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-500/10 to-gray-500/5 dark:from-slate-900/40 dark:to-gray-900/20 border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <TrendingDown size={16} /> {t.leastRepliesSource}
+                      </span>
+                      {sourceStats.leastReplies && (
+                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-600 text-white shadow-xs">
+                          {sourceStats.leastReplies.replyRate}% {t.replyRate.toLowerCase()}
+                        </span>
+                      )}
+                    </div>
+                    {sourceStats.leastReplies ? (
+                      <div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className={`px-3 py-1 rounded-lg text-sm font-bold border ${getSourceBadgeStyle(sourceStats.leastReplies.source)}`}>
+                            {getSourceLabel(sourceStats.leastReplies.source, t)}
+                          </span>
+                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                            {sourceStats.leastReplies.answered} / {sourceStats.leastReplies.total} {t.repliesCount.toLowerCase()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          {sourceStats.leastReplies.pending} {t.pending.toLowerCase()} • {sourceStats.leastReplies.rejections} {t.rejections.toLowerCase()}
+                          {sourceStats.leastReplies.avgDays ? ` • ~${sourceStats.leastReplies.avgDays} ${t.avgDays}` : ''}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{t.noRepliesYet}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Detailed Source Breakdown Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b dark:border-gray-700">
+                        <th className="p-3 font-semibold">{t.source}</th>
+                        <th className="p-3 font-semibold text-center">{t.totalApplications}</th>
+                        <th className="p-3 font-semibold text-center">{t.repliesCount}</th>
+                        <th className="p-3 font-semibold min-w-[160px]">{t.replyRate}</th>
+                        <th className="p-3 font-semibold text-center">{t.positiveRate}</th>
+                        <th className="p-3 font-semibold text-right">{t.avgResponseTime}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/80">
+                      {sourceStats.list.map((item) => (
+                        <tr key={item.source} className="hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors">
+                          <td className="p-3 font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getSourceBadgeStyle(item.source)}`}>
+                              {getSourceLabel(item.source, t)}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center font-bold text-gray-800 dark:text-gray-200">{item.total}</td>
+                          <td className="p-3 text-center text-xs">
+                            <span className="font-semibold text-gray-700 dark:text-gray-300">{item.answered}</span>
+                            <span className="text-gray-400 dark:text-gray-500 ml-1">({item.interviews} E, {item.offers} O, {item.rejections} R)</span>
+                          </td>
+                          <td className="p-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                                <div 
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    item.replyRate >= 60 ? 'bg-emerald-500' : item.replyRate >= 30 ? 'bg-amber-500' : 'bg-slate-400'
+                                  }`}
+                                  style={{ width: `${item.replyRate}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-9 text-right">{item.replyRate}%</span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                              item.positiveRate > 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'
+                            }`}>
+                              {item.positiveRate}%
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            {item.avgDays !== null ? (
+                              <span className="inline-flex items-center gap-1 font-semibold text-gray-800 dark:text-gray-200">
+                                <Timer size={13} className="text-amber-500" /> {item.avgDays} {item.avgDays <= 1 ? t.avgDaySingle : t.avgDays}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {sourceStats.list.length === 0 && (
+                        <tr>
+                          <td colSpan="6" className="p-6 text-center text-gray-400 dark:text-gray-500 text-sm">
+                            {t.noApplications}
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -1151,6 +1661,7 @@ STRICT FORMAT RULES:
                     <tr className="bg-gray-100/60 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs uppercase tracking-wider">
                       <th className="p-3.5">{t.company}</th>
                       <th className="p-3.5">{t.role}</th>
+                      <th className="p-3.5">{t.source}</th>
                       <th className="p-3.5">{t.contract}</th>
                       <th className="p-3.5">{t.date}</th>
                       <th className="p-3.5">{t.status}</th>
@@ -1160,26 +1671,47 @@ STRICT FORMAT RULES:
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
                     {applications.map(app => (
                       <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td className="p-3.5 font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                          {app.company}
-                          {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center"><ExternalLink size={14} /></a>}
+                        <td className="p-3.5 font-semibold text-gray-900 dark:text-gray-100">
+                          <div className="flex items-center gap-2">
+                            {app.company}
+                            {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center" title="Lien vers l'offre"><ExternalLink size={14} /></a>}
+                          </div>
                         </td>
-                        <td className="p-3.5 text-gray-700 dark:text-gray-300">{app.role}</td>
-                        <td className="p-3.5"><span className="px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-xs font-medium border dark:border-gray-600">{getContractLabel(app.type, t)}</span></td>
-                        <td className="p-3.5 text-gray-500 dark:text-gray-400 text-xs">{app.date}</td>
+                        <td className="p-3.5 text-gray-700 dark:text-gray-300 font-medium">{app.role}</td>
                         <td className="p-3.5">
-                          <select
-                            value={app.status}
-                            onChange={(e) => setApplications(applications.map(item => item.id === app.id ? { ...item, status: e.target.value } : item))}
-                            className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity ${getStatusColor(app.status)}`}
-                            style={{ textAlignLast: 'center' }}
-                          >
-                            {STATUS_KEYS.map(statusKey => (
-                              <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium">
-                                {getStatusLabel(statusKey, t)}
-                              </option>
-                            ))}
-                          </select>
+                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
+                            {getSourceLabel(app.source || 'LinkedIn', t)}
+                          </span>
+                        </td>
+                        <td className="p-3.5"><span className="px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-xs font-medium border dark:border-gray-600">{getContractLabel(app.type, t)}</span></td>
+                        <td className="p-3.5 text-gray-500 dark:text-gray-400 text-xs">
+                          <div>{app.date}</div>
+                          {app.responseDate && (
+                            <div className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5" title={`${t.responseDate}: ${app.responseDate}`}>
+                              <Clock size={11} /> {app.responseDate}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <select
+                              value={app.status}
+                              onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
+                              className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity ${getStatusColor(app.status)}`}
+                              style={{ textAlignLast: 'center' }}
+                            >
+                              {STATUS_KEYS.map(statusKey => (
+                                <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium">
+                                  {getStatusLabel(statusKey, t)}
+                                </option>
+                              ))}
+                            </select>
+                            {getResponseDays(app) !== null && (
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
+                                <Timer size={11} /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-3.5 text-right space-x-2">
                           <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs font-medium cursor-pointer transition-colors">
@@ -1192,7 +1724,7 @@ STRICT FORMAT RULES:
                       </tr>
                     ))}
                     {applications.length === 0 && (
-                      <tr><td colSpan="6" className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">{t.noApplications}</td></tr>
+                      <tr><td colSpan="7" className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">{t.noApplications}</td></tr>
                     )}
                   </tbody>
                 </table>
