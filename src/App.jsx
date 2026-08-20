@@ -22,19 +22,70 @@ import {
   Copy,
   Sun,
   Moon,
-  Monitor
+  Languages
 } from 'lucide-react';
+import { translations } from './i18n';
 
+const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé'];
+const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
 
-const STATUS_COLORS = {
-  'Postulé': 'bg-blue-100 text-blue-800',
-  'En cours': 'bg-yellow-100 text-yellow-800',
-  'Entretien': 'bg-purple-100 text-purple-800',
-  'Offre': 'bg-green-100 text-green-800',
-  'Refusé': 'bg-red-100 text-red-800',
+const getStatusLabel = (status, t) => {
+  switch (status) {
+    case 'Postulé':
+    case 'Applied':
+      return t.statusApplied;
+    case 'En cours':
+    case 'In Progress':
+      return t.statusInProgress;
+    case 'Entretien':
+    case 'Interview':
+      return t.statusInterview;
+    case 'Offre':
+    case 'Offer':
+      return t.statusOffer;
+    case 'Refusé':
+    case 'Rejected':
+      return t.statusRejected;
+    default:
+      return status;
+  }
 };
 
-function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor }) {
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Postulé':
+    case 'Applied':
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';
+    case 'En cours':
+    case 'In Progress':
+      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300';
+    case 'Entretien':
+    case 'Interview':
+      return 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300';
+    case 'Offre':
+    case 'Offer':
+      return 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300';
+    case 'Refusé':
+    case 'Rejected':
+      return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
+    default:
+      return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  }
+};
+
+const getContractLabel = (type, t) => {
+  switch (type) {
+    case 'CDI': return t.contractCDI;
+    case 'CDD': return t.contractCDD;
+    case 'Stage': return t.contractStage;
+    case 'Alternance': return t.contractAlternance;
+    case 'Freelance': return t.contractFreelance;
+    case 'Intérim': return t.contractInterim;
+    default: return type || 'CDI';
+  }
+};
+
+function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor, t }) {
   const [formData, setFormData] = useState({
     company: '', role: '', date: new Date().toISOString().split('T')[0], status: 'Postulé', type: 'CDI', location: '', url: ''
   });
@@ -63,57 +114,56 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-xs">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 dark:text-white border dark:border-gray-700">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800">{editingApp ? 'Modifier la candidature' : 'Ajouter une candidature'}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-300">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+            {editingApp ? t.editApplication : t.addApplication}
+          </h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
             <XCircle size={24} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Entreprise</label>
-            <input required type="text" className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-              value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} placeholder="Ex: Google" />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.company}</label>
+            <input required type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+              value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} placeholder={t.companyPlaceholder} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Poste</label>
-            <input required type="text" className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-              value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} placeholder="Ex: Développeur React" />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.role}</label>
+            <input required type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+              value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} placeholder={t.rolePlaceholder} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
-              <input type="date" className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.date}</label>
+              <input type="date" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
                 value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type de contrat</label>
-              <select className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.contractType}</label>
+              <select className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
-                <option value="CDI">CDI</option>
-                <option value="CDD">CDD</option>
-                <option value="Stage">Stage</option>
-                <option value="Alternance">Alternance</option>
-                <option value="Freelance">Freelance</option>
-                <option value="Intérim">Intérim</option>
+                {CONTRACT_KEYS.map(contractKey => (
+                  <option key={contractKey} value={contractKey}>{getContractLabel(contractKey, t)}</option>
+                ))}
               </select>
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Statut</label>
-            <select className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.status}</label>
+            <select className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
               value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
-              {Object.keys(STATUS_COLORS).map(status => (
-                <option key={status} value={status}>{status}</option>
+              {STATUS_KEYS.map(statusKey => (
+                <option key={statusKey} value={statusKey}>{getStatusLabel(statusKey, t)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lien de l'offre (URL)</label>
-            <input type="url" className="w-full p-2 border rounded-md bg-white text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-              value={formData.url || ''} onChange={e => setFormData({...formData, url: e.target.value})} placeholder="https://..." />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.offerUrl}</label>
+            <input type="url" className="w-full p-2.5 border rounded-lg bg-white text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
+              value={formData.url || ''} onChange={e => setFormData({...formData, url: e.target.value})} placeholder={t.urlPlaceholder} />
           </div>
           
           {editingApp && (
@@ -121,16 +171,20 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
               <button 
                 type="button" 
                 onClick={() => onGoToTailor(editingApp.id)} 
-                className="w-full py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-md font-medium text-sm hover:bg-indigo-100 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="w-full py-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg font-medium text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
-                <Sparkles size={16} /> Voir / Adapter le CV
+                <Sparkles size={16} /> {t.viewAdaptCV}
               </button>
             </div>
           )}
 
           <div className="pt-4 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-md text-gray-600 dark:text-gray-400 cursor-pointer">Annuler</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md cursor-pointer">Enregistrer</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium cursor-pointer transition-colors">
+              {t.cancel}
+            </button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium cursor-pointer shadow-sm transition-colors">
+              {t.save}
+            </button>
           </div>
         </form>
       </div>
@@ -138,11 +192,29 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
   );
 }
 
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState(null);
+
+  // --- GESTION DE LA LANGUE (FR / EN) ---
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem('postutrack_lang') || 'fr';
+    } catch (e) {
+      return 'fr';
+    }
+  });
+
+  const t = translations[lang] || translations.fr;
+
+  const toggleLanguage = () => {
+    const nextLang = lang === 'fr' ? 'en' : 'fr';
+    setLang(nextLang);
+    try {
+      localStorage.setItem('postutrack_lang', nextLang);
+    } catch (e) {}
+  };
 
   // --- 1. SAUVEGARDE DES CANDIDATURES ---
   const [applications, setApplications] = useState(() => {
@@ -216,14 +288,6 @@ export default function App() {
     }
   }, [apiKey, openAiKey, anthropicKey, selectedAiModel]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('postutrack_apikey', apiKey);
-    } catch (e) {
-      console.error(e);
-    }
-  }, [apiKey]);
-
   const [selectedAppId, setSelectedAppId] = useState('');
   const [jobDescription, setJobDescription] = useState('');
   const [jobUrl, setJobUrl] = useState('');
@@ -249,13 +313,11 @@ export default function App() {
 
   // --- SAUVEGARDE ET RESTAURATION ---
   const handleExportData = () => {
-    // On rassemble les données (on exclut les clés API par sécurité)
     const backup = {
       applications: applications,
       profile: profile
     };
     
-    // On crée un fichier JSON téléchargeable
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -276,15 +338,13 @@ export default function App() {
         if (backup.applications) setApplications(backup.applications);
         if (backup.profile) setProfile(backup.profile);
         
-        // Afficher le message de succès
         setSavedNotice(true);
         setTimeout(() => setSavedNotice(false), 3000);
       } catch (err) {
-        alert("Fichier de sauvegarde invalide ou corrompu.");
+        alert(t.backupInvalidError);
       }
     };
     reader.readAsText(file);
-    // On réinitialise l'input pour pouvoir réimporter le même fichier si besoin
     e.target.value = ''; 
   };
 
@@ -305,7 +365,6 @@ export default function App() {
     }
   };
 
-  // S'assure que le thème est bien appliqué au chargement
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -316,12 +375,14 @@ export default function App() {
 
   const handleCopyLetter = () => {
     if (!aiResult?.coverLetter) return;
-    const letterText = `${profile.fullName || 'Candidat'}
+    const dateStr = new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR');
+    const datePrefix = lang === 'en' ? 'Date:' : 'le';
+    const letterText = `${profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat')}
 ${profile.location || ''}
 ${profile.email || ''}
 ${profile.phone || ''}
 
-${profile.location?.split(',')[0] || 'Paris'}, le ${new Date().toLocaleDateString()}
+${profile.location?.split(',')[0] || (lang === 'en' ? 'City' : 'Paris')}, ${datePrefix} ${dateStr}
 
 ${aiResult.coverLetter}`;
 
@@ -331,11 +392,6 @@ ${aiResult.coverLetter}`;
     });
   };
 
-  const [isCoachLoading, setIsCoachLoading] = useState(false);
-  const [coachError, setCoachError] = useState('');
-  const [coachResult, setCoachResult] = useState(null);
-  const [coachAppId, setCoachAppId] = useState('');
-
   useEffect(() => {
     if (!baseCV || baseCV === profile.masterCV) setBaseCV(profile.masterCV || '');
   }, [profile.masterCV]);
@@ -344,7 +400,6 @@ ${aiResult.coverLetter}`;
     if (!baseLetter || baseLetter === profile.masterLetter) setBaseLetter(profile.masterLetter || '');
   }, [profile.masterLetter]);
 
-  // Sync selectedApp URL to jobUrl if empty
   useEffect(() => {
     if (selectedAppId && !jobUrl) {
       const app = applications.find(a => a.id.toString() === selectedAppId.toString());
@@ -389,8 +444,8 @@ ${aiResult.coverLetter}`;
   }, []);
 
   const totalApplications = applications.length;
-  const interviewsCount = applications.filter(app => app.status === 'Entretien').length;
-  const offersCount = applications.filter(app => app.status === 'Offre').length;
+  const interviewsCount = applications.filter(app => app.status === 'Entretien' || app.status === 'Interview').length;
+  const offersCount = applications.filter(app => app.status === 'Offre' || app.status === 'Offer').length;
 
   const parseAndFillProfile = (text) => {
     const emailMatch = text.match(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/);
@@ -410,7 +465,7 @@ ${aiResult.coverLetter}`;
       const isEmail = line.includes('@');
       const hasNumbers = /\d/.test(line);
       const isURL = line.toLowerCase().includes('http') || line.toLowerCase().includes('www') || line.toLowerCase().includes('linkedin');
-      const isBlacklisted = /curriculum vitae|profil|cv|stage|emploi|alternance|étudiant/i.test(line);
+      const isBlacklisted = /curriculum vitae|profil|cv|resume|job|stage|emploi|alternance|étudiant|candidate/i.test(line);
       const wordCount = line.split(/\s+/).length;
       
       if (line.length > 2 && line.length < 40 && wordCount >= 1 && wordCount <= 4 && !isEmail && !hasNumbers && !isURL && !isBlacklisted) {
@@ -446,9 +501,9 @@ ${aiResult.coverLetter}`;
     if (file.type === 'application/pdf') {
       if (!window.pdfjsLib) {
         if (targetStateSetter === setProfile) {
-          setProfile(p => ({ ...p, masterCV: "Chargement de la librairie PDF en cours..." }));
+          setProfile(p => ({ ...p, masterCV: t.pdfLoading }));
         } else {
-          targetStateSetter("Chargement de la librairie PDF en cours...");
+          targetStateSetter(t.pdfLoading);
         }
         return;
       }
@@ -501,7 +556,7 @@ ${aiResult.coverLetter}`;
   const handleExtractUrl = async () => {
     if (!jobUrl) return;
     setIsExtracting(true);
-    setJobDescription("Extraction de la page web via l'IA en cours...");
+    setJobDescription(t.extractingPage);
     
     try {
       const proxyUrl = `https://r.jina.ai/${encodeURIComponent(jobUrl)}`;
@@ -509,22 +564,22 @@ ${aiResult.coverLetter}`;
         headers: { 'Accept': 'text/plain' }
       });
       
-      if (!response.ok) throw new Error("Erreur réseau ou blocage du site");
+      if (!response.ok) throw new Error(t.networkExtractionError);
       
       let text = await response.text();
       
       text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
-      text = text.replace(/^(Accueil|Connexion|Emplois|Rechercher|Menu).*$/gim, ''); 
+      text = text.replace(/^(Accueil|Home|Connexion|Login|Emplois|Jobs|Rechercher|Search|Menu).*$/gim, ''); 
       text = text.replace(/(\n\s*){3,}/g, '\n\n'); 
       
       if (text && text.length > 100) {
         setJobDescription(text.trim().substring(0, 10000));
       } else {
-        setJobDescription("Texte extrait trop court. Veuillez copier-coller manuellement.");
+        setJobDescription(t.extractedTooShort);
       }
     } catch (e) {
       console.error(e);
-      setJobDescription("Échec de l'extraction automatisée (blocage antibot). Veuillez copier-coller le texte de l'annonce manuellement.");
+      setJobDescription(t.extractFailed);
     } finally {
       setIsExtracting(false);
     }
@@ -533,13 +588,12 @@ ${aiResult.coverLetter}`;
   const handleGenerateAI = async (e) => {
     e.preventDefault();
     
-    // Vérification de la bonne clé selon le modèle sélectionné
-    if (selectedAiModel === 'gemini' && !apiKey.trim()) return setAiError("Veuillez configurer votre clé API Gemini.");
-    if (selectedAiModel === 'openai' && !openAiKey.trim()) return setAiError("Veuillez configurer votre clé API OpenAI.");
-    if (selectedAiModel === 'anthropic' && !anthropicKey.trim()) return setAiError("Veuillez configurer votre clé API Anthropic.");
+    if (selectedAiModel === 'gemini' && !apiKey.trim()) return setAiError(t.missingGeminiKey);
+    if (selectedAiModel === 'openai' && !openAiKey.trim()) return setAiError(t.missingOpenAiKey);
+    if (selectedAiModel === 'anthropic' && !anthropicKey.trim()) return setAiError(t.missingAnthropicKey);
 
     if (!jobDescription.trim()) {
-      setAiError("Veuillez coller la description de l'offre d'emploi avant de générer.");
+      setAiError(t.missingJobDesc);
       return;
     }
     
@@ -548,62 +602,86 @@ ${aiResult.coverLetter}`;
     setAiError('');
 
     const targetApp = applications.find(a => a.id.toString() === selectedAppId);
-    const companyName = targetApp ? targetApp.company : "l'entreprise";
-    const roleName = targetApp ? targetApp.role : "le poste";
+    const companyName = targetApp ? targetApp.company : (lang === 'en' ? 'the company' : "l'entreprise");
+    const roleName = targetApp ? targetApp.role : (lang === 'en' ? 'the position' : 'le poste');
 
-    const customPromptStr = customInstruction.trim() ? `\nCONSIGNES SUPPLÉMENTAIRES DU CANDIDAT :\n${customInstruction}\n` : "";
+    const customPromptStr = customInstruction.trim() ? `\nCUSTOM INSTRUCTIONS FROM CANDIDATE / CONSIGNES SUPPLÉMENTAIRES :\n${customInstruction}\n` : "";
+    const isEn = lang === 'en';
 
     try {
       let prompt = "";
       let responseSchema = {};
 
       if (generationMode === 'cv') {
-        const densityInstructions = cvDensity === 'expanded'
-          ? "Consigne CV : Rédige des descriptions riches (3 à 4 puces par expérience). Objectif : étoffer un parcours court pour remplir harmonieusement une page entière, sans jamais la dépasser."
-          : cvDensity === 'compact'
-          ? "Consigne CV : Sois extrêmement CONCIS et synthétique. Maximum 1 à 2 puces très courtes par expérience. Objectif : faire tenir un long parcours sur UNE SEULE PAGE A4 stricte."
-          : "Consigne CV : Équilibre le contenu. Ajuste dynamiquement le nombre de mots et de puces pour que le résultat final remplisse exactement UNE SEULE PAGE A4, ni plus, ni moins.";
+        const densityInstructions = isEn
+          ? (cvDensity === 'expanded'
+              ? "Resume Density: Write rich bullet points (3-4 bullets per experience) to fill one full A4 page without spilling onto a 2nd page."
+              : cvDensity === 'compact'
+              ? "Resume Density: Be extremely concise (1-2 very short bullets per role) to fit strictly on a single A4 page."
+              : "Resume Density: Balanced content to fit exactly on ONE A4 page.")
+          : (cvDensity === 'expanded'
+              ? "Consigne CV : Rédige des descriptions riches (3 à 4 puces par expérience). Objectif : remplir harmonieusement une page entière A4."
+              : cvDensity === 'compact'
+              ? "Consigne CV : Sois extrêmement CONCIS et synthétique (1 à 2 puces très courtes par expérience) pour tenir sur UNE SEULE PAGE A4 stricte."
+              : "Consigne CV : Équilibre le contenu pour remplir exactement UNE SEULE PAGE A4, ni plus, ni moins.");
 
-        const modificationInstructions = modificationStrategy === 'strict'
-          ? "Consigne Modification : CONSERVATION STRICTE. Ne supprime AUCUNE compétence ou expérience du CV maître. Ajoute uniquement les nouveautés pertinentes."
-          : modificationStrategy === 'rewrite'
-          ? "Consigne Modification : ADAPTATION TOTALE. Filtre et supprime les infos hors-sujet du CV maître pour coller à 100% à l'offre."
-          : "Consigne Modification : FUSION ÉQUILIBRÉE. Adapte l'existant sans perdre l'essence du profil.";
+        const modificationInstructions = isEn
+          ? (modificationStrategy === 'strict'
+              ? "Fidelity: STRICT PRESERVATION. Do not delete existing skills or experiences from master CV. Only add relevant elements."
+              : modificationStrategy === 'rewrite'
+              ? "Fidelity: TOTAL ADAPTATION. Filter and rewrite master CV to match 100% with the job requirements."
+              : "Fidelity: BALANCED FUSION. Adapt existing experiences to highlight relevant skills while preserving authenticity.")
+          : (modificationStrategy === 'strict'
+              ? "Consigne Modification : CONSERVATION STRICTE. Ne supprime AUCUNE compétence ou expérience du CV maître."
+              : modificationStrategy === 'rewrite'
+              ? "Consigne Modification : ADAPTATION TOTALE. Filtre et adapte les infos pour coller à 100% à l'offre."
+              : "Consigne Modification : FUSION ÉQUILIBRÉE. Adapte l'existant sans perdre l'essence du profil.");
 
-        const keywordInstructions = keywordDensity === 'high'
-          ? "Consigne ATS : INJECTION MAXIMALE. Insère autant de mots-clés de l'offre que possible dans les descriptions d'expériences et compétences."
-          : keywordDensity === 'low'
-          ? "Consigne ATS : INJECTION SUBTILE. Ajoute uniquement 2 ou 3 mots-clés essentiels, de manière très naturelle."
-          : "Consigne ATS : INJECTION MODÉRÉE. Ajoute les mots-clés principaux de l'offre si cela a du sens.";
+        const keywordInstructions = isEn
+          ? (keywordDensity === 'high'
+              ? "ATS Keywords: MAXIMUM INJECTION. Insert as many keywords from the job listing into achievements and skills as possible."
+              : keywordDensity === 'low'
+              ? "ATS Keywords: SUBTLE INJECTION. Add 2-3 key keywords organically."
+              : "ATS Keywords: MODERATE INJECTION. Add primary keywords naturally where appropriate.")
+          : (keywordDensity === 'high'
+              ? "Consigne ATS : INJECTION MAXIMALE. Insère autant de mots-clés de l'offre que possible."
+              : keywordDensity === 'low'
+              ? "Consigne ATS : INJECTION SUBTILE. Ajoute uniquement 2 ou 3 mots-clés essentiels."
+              : "Consigne ATS : INJECTION MODÉRÉE. Ajoute les mots-clés principaux de l'offre de façon naturelle.");
 
-        const categoryInstructions = "Consigne Structure Compétences : Regroupe OBLIGATOIREMENT les compétences en catégories. La catégorie principale DOIT strictement s'appeler 'COMPÉTENCES'. Les autres peuvent être 'OUTILS', 'LANGUES'. N'invente pas d'autres noms.";
+        const langDirective = isEn
+          ? "CRITICAL LANGUAGE REQUIREMENT: All generated texts (summary, achievements, education descriptions, skills categories) MUST be written in ENGLISH unless instructed otherwise."
+          : "CONSIGNE DE LANGUE : Rédige l'ensemble du résultat en FRANÇAIS sauf consigne explicite contraire.";
 
-        prompt = `Agis en tant qu'expert en recrutement et ATS. Analyse l'offre d'emploi pour "${companyName}" au poste de "${roleName}":
+        const categorySkillsDefault = isEn ? 'SKILLS' : 'COMPÉTENCES';
+
+        prompt = `Act as an expert recruiter and ATS resume optimization specialist. Analyze the job posting for "${companyName}" for the role of "${roleName}":
         
-DESCRIPTION DE L'OFFRE:
+JOB DESCRIPTION / OFFRE D'EMPLOI:
 ${jobDescription}
 
-PROFIL & CV MAÎTRE:
-Nom : ${profile.fullName}
+CANDIDATE PROFILE & MASTER RESUME:
+Name : ${profile.fullName}
 Email : ${profile.email}
-Téléphone : ${profile.phone}
-Localisation : ${profile.location}
-Contenu CV Maître :
+Phone : ${profile.phone}
+Location : ${profile.location}
+Master CV Content :
 ${baseCV || profile.masterCV}
 
+${langDirective}
 ${densityInstructions}
 ${modificationInstructions}
 ${keywordInstructions}
-${categoryInstructions}
+Skill categories rule: Main skills category MUST be named '${categorySkillsDefault}'. Other groups can be 'TOOLS', 'LANGUAGES' (or 'OUTILS', 'LANGUES' in French).
 ${customPromptStr}
 
-RÈGLES STRICTES ET IMPÉRATIVES DE GÉNÉRATION (ANTI-HALLUCINATION CRITIQUE) :
-1. Le champ "analysisSummary" DOIT faire 3 phrases MAXIMUM.
-2. Le champ "summary" (votre profil en haut du CV) DOIT faire 3 phrases MAXIMUM. LONGUEUR MAXIMALE DE 45 MOTS.
-3. OBLIGATION ABSOLUE : Si l'offre spécifie un type de contrat, durée ou date de début, tu DOIS l'indiquer dans ce "summary" (ex: "À la recherche d'un stage de 6 mois à partir de septembre...").
-4. INTERDICTION ABSOLUE de répéter la même phrase ou les mêmes mots en boucle (ex: ne répète pas le nom de l'entreprise 50 fois). Si tu commences à boucler, arrête-toi immédiatement.
-5. ORDRE STRICT : Tu DOIS impérativement trier les expériences professionnelles et les formations de la plus récente à la plus ancienne (ordre anti-chronologique), en respectant l'ordre du CV maître.
-6. Renvoie UNIQUEMENT un JSON valide sans aucun autre texte.`;
+STRICT GENERATION RULES:
+1. "analysisSummary" MUST be at most 3 sentences.
+2. "summary" (profile intro at the top of the CV) MUST be at most 3 sentences (MAX 45 WORDS).
+3. If the offer specifies contract duration/type/start date, mention it succinctly in the summary.
+4. DO NOT repeat the same sentences in loops.
+5. Sort professional experiences and education in reverse chronological order (most recent first).
+6. Return ONLY valid JSON adhering strictly to the schema.`;
 
         responseSchema = {
           type: "OBJECT",
@@ -655,33 +733,42 @@ RÈGLES STRICTES ET IMPÉRATIVES DE GÉNÉRATION (ANTI-HALLUCINATION CRITIQUE) :
           }
         };
       } else {
-        const toneInstructions = letterTone === 'audacious'
-          ? "Ton audacieux, percutant et direct."
-          : letterTone === 'original'
-          ? "Ton original, créatif et narratif."
-          : "Ton professionnel, structuré, formel et rigoureux.";
+        const toneInstructions = isEn
+          ? (letterTone === 'audacious'
+              ? "Tone: Bold, punchy, direct and compelling."
+              : letterTone === 'original'
+              ? "Tone: Creative, original, storytelling approach."
+              : "Tone: Professional, formal, structured, and polite.")
+          : (letterTone === 'audacious'
+              ? "Ton audacieux, percutant et direct."
+              : letterTone === 'original'
+              ? "Ton original, créatif et narratif."
+              : "Ton professionnel, structuré, formel et rigoureux.");
 
-        prompt = `Agis en tant qu'expert en recrutement. Rédige une lettre de motivation (MAXIMUM 1 page) pour l'entreprise "${companyName}" au poste de "${roleName}".
+        const langDirective = isEn
+          ? "CRITICAL LANGUAGE REQUIREMENT: Write the cover letter in fluent, high-quality ENGLISH."
+          : "CONSIGNE DE LANGUE : Rédige la lettre de motivation en FRANÇAIS.";
+
+        prompt = `Act as an expert career advisor. Write a tailored cover letter (maximum 1 single A4 page) for "${companyName}" for the position "${roleName}".
         
-DESCRIPTION DE L'OFFRE:
+JOB DESCRIPTION:
 ${jobDescription}
 
-PROFIL DU CANDIDAT (Base CV) :
+CANDIDATE RESUME PROFILE:
 ${baseCV || profile.masterCV}
 
-LETTRE DE MOTIVATION MAÎTRE (Base de style/contenu) :
-${baseLetter || profile.masterLetter || "Aucune base, génère à partir du CV."}
+MASTER COVER LETTER (Style/Tone baseline):
+${baseLetter || profile.masterLetter || "Generate directly from the resume and job requirements."}
 
-CONSIGNES :
+${langDirective}
 ${toneInstructions}
 ${customPromptStr}
 
-RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
-1. Ne mets PAS l'en-tête (Nom, adresse, date). Commence DIRECTEMENT par la salutation (ex: "Madame, Monsieur,").
-2. Termine IMPÉRATIVEMENT par une formule de politesse formelle de fin de lettre (ex: "Je vous prie d'agréer...").
-3. Fais des paragraphes clairs séparés par des sauts de ligne (\\n\\n).
-4. INTERDICTION ABSOLUE de répéter les mêmes phrases en boucle.
-5. Renvoie UNIQUEMENT un JSON valide.`;
+STRICT FORMAT RULES:
+1. Do NOT include top headers (Candidate name, address, date) because they are formatted automatically by the layout. Start directly with the formal salutation (e.g. "Dear Hiring Manager," or "Madame, Monsieur,").
+2. End with an appropriate formal closing and signature (e.g. "Sincerely, [Candidate Name]" or "Je vous prie d'agréer...").
+3. Use clear paragraphs separated by double line breaks (\\n\\n).
+4. Return ONLY valid JSON.`;
 
         responseSchema = {
           type: "OBJECT",
@@ -691,16 +778,13 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
         };
       }
 
-      // --- DÉBUT DU BLOC MULTI-IA ---
       let text = "";
-
-      // OpenAI et Anthropic ont besoin qu'on leur injecte le schéma JSON directement dans le texte du prompt
       const finalPrompt = selectedAiModel !== 'gemini' 
-        ? `${prompt}\n\nSchéma JSON STRICT à respecter impérativement pour ta réponse :\n${JSON.stringify(responseSchema, null, 2)}` 
+        ? `${prompt}\n\nSTRICT JSON SCHEMA TO FOLLOW :\n${JSON.stringify(responseSchema, null, 2)}` 
         : prompt;
 
       if (selectedAiModel === 'gemini') {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -709,7 +793,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
           })
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error?.message || "Erreur de connexion à Gemini.");
+        if (!response.ok) throw new Error(result.error?.message || "Error connecting to Gemini API.");
         text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       } else if (selectedAiModel === 'openai') {
@@ -720,14 +804,14 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
             'Authorization': `Bearer ${openAiKey}` 
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini", // Modèle le plus rapide et abordable d'OpenAI
+            model: "gpt-4o-mini",
             temperature: 0.1,
-            response_format: { type: "json_object" }, // Force OpenAI à renvoyer un JSON
+            response_format: { type: "json_object" },
             messages: [{ role: "user", content: finalPrompt }]
           })
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error?.message || "Erreur de connexion à OpenAI.");
+        if (!response.ok) throw new Error(result.error?.message || "Error connecting to OpenAI API.");
         text = result.choices[0].message.content;
 
       } else if (selectedAiModel === 'anthropic') {
@@ -737,21 +821,20 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
             'Content-Type': 'application/json',
             'x-api-key': anthropicKey,
             'anthropic-version': '2023-06-01',
-            'anthropic-dangerously-allow-browser': 'true' // Requis par Anthropic pour les appels depuis le navigateur
+            'anthropic-dangerously-allow-browser': 'true'
           },
           body: JSON.stringify({
-            model: "claude-3-haiku-20240307", // Modèle rapide de Claude
+            model: "claude-3-haiku-20240307",
             max_tokens: 4096,
             temperature: 0.1,
-            system: "Tu dois renvoyer UNIQUEMENT un objet JSON valide, sans aucun texte avant ou après.",
+            system: "Return ONLY a valid JSON object matching the requested schema without any markdown formatting or extra text.",
             messages: [{ role: "user", content: finalPrompt }]
           })
         });
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error?.message || "Erreur de connexion à Anthropic.");
+        if (!response.ok) throw new Error(result.error?.message || "Error connecting to Anthropic API.");
         text = result.content[0].text;
       }
-      // --- FIN DU BLOC MULTI-IA ---
 
       if (text) {
         let parsed;
@@ -769,8 +852,8 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
             if (match) parsed = JSON.parse(match[0]);
             else throw e;
           } catch (e2) {
-            console.error("Texte brut reçu de l'IA :", text);
-            throw new Error("L'IA a généré un JSON invalide. Essayez de relancer.");
+            console.error("Raw AI response:", text);
+            throw new Error(t.invalidAiJson);
           }
         }
         
@@ -783,11 +866,11 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
         }
         setAiResult(parsed);
       } else {
-        throw new Error("L'IA n'a renvoyé aucune donnée.");
+        throw new Error(t.noDataReturned);
       }
     } catch (err) {
       console.error(err);
-      setAiError(`Erreur lors de la génération : ${err.message}`);
+      setAiError(`${t.generationError}: ${err.message}`);
     } finally {
       setIsLoadingAI(false);
     }
@@ -810,7 +893,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
     const cv = aiResult?.cv;
     if (!cv) return null;
 
-    const displayName = cv.fullName || profile.fullName || 'Candidat';
+    const displayName = cv.fullName || profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat');
     const displayLocation = cv.location || profile.location;
     const displayEmail = cv.email || profile.email;
     const displayPhone = cv.phone || profile.phone;
@@ -819,7 +902,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
     let structuredSkills = [];
     if (cv.skills && cv.skills.length > 0) {
       if (typeof cv.skills[0] === 'string') {
-        structuredSkills = [{ category: 'COMPÉTENCES', items: cv.skills }];
+        structuredSkills = [{ category: t.skillsDefaultCategory, items: cv.skills }];
       } else {
         structuredSkills = cv.skills;
       }
@@ -827,7 +910,6 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
 
     return (
       <div className="w-full flex justify-center bg-gray-100 p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
-        {/* Style global injecté pour forcer le format A4 strict sans marge d'impression parasite */}
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             @page {
@@ -853,10 +935,10 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
             breakInside: 'avoid'
           }}
         >
-          {/* En-tête */}
+          {/* Header */}
           <div className="text-center mb-1">
             <h1 className="text-3xl font-normal mb-1">{displayName}</h1>
-            <div className="text-[12px] flex justify-center items-center gap-3 flex-wrap text-gray-700 dark:text-gray-300">
+            <div className="text-[12px] flex justify-center items-center gap-3 flex-wrap text-gray-700">
               {displayLocation && <span>{displayLocation}</span>}
               {displayEmail && <span>| {displayEmail}</span>}
               {displayPhone && <span>| {displayPhone}</span>}
@@ -864,23 +946,25 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
             </div>
           </div>
           
-          {/* Profil / Résumé */}
+          {/* Summary */}
           {cv.summary && (
             <div>
               <p className="text-[12.5px] leading-relaxed text-justify">{cv.summary}</p>
             </div>
           )}
 
-          {/* Expériences */}
+          {/* Experiences */}
           {cv.experiences && cv.experiences.length > 0 && (
             <div>
-              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">Expérience Professionnelle</h3>
+              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">
+                {t.experienceTitle}
+              </h3>
               <div className="flex flex-col gap-3">
                 {cv.experiences.map((exp, idx) => (
                   <div key={idx}>
                     <div className="flex justify-between items-baseline mb-0.5">
                       <div className="font-bold text-[13px]">{exp.company}</div>
-                      <div className="text-[12px] text-gray-700 dark:text-gray-300">{exp.period}</div>
+                      <div className="text-[12px] text-gray-700">{exp.period}</div>
                     </div>
                     <div className="italic text-[12.5px] mb-0.5 text-gray-800">{exp.role}</div>
                     <ul className="list-disc list-inside text-[12px] space-y-0.5 pl-1.5 text-gray-900">
@@ -892,29 +976,33 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
             </div>
           )}
 
-          {/* Formation */}
+          {/* Education */}
           {cv.education && cv.education.length > 0 && (
             <div>
-              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">Formation</h3>
+              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">
+                {t.educationTitle}
+              </h3>
               <div className="flex flex-col gap-2.5">
                 {cv.education.map((edu, idx) => (
                   <div key={idx}>
                     <div className="flex justify-between items-baseline mb-0.5">
                       <strong className="text-[13px]">{edu.school}</strong>
-                      <span className="text-[12px] text-gray-700 dark:text-gray-300">{edu.year}</span>
+                      <span className="text-[12px] text-gray-700">{edu.year}</span>
                     </div>
                     <div className="italic text-[12.5px] text-gray-800">{edu.degree}</div>
-                    {edu.description && <p className="text-[12px] text-gray-700 dark:text-gray-300 mt-0.5 leading-snug">{edu.description}</p>}
+                    {edu.description && <p className="text-[12px] text-gray-700 mt-0.5 leading-snug">{edu.description}</p>}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Compétences */}
+          {/* Skills */}
           {structuredSkills.length > 0 && (
             <div>
-              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">Compétences</h3>
+              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">
+                {t.skillsTitle}
+              </h3>
               <div className="flex flex-col gap-1.5 text-[12px] w-full">
                 {structuredSkills.map((group, idx) => (
                   <div key={idx} className="flex flex-row items-start">
@@ -927,10 +1015,19 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
               </div>
             </div>
           )}
-          
         </div>
       </div>
     );
+  };
+
+  const getTabHeading = () => {
+    switch (activeTab) {
+      case 'dashboard': return t.dashboard;
+      case 'applications': return t.applications;
+      case 'tailor': return t.tailor;
+      case 'profile': return t.profile;
+      default: return activeTab;
+    }
   };
 
   const renderSidebar = () => (
@@ -941,17 +1038,17 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
         </h1>
       </div>
       <nav className="flex-1 px-4 space-y-2">
-        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
-          <LayoutDashboard size={20} /> Tableau de bord
+        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+          <LayoutDashboard size={20} /> {t.dashboard}
         </button>
-        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
-          <ListTodo size={20} /> Mes Candidatures
+        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+          <ListTodo size={20} /> {t.applications}
         </button>
-        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
-          <Sparkles size={20} className="text-amber-500" /> Adaptateur CV & IA
+        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors cursor-pointer ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+          <Sparkles size={20} className="text-amber-500" /> {t.tailor}
         </button>
-        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-500 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'}`}>
-          <UserCheck size={20} className="text-emerald-500" /> Mon Profil
+        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
+          <UserCheck size={20} className="text-emerald-500" /> {t.profile}
         </button>
       </nav>
     </aside>
@@ -962,126 +1059,170 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
       {renderSidebar()}
       <main className="flex-1 flex flex-col min-w-0">
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 px-6 py-4 flex justify-between items-center print:hidden transition-colors duration-200">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white capitalize">{activeTab === 'tailor' ? 'Adaptateur CV & IA' : activeTab}</h2>
-          <div className="flex items-center gap-4"><div className="flex items-center gap-4">
-            
+          <div className="flex items-center gap-3">
+            {/* Mobile Title Icon */}
+            <div className="md:hidden font-bold text-blue-600 text-lg">PostuTrack</div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white hidden md:block">
+              {getTabHeading()}
+            </h2>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {/* BOUTON DE CHANGEMENT DE LANGUE (FR / EN) */}
+            <button 
+              onClick={toggleLanguage} 
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-xs"
+              title={t.switchLanguage}
+              aria-label={t.switchLanguage}
+            >
+              <Languages size={15} className="text-blue-600 dark:text-blue-400" />
+              <span className="flex items-center gap-1 tracking-wider">
+                <span className={lang === 'fr' ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}>FR</span>
+                <span className="text-gray-300 dark:text-gray-600 text-[10px]">|</span>
+                <span className={lang === 'en' ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}>EN</span>
+              </span>
+            </button>
+
             {/* BOUTON DU THÈME */}
             <button 
-  onClick={toggleTheme} 
-  className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center cursor-pointer"
-  title="Changer de thème"
->
-  {theme === 'dark' ? <Sun size={20} className="text-yellow-400" /> : <Moon size={20} />}
-</button>
+              onClick={toggleTheme} 
+              className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center cursor-pointer"
+              title={t.toggleTheme}
+            >
+              {theme === 'dark' ? <Sun size={19} className="text-yellow-400" /> : <Moon size={19} />}
+            </button>
 
-            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-blue-50 dark:bg-blue-900/30 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-blue-100 dark:border-gray-700 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors">
+            {/* PROFIL AVATAR */}
+            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-full border border-blue-100 dark:border-gray-700 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors">
               <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
                 {getInitials(profile.fullName)}
               </div>
-              <span className="text-xs font-semibold text-blue-900 dark:text-blue-400 dark:text-gray-200">{profile.fullName || 'Utilisateur'}</span>
+              <span className="text-xs font-semibold text-blue-900 dark:text-blue-300 max-w-[120px] truncate">{profile.fullName || t.user}</span>
             </div>
-          </div>
           </div>
         </header>
 
+        {/* Mobile Navigation Tabs */}
+        <div className="md:hidden flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 overflow-x-auto print:hidden">
+          <button onClick={() => setActiveTab('dashboard')} className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>{t.dashboard}</button>
+          <button onClick={() => setActiveTab('applications')} className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>{t.applications}</button>
+          <button onClick={() => setActiveTab('tailor')} className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>{t.tailor}</button>
+          <button onClick={() => setActiveTab('profile')} className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>{t.profile}</button>
+        </div>
+
         <div className="flex-1 p-6 overflow-auto">
           {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-                <div className="p-3 bg-blue-100 text-blue-600 dark:text-blue-400 rounded-lg"><Briefcase size={24} /></div>
-                <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Candidatures</p><p className="text-3xl font-bold text-gray-800 dark:text-white">{totalApplications}</p></div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+                <div className="p-3.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl"><Briefcase size={26} /></div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.totalApplications}</p>
+                  <p className="text-3xl font-bold text-gray-800 dark:text-white mt-1">{totalApplications}</p>
+                </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-                <div className="p-3 bg-purple-100 text-purple-600 rounded-lg"><Clock size={24} /></div>
-                <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Entretiens</p><p className="text-3xl font-bold text-gray-800 dark:text-white">{interviewsCount}</p></div>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+                <div className="p-3.5 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl"><Clock size={26} /></div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.interviews}</p>
+                  <p className="text-3xl font-bold text-gray-800 dark:text-white mt-1">{interviewsCount}</p>
+                </div>
               </div>
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-                <div className="p-3 bg-green-100 text-green-600 rounded-lg"><CheckCircle size={24} /></div>
-                <div><p className="text-sm font-medium text-gray-500 dark:text-gray-400">Offres reçues</p><p className="text-3xl font-bold text-gray-800 dark:text-white">{offersCount}</p></div>
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+                <div className="p-3.5 bg-green-50 dark:bg-green-900/40 text-green-600 dark:text-green-400 rounded-xl"><CheckCircle size={26} /></div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.offersReceived}</p>
+                  <p className="text-3xl font-bold text-gray-800 dark:text-white mt-1">{offersCount}</p>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'applications' && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
-              <div className="p-4 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-between items-center">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">Mes Candidatures</h3>
-                <button onClick={() => { setEditingApplication(null); setIsAddModalOpen(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 cursor-pointer">
-                  + Nouvelle Candidature
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors max-w-6xl mx-auto">
+              <div className="p-5 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-center flex-wrap gap-4">
+                <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t.applications}</h3>
+                <button onClick={() => { setEditingApplication(null); setIsAddModalOpen(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer shadow-sm">
+                  {t.newApplication}
                 </button>
               </div>
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 dark:text-gray-300 text-xs uppercase tracking-wider">
-                    <th className="p-3">Entreprise</th>
-                    <th className="p-3">Poste</th>
-                    <th className="p-3">Contrat</th>
-                    <th className="p-3">Date</th>
-                    <th className="p-3">Statut</th>
-                    <th className="p-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
-                  {applications.map(app => (
-                    <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                      <td className="p-3 font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                        {app.company}
-                        {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-500"><ExternalLink size={14} /></a>}
-                      </td>
-                      <td className="p-3 text-gray-700 dark:text-gray-300">{app.role}</td>
-                      <td className="p-3"><span className="px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-full text-xs font-medium border">{app.type || 'CDI'}</span></td>
-                      <td className="p-3 text-gray-500">{app.date}</td>
-                      <td className="p-3">
-                        <select
-                          value={app.status}
-                          onChange={(e) => setApplications(applications.map(item => item.id === app.id ? { ...item, status: e.target.value } : item))}
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity ${STATUS_COLORS[app.status]}`}
-                          style={{ textAlignLast: 'center' }}
-                        >
-                          {Object.keys(STATUS_COLORS).map(status => (
-                            <option key={status} value={status} className="bg-white text-gray-900 font-medium">
-                              {status}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="p-3 text-right space-x-2">
-                        <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:text-gray-700 rounded text-xs font-medium cursor-pointer">Modifier</button>
-                        <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2.5 py-1 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded text-xs font-medium cursor-pointer">Supprimer</button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100/60 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs uppercase tracking-wider">
+                      <th className="p-3.5">{t.company}</th>
+                      <th className="p-3.5">{t.role}</th>
+                      <th className="p-3.5">{t.contract}</th>
+                      <th className="p-3.5">{t.date}</th>
+                      <th className="p-3.5">{t.status}</th>
+                      <th className="p-3.5 text-right">{t.actions}</th>
                     </tr>
-                  ))}
-                  {applications.length === 0 && (
-                    <tr><td colSpan="6" className="p-6 text-center text-gray-500">Aucune candidature enregistrée.</td></tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                    {applications.map(app => (
+                      <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <td className="p-3.5 font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                          {app.company}
+                          {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center"><ExternalLink size={14} /></a>}
+                        </td>
+                        <td className="p-3.5 text-gray-700 dark:text-gray-300">{app.role}</td>
+                        <td className="p-3.5"><span className="px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-xs font-medium border dark:border-gray-600">{getContractLabel(app.type, t)}</span></td>
+                        <td className="p-3.5 text-gray-500 dark:text-gray-400 text-xs">{app.date}</td>
+                        <td className="p-3.5">
+                          <select
+                            value={app.status}
+                            onChange={(e) => setApplications(applications.map(item => item.id === app.id ? { ...item, status: e.target.value } : item))}
+                            className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity ${getStatusColor(app.status)}`}
+                            style={{ textAlignLast: 'center' }}
+                          >
+                            {STATUS_KEYS.map(statusKey => (
+                              <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium">
+                                {getStatusLabel(statusKey, t)}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="p-3.5 text-right space-x-2">
+                          <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs font-medium cursor-pointer transition-colors">
+                            {t.edit}
+                          </button>
+                          <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2.5 py-1 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-md text-xs font-medium cursor-pointer transition-colors">
+                            {t.delete}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {applications.length === 0 && (
+                      <tr><td colSpan="6" className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">{t.noApplications}</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {activeTab === 'tailor' && (
             <div className="space-y-6 max-w-6xl mx-auto">
               <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 print:hidden transition-colors ${isPrinting ? 'print:hidden' : ''}`}>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl"><Sparkles size={24} /></div>
+                    <div className="p-2.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-xl"><Sparkles size={24} /></div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-800 dark:text-white">Adaptateur CV & IA</h2>
-                      <p className="text-sm text-gray-500">Générez un CV ou une Lettre optimisés pour l'offre.</p>
+                      <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t.tailor}</h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t.tailorSubtitle}</p>
                     </div>
                   </div>
-                  <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-lg">
+                  <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
                     <button 
                       onClick={() => setGenerationMode('cv')} 
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white dark:bg-gray-700 shadow text-blue-700 dark:text-blue-500 dark:text-white' : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     >
-                      Mode CV
+                      {t.cvMode}
                     </button>
                     <button 
                       onClick={() => setGenerationMode('letter')} 
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white shadow text-blue-700 dark:text-blue-500' : 'text-gray-600 dark:text-gray-400 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     >
-                      Mode Lettre
+                      {t.letterMode}
                     </button>
                   </div>
                 </div>
@@ -1089,9 +1230,9 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                 <form onSubmit={handleGenerateAI} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Offre associée</label>
-                      <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)}>
-                        <option value="">-- Sans candidature --</option>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.associatedJob}</label>
+                      <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)}>
+                        <option value="">{t.noJobLinked}</option>
                         {applications.map(app => <option key={app.id} value={app.id}>{app.company} - {app.role}</option>)}
                       </select>
                     </div>
@@ -1099,37 +1240,37 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     {generationMode === 'cv' ? (
                       <>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stratégie (Fidélité)</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={modificationStrategy} onChange={(e) => setModificationStrategy(e.target.value)}>
-                            <option value="strict">Strict (Ne rien supprimer)</option>
-                            <option value="balanced">Équilibré (Recommandé)</option>
-                            <option value="rewrite">Adaptation Totale</option>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.strategyFidelity}</label>
+                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={modificationStrategy} onChange={(e) => setModificationStrategy(e.target.value)}>
+                            <option value="strict">{t.strategyStrict}</option>
+                            <option value="balanced">{t.strategyBalanced}</option>
+                            <option value="rewrite">{t.strategyRewrite}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Densité Mots-clés ATS</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={keywordDensity} onChange={(e) => setKeywordDensity(e.target.value)}>
-                            <option value="low">Subtile (2-3 ajouts)</option>
-                            <option value="moderate">Modérée (Équilibrée)</option>
-                            <option value="high">Agressive (Maximiser le score)</option>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.atsKeywordsDensity}</label>
+                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={keywordDensity} onChange={(e) => setKeywordDensity(e.target.value)}>
+                            <option value="low">{t.atsLow}</option>
+                            <option value="moderate">{t.atsModerate}</option>
+                            <option value="high">{t.atsHigh}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Densité du texte CV</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={cvDensity} onChange={(e) => setCvDensity(e.target.value)}>
-                            <option value="expanded">Maximiser (Remplir page)</option>
-                            <option value="standard">Standard</option>
-                            <option value="compact">Compact</option>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.cvTextDensity}</label>
+                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={cvDensity} onChange={(e) => setCvDensity(e.target.value)}>
+                            <option value="expanded">{t.densityExpanded}</option>
+                            <option value="standard">{t.densityStandard}</option>
+                            <option value="compact">{t.densityCompact}</option>
                           </select>
                         </div>
                       </>
                     ) : (
                       <div className="md:col-span-3">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ton de la lettre de motivation</label>
-                        <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={letterTone} onChange={(e) => setLetterTone(e.target.value)}>
-                          <option value="professional">Professionnel & Formel</option>
-                          <option value="audacious">Audacieux & Percutant</option>
-                          <option value="original">Original & Narratif</option>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.letterTone}</label>
+                        <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={letterTone} onChange={(e) => setLetterTone(e.target.value)}>
+                          <option value="professional">{t.toneProfessional}</option>
+                          <option value="audacious">{t.toneAudacious}</option>
+                          <option value="original">{t.toneOriginal}</option>
                         </select>
                       </div>
                     )}
@@ -1139,49 +1280,49 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     {generationMode === 'cv' ? (
                       <div>
                         <div className="flex justify-between items-end mb-1">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Source : CV Maître</label>
-                          <button type="button" onClick={() => setBaseCV(profile.masterCV)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Restaurer</button>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.sourceMasterCV}</label>
+                          <button type="button" onClick={() => setBaseCV(profile.masterCV)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">{t.restore}</button>
                         </div>
-                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-sm font-mono text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={baseCV} onChange={(e) => setBaseCV(e.target.value)} />
+                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-xs font-mono bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={baseCV} onChange={(e) => setBaseCV(e.target.value)} />
                       </div>
                     ) : (
                       <div>
                         <div className="flex justify-between items-end mb-1">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Source : Lettre Maître</label>
-                          <button type="button" onClick={() => setBaseLetter(profile.masterLetter)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Restaurer</button>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.sourceMasterLetter}</label>
+                          <button type="button" onClick={() => setBaseLetter(profile.masterLetter)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">{t.restore}</button>
                         </div>
-                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-sm font-mono text-xs bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={baseLetter} onChange={(e) => setBaseLetter(e.target.value)} placeholder="Modèle de lettre de base..." />
+                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-xs font-mono bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={baseLetter} onChange={(e) => setBaseLetter(e.target.value)} placeholder={t.masterLetterPlaceholder} />
                       </div>
                     )}
                     <div>
                       <div className="flex justify-between items-end mb-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description de l'offre</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.jobDescription}</label>
                         <div className="flex items-center gap-2">
-                          <input type="url" placeholder="Lien URL (Jina AI)" className="px-3 py-1 text-xs border rounded-md w-36 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} />
-                          <button type="button" onClick={handleExtractUrl} disabled={isExtracting || !jobUrl} className="text-xs bg-gray-100 px-3 py-1 rounded border hover:bg-gray-200 dark:text-gray-700 disabled:opacity-50">
-                            {isExtracting ? <Loader2 size={14} className="animate-spin" /> : 'Extraire'}
+                          <input type="url" placeholder={t.urlExtractorPlaceholder} className="px-3 py-1 text-xs border rounded-md w-36 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} />
+                          <button type="button" onClick={handleExtractUrl} disabled={isExtracting || !jobUrl} className="text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded border dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-50 cursor-pointer">
+                            {isExtracting ? <Loader2 size={14} className="animate-spin" /> : t.extractBtn}
                           </button>
                         </div>
                       </div>
-                      <textarea rows={5} className="w-full p-3 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Collez l'annonce ici ou utilisez l'extracteur URL..." value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
+                      <textarea rows={5} className="w-full p-3 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" placeholder={t.jobDescPlaceholder} value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Consignes personnalisées pour l'IA (Optionnel)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.customInstructionsLabel}</label>
                     <textarea 
                       rows={2} 
-                      className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                      placeholder="Ex: Traduis en anglais, insiste sur mon expérience..." 
+                      className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" 
+                      placeholder={t.customInstructionsPlaceholder} 
                       value={customInstruction} 
                       onChange={(e) => setCustomInstruction(e.target.value)} 
                     />
                   </div>
 
-                  {aiError && <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm flex items-center gap-2"><AlertTriangle size={18} /> {aiError}</div>}
+                  {aiError && <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg text-sm flex items-center gap-2"><AlertTriangle size={18} /> {aiError}</div>}
                   <div className="flex justify-end">
-                    <button type="submit" disabled={isLoadingAI} className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-medium shadow-md disabled:opacity-50 cursor-pointer">
-                      {isLoadingAI ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />} {isLoadingAI ? 'Génération en cours...' : `✨ Optimiser ${generationMode === 'cv' ? 'le CV' : 'la Lettre'}`}
+                    <button type="submit" disabled={isLoadingAI} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium shadow-md disabled:opacity-50 cursor-pointer transition-all">
+                      {isLoadingAI ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />} {isLoadingAI ? t.generating : (generationMode === 'cv' ? t.optimizeCV : t.optimizeLetter)}
                     </button>
                   </div>
                 </form>
@@ -1190,21 +1331,21 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
               {/* Display CV Result */}
               {aiResult && generationMode === 'cv' && aiResult.cv && (
                 <div className="space-y-6">
-                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                      <FileText className="text-blue-600 dark:text-blue-400" size={20} /> CV Format RenderCV
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
+                    <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                      <FileText className="text-blue-600 dark:text-blue-400" size={20} /> {t.cvFormatRenderCV}
                     </h3>
                     <div className="flex gap-2">
-                      <button onClick={handleExportRenderCV} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-emerald-700 hover:bg-emerald-100 font-medium cursor-pointer">
-                        <Download size={16} /> YAML
+                      <button onClick={handleExportRenderCV} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-medium cursor-pointer transition-colors">
+                        <Download size={16} /> {t.yamlExport}
                       </button>
-                      <button onClick={triggerPrint} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm cursor-pointer">
-                        <Download size={16} /> PDF
+                      <button onClick={triggerPrint} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm cursor-pointer transition-colors">
+                        <Download size={16} /> {t.pdfExport}
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex justify-center bg-gray-200">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex justify-center bg-gray-200 dark:bg-gray-900">
                     {renderCVTemplate()}
                   </div>
                 </div>
@@ -1213,26 +1354,23 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
               {/* Display Letter Result */}
               {aiResult && generationMode === 'letter' && aiResult.coverLetter && (
                 <div className="space-y-6">
-                  
-                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
-                    <h3 className="font-bold text-gray-800 flex items-center gap-2"><Sparkles className="text-indigo-600" size={20} /> Lettre de Motivation</h3>                
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
+                    <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2"><Sparkles className="text-indigo-600 dark:text-indigo-400" size={20} /> {t.coverLetterTitle}</h3>                
                     <div className="flex gap-2">
                       <button 
                         onClick={handleCopyLetter} 
-                        className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-100 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 font-medium shadow-sm cursor-pointer transition-all"
+                        className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-medium shadow-sm cursor-pointer transition-all"
                       >
-                        {isCopied ? <CheckCircle size={16} className="text-emerald-600" /> : <Copy size={16} />} 
-                        {isCopied ? <span className="text-emerald-700">Copié !</span> : 'Copier le texte'}
+                        {isCopied ? <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={16} />} 
+                        {isCopied ? <span className="text-emerald-700 dark:text-emerald-400">{t.copied}</span> : t.copyText}
                       </button>
-                      <button onClick={triggerPrint} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm cursor-pointer">
-                        <Download size={16} /> Imprimer / PDF
+                      <button onClick={triggerPrint} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm cursor-pointer transition-colors">
+                        <Download size={16} /> {t.printPdf}
                       </button>
                     </div>
-
                   </div>
                   
-                  {/* APPLICATION DES MÊMES RÈGLES D'IMPRESSION QUE LE CV */}
-                  <div className="w-full flex justify-center bg-gray-100 p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
+                  <div className="w-full flex justify-center bg-gray-100 dark:bg-gray-900 p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
                     <style dangerouslySetInnerHTML={{__html: `
                       @media print {
                         @page {
@@ -1259,13 +1397,13 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     >
                       <div className="mb-10 flex justify-between items-start">
                         <div>
-                          <p className="font-bold text-base text-black">{profile.fullName || 'Candidat'}</p>
+                          <p className="font-bold text-base text-black">{profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat')}</p>
                           <p>{profile.location}</p>
                           <p>{profile.email}</p>
                           <p>{profile.phone}</p>
                         </div>
-                        <div className="text-right text-gray-600 dark:text-gray-400">
-                          <p>{profile.location?.split(',')[0] || 'Paris'}, le {new Date().toLocaleDateString()}</p>
+                        <div className="text-right text-gray-600">
+                          <p>{profile.location?.split(',')[0] || (lang === 'en' ? 'City' : 'Paris')}, {lang === 'en' ? 'Date:' : 'le'} {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')}</p>
                         </div>
                       </div>
                       <div className="space-y-4 text-justify whitespace-pre-line flex-1">
@@ -1280,90 +1418,90 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
 
           {activeTab === 'profile' && (
             <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">Profil & Documents Maîtres</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">{t.profileTitle}</h2>
               <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('postutrack_profile', JSON.stringify(profile)); setSavedNotice(true); setTimeout(() => setSavedNotice(false), 3000); }} className="space-y-6">
                 
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
                   <div className="flex justify-between items-center flex-wrap gap-4">
                     <div>
-                      <h4 className="font-bold text-emerald-700 dark:text-emerald-500text-sm">⚡ Importation automatique du profil</h4>
-                      <p className="text-xs text-emerald-700 mt-0.5">Importez votre CV (PDF ou TXT) pour remplir vos coordonnées et votre CV Maître en un clic.</p>
+                      <h4 className="font-bold text-emerald-800 dark:text-emerald-400 text-sm">{t.autoImportTitle}</h4>
+                      <p className="text-xs text-emerald-700 dark:text-emerald-500 mt-0.5">{t.autoImportSubtitle}</p>
                     </div>
                     <label className="cursor-pointer text-xs flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-emerald-700 font-medium transition-colors">
-                      <Upload size={16} /> Importer un CV
+                      <Upload size={16} /> {t.importCVBtn}
                       <input type="file" accept=".pdf,.txt" className="hidden" onChange={(e) => handleFileUpload(e, setProfile)} />
                     </label>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-medium mb-1">Nom</label><input type="text" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.fullName || ''} onChange={e => setProfile({...profile, fullName: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">Email</label><input type="email" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">Téléphone</label><input type="text" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.phone || ''} onChange={e => setProfile({...profile, phone: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">Localisation</label><input type="text" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.location || ''} onChange={e => setProfile({...profile, location: e.target.value})} /></div>
-                  <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Site Web / LinkedIn</label><input type="text" className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.website || ''} onChange={e => setProfile({...profile, website: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium mb-1">{t.fullName}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.fullName || ''} onChange={e => setProfile({...profile, fullName: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium mb-1">{t.email}</label><input type="email" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium mb-1">{t.phone}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.phone || ''} onChange={e => setProfile({...profile, phone: e.target.value})} /></div>
+                  <div><label className="block text-sm font-medium mb-1">{t.location}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.location || ''} onChange={e => setProfile({...profile, location: e.target.value})} /></div>
+                  <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">{t.website}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.website || ''} onChange={e => setProfile({...profile, website: e.target.value})} /></div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">CV Maître</label>
-                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={profile.masterCV || ''} onChange={e => setProfile({...profile, masterCV: e.target.value})} />
+                  <label className="block text-sm font-medium mb-1">{t.masterCVLabel}</label>
+                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={profile.masterCV || ''} onChange={e => setProfile({...profile, masterCV: e.target.value})} />
                 </div>
                 <div>
                   <div className="flex justify-between items-end mb-1">
-                    <label className="block text-sm font-medium">Lettre de Motivation Maître (Optionnelle)</label>
-                    <label className="cursor-pointer text-xs flex items-center gap-1.5 px-3 py-1 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 text-gray-700 dark:text-gray-700 font-medium transition-colors">
-                      <Upload size={14} /> Importer (PDF/TXT)
+                    <label className="block text-sm font-medium">{t.masterLetterLabel}</label>
+                    <label className="cursor-pointer text-xs flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium transition-colors">
+                      <Upload size={14} /> {t.importLetterBtn}
                       <input type="file" accept=".pdf,.txt" className="hidden" onChange={(e) => handleFileUpload(e, (text) => setProfile(prev => ({ ...prev, masterLetter: text })))} />
                     </label>
                   </div>
-                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Votre lettre de motivation de base..." value={profile.masterLetter || ''} onChange={e => setProfile({...profile, masterLetter: e.target.value})} />
+                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" placeholder={t.masterLetterPlaceholder} value={profile.masterLetter || ''} onChange={e => setProfile({...profile, masterLetter: e.target.value})} />
                 </div>
 
                 {/* Section Sauvegarde */}
                 <div className="mt-8 p-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl">
                   <div className="flex items-center gap-2 mb-2">
-                    <Download className="text-amber-600" size={20} />
-                    <h4 className="font-bold text-amber-700 dark:text-amber-500">Sauvegarde & Transfert (Backup)</h4>
+                    <Download className="text-amber-600 dark:text-amber-400" size={20} />
+                    <h4 className="font-bold text-amber-800 dark:text-amber-400">{t.backupTitle}</h4>
                   </div>
-                  <p className="text-xs text-amber-700 mb-4">Exportez vos données pour les transférer vers la version logicielle ou pour les mettre en sécurité.</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-500 mb-4">{t.backupSubtitle}</p>
                   <div className="flex flex-wrap gap-3">
                     <button type="button" onClick={handleExportData} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 shadow-sm transition-colors cursor-pointer">
-                      Exporter mes données (.json)
+                      {t.exportDataBtn}
                     </button>
-                    <label className="cursor-pointer px-4 py-2 bg-white border-amber-300 text-amber-700 dark:bg-gray-800 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-gray-700 rounded-lg text-sm font-medium hover:bg-amber-100 shadow-sm transition-colors">
-                      Importer une sauvegarde
+                    <label className="cursor-pointer px-4 py-2 bg-white border border-amber-300 text-amber-700 dark:bg-gray-800 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-gray-700 rounded-lg text-sm font-medium hover:bg-amber-100/50 shadow-xs transition-colors">
+                      {t.importBackupBtn}
                       <input type="file" accept=".json" className="hidden" onChange={handleImportData} />
                     </label>
                   </div>
                 </div>
 
                 {/* Section API Key */}
-                <div className="mt-8 p-5 bg-blue-50 dark:bg-blue-900/30 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl">
+                <div className="mt-8 p-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl">
                   <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
                     <div className="flex items-center gap-2">
                       <Settings className="text-blue-600 dark:text-blue-400" size={20} />
-                      <h4 className="font-bold text-blue-900 dark:text-blue-400">Configuration de l'IA</h4>
+                      <h4 className="font-bold text-blue-900 dark:text-blue-300">{t.aiConfigTitle}</h4>
                     </div>
                     <select 
-                      className="p-2 border border-blue-200 rounded-lg text-sm bg-white text-blue-900 dark:text-blue-400 font-medium shadow-sm outline-none"
+                      className="p-2 border border-blue-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-700 text-blue-900 dark:text-blue-300 font-medium shadow-xs outline-none"
                       value={selectedAiModel}
                       onChange={(e) => setSelectedAiModel(e.target.value)}
                     >
-                      <option value="gemini">Google Gemini (Recommandé)</option>
-                      <option value="openai">OpenAI - ChatGPT</option>
-                      <option value="anthropic">Anthropic - Claude</option>
+                      <option value="gemini">{t.geminiOption}</option>
+                      <option value="openai">{t.openAiOption}</option>
+                      <option value="anthropic">{t.anthropicOption}</option>
                     </select>
                   </div>
                   
-                  <p className="text-xs text-blue-700 dark:text-blue-500 mb-4">Vos clés API sont stockées uniquement sur votre navigateur local. Elles ne sont jamais partagées.</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-400 mb-4">{t.apiKeyPrivacyNote}</p>
                   
                   <div className="space-y-3">
                     {selectedAiModel === 'gemini' && (
                       <div>
-                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-400 mb-1">Clé API Google Gemini</label>
+                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">{t.geminiKeyLabel}</label>
                         <input 
                           type="password" 
-                          placeholder="Collez votre clé commençant par AIzaSy..." 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                          placeholder={t.geminiKeyPlaceholder} 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                           value={apiKey} 
                           onChange={e => setApiKey(e.target.value)} 
                         />
@@ -1372,11 +1510,11 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                     
                     {selectedAiModel === 'openai' && (
                       <div>
-                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-400 mb-1">Clé API OpenAI</label>
+                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">{t.openAiKeyLabel}</label>
                         <input 
                           type="password" 
-                          placeholder="Collez votre clé commençant par sk-proj-..." 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                          placeholder={t.openAiKeyPlaceholder} 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                           value={openAiKey} 
                           onChange={e => setOpenAiKey(e.target.value)} 
                         />
@@ -1385,11 +1523,11 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
 
                     {selectedAiModel === 'anthropic' && (
                       <div>
-                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-400 mb-1">Clé API Anthropic</label>
+                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">{t.anthropicKeyLabel}</label>
                         <input 
                           type="password" 
-                          placeholder="Collez votre clé commençant par sk-ant-..." 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                          placeholder={t.anthropicKeyPlaceholder} 
+                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
                           value={anthropicKey} 
                           onChange={e => setAnthropicKey(e.target.value)} 
                         />
@@ -1398,9 +1536,11 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
                   </div>
                 </div>
 
-                {savedNotice && <div className="p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium flex items-center gap-2"><CheckCircle size={18} /> Profil et Documents sauvegardés !</div>}
+                {savedNotice && <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm font-medium flex items-center gap-2"><CheckCircle size={18} /> {t.profileSavedNotice}</div>}
                 <div className="flex justify-end">
-                  <button type="submit" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-md transition-all cursor-pointer">Enregistrer le profil</button>
+                  <button type="submit" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-md transition-all cursor-pointer">
+                    {t.saveProfileBtn}
+                  </button>
                 </div>
               </form>
             </div>
@@ -1412,6 +1552,7 @@ RÈGLES STRICTES ET IMPÉRATIVES (ANTI-HALLUCINATION CRITIQUE) :
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
         editingApp={editingApplication}
+        t={t}
         onGoToTailor={(appId) => {
           setIsAddModalOpen(false);
           setActiveTab('tailor');
