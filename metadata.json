@@ -1,0 +1,6 @@
+{
+  "name": "PostuTrack",
+  "description": "Suivi intelligent de candidatures et adaptation de CV assistée par IA",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
