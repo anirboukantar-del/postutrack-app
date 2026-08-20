@@ -2125,7 +2125,7 @@ STRICT FORMAT RULES:
         : prompt;
 
       if (selectedAiModel === 'gemini') {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2572,80 +2572,92 @@ STRICT FORMAT RULES:
           {activeTab === 'dashboard' && (
             <div className="space-y-6 sm:space-y-8 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
               {/* Top Metric Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 2xl:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 2xl:gap-6">
                 {/* Total Applications */}
-                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-blue-200 dark:hover:border-blue-800">
-                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-lg sm:rounded-xl shrink-0">
-                    <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800/60 transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.totalApplications}</span>
+                    <div className="p-2 sm:p-2.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0">
+                      <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.totalApplications}</p>
-                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{totalApplications}</p>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
                   </div>
                 </div>
 
                 {/* Interviews */}
-                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-purple-200 dark:hover:border-purple-800">
-                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-lg sm:rounded-xl shrink-0">
-                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-purple-200 dark:hover:border-purple-800/60 transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.interviews}</span>
+                    <div className="p-2 sm:p-2.5 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl shrink-0">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.interviews}</p>
-                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{interviewsCount}</p>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{interviewsCount}</p>
                   </div>
                 </div>
 
                 {/* Offers */}
-                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-emerald-200 dark:hover:border-emerald-800">
-                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-lg sm:rounded-xl shrink-0">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800/60 transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.offersReceived}</span>
+                    <div className="p-2 sm:p-2.5 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
+                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.offersReceived}</p>
-                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{offersCount}</p>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
                   </div>
                 </div>
 
                 {/* Rejections */}
-                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-rose-200 dark:hover:border-rose-800">
-                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-lg sm:rounded-xl shrink-0">
-                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-rose-200 dark:hover:border-rose-800/60 transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.rejections}</span>
+                    <div className="p-2 sm:p-2.5 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl shrink-0">
+                      <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.rejections}</p>
-                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{rejectionsCount}</p>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
                   </div>
                 </div>
 
                 {/* Average Response Time */}
-                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-amber-200 dark:hover:border-amber-800">
-                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-lg sm:rounded-xl shrink-0">
-                    <Timer className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-amber-200 dark:hover:border-amber-800/60 transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.avgResponseTime}</span>
+                    <div className="p-2 sm:p-2.5 bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
+                      <Timer className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.avgResponseTime}</p>
+                  <div>
                     {avgResponseDays !== null ? (
                       <div>
-                        <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5 flex items-baseline gap-1">
-                          {avgResponseDays} <span className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400">{avgResponseDays <= 1 ? t.avgDaySingle : t.avgDays}</span>
+                        <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-baseline gap-1">
+                          {avgResponseDays} <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{avgResponseDays <= 1 ? t.avgDaySingle : t.avgDays}</span>
                         </p>
-                        <p className="text-[9px] sm:text-[10px] 2xl:text-xs text-gray-400 dark:text-gray-500 truncate">{t.basedOnAnswers ? t.basedOnAnswers.replace('{count}', answeredApps.length) : `${answeredApps.length} réponses`}</p>
+                        <p className="text-[11px] 2xl:text-xs text-gray-400 dark:text-gray-500 mt-1 leading-tight">{t.basedOnAnswers ? t.basedOnAnswers.replace('{count}', answeredApps.length) : `${answeredApps.length} réponses`}</p>
                       </div>
                     ) : (
-                      <p className="text-[11px] sm:text-xs font-medium text-gray-400 dark:text-gray-500 mt-1">{t.noResponseData}</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-400 dark:text-gray-500">{t.noResponseData}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Overall Reply Rate */}
-                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-indigo-200 dark:hover:border-indigo-800">
-                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg sm:rounded-xl shrink-0">
-                    <Percent className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800/60 transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.replyRate}</span>
+                    <div className="p-2 sm:p-2.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0">
+                      <Percent className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.replyRate}</p>
-                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{overallReplyRate}%</p>
-                    <p className="text-[9px] sm:text-[10px] 2xl:text-xs text-gray-400 dark:text-gray-500 truncate">{answeredApps.length} / {totalApplications} {t.repliesCount?.toLowerCase() || 'réponses'}</p>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{overallReplyRate}%</p>
+                    <p className="text-[11px] 2xl:text-xs text-gray-400 dark:text-gray-500 mt-1 leading-tight">{answeredApps.length} / {totalApplications} {t.repliesCount?.toLowerCase() || 'réponses'}</p>
                   </div>
                 </div>
               </div>
