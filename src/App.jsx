@@ -46,7 +46,8 @@ import {
   Github,
   ShieldAlert,
   Lock,
-  X
+  X,
+  Info
 } from 'lucide-react';
 import { translations } from './i18n';
 
@@ -2001,7 +2002,7 @@ ${aiResult.coverLetter}`;
 JOB DESCRIPTION / OFFRE D'EMPLOI:
 ${jobDescription}
 
-CANDIDATE PROFILE & MASTER RESUME:
+CANDIDATE PROFILE & MASTER RESUME / PROFIL ET CV MAÎTRE:
 Name : ${profile.fullName}
 Email : ${profile.email}
 Phone : ${profile.phone}
@@ -2017,21 +2018,23 @@ Skill categories rule: Main skills category MUST be named '${categorySkillsDefau
 ${customPromptStr}
 
 STRICT GENERATION RULES:
-1. "analysisSummary" MUST be at most 3 sentences.
-2. "summary" (profile intro at the top of the CV) MUST be at most 3 sentences (MAX 45 WORDS).
-3. If the offer specifies contract duration/type/start date, mention it succinctly in the summary.
-4. DO NOT repeat the same sentences in loops.
+1. You MUST extract, structure, and include ALL professional experiences, education history, and skills from the Master CV into the JSON output. Under NO circumstance should "experiences", "education", or "skills" arrays be empty if data exists in the Master CV.
+2. "summary" is a concise, professional 2-to-3 sentence introductory hook tailored to the position.
+3. CRITICAL: Output ONLY the clean, final polished text. NEVER include word counts, notes in parentheses like "(43 mots respectés)", self-corrections, thoughts, or commentary ("No, wait", "Let's cleanly put...").
+4. If the offer specifies contract duration/type/start date, mention it succinctly in the summary.
 5. Sort professional experiences and education in reverse chronological order (most recent first).
-6. Return ONLY valid JSON adhering strictly to the schema.`;
+6. Return ONLY a valid JSON object matching the schema.`;
 
         responseSchema = {
           type: "OBJECT",
+          required: ["matchScore", "analysisSummary", "injectedKeywords", "cv"],
           properties: {
             matchScore: { type: "INTEGER" },
             analysisSummary: { type: "STRING" },
             injectedKeywords: { type: "ARRAY", items: { type: "STRING" } },
             cv: {
               type: "OBJECT",
+              required: ["fullName", "summary", "experiences", "education", "skills"],
               properties: {
                 fullName: { type: "STRING" },
                 summary: { type: "STRING" },
@@ -2039,6 +2042,7 @@ STRICT GENERATION RULES:
                   type: "ARRAY",
                   items: {
                     type: "OBJECT",
+                    required: ["role", "company", "period", "achievements"],
                     properties: {
                       role: { type: "STRING" },
                       company: { type: "STRING" },
@@ -2051,6 +2055,7 @@ STRICT GENERATION RULES:
                   type: "ARRAY",
                   items: {
                     type: "OBJECT",
+                    required: ["degree", "school", "year"],
                     properties: {
                       degree: { type: "STRING" },
                       school: { type: "STRING" },
@@ -2063,6 +2068,7 @@ STRICT GENERATION RULES:
                   type: "ARRAY", 
                   items: { 
                     type: "OBJECT", 
+                    required: ["category", "items"],
                     properties: {
                       category: { type: "STRING" },
                       items: { type: "ARRAY", items: { type: "STRING" } }
@@ -2198,16 +2204,31 @@ STRICT FORMAT RULES:
           }
         }
         
+        if (generationMode === 'cv' && (!parsed || !parsed.cv)) {
+          throw new Error(`${t.noDataReturned} ${t.pasteOfferManuallyTip}`);
+        }
+        if (generationMode === 'letter' && (!parsed || !parsed.coverLetter)) {
+          throw new Error(`${t.noDataReturned} ${t.pasteOfferManuallyTip}`);
+        }
+        
         if (parsed.cv) {
           parsed.cv.fullName = profile.fullName;
           parsed.cv.email = profile.email;
           parsed.cv.phone = profile.phone;
           parsed.cv.location = profile.location;
           parsed.cv.website = profile.website;
+
+          if (typeof parsed.cv.summary === 'string') {
+            parsed.cv.summary = parsed.cv.summary
+              .replace(/\([^)]*mots?[^)]*\)/gi, '')
+              .replace(/No,?\s*wait:?/gi, '')
+              .replace(/Let's cleanly put[^:]*:/gi, '')
+              .trim();
+          }
         }
         setAiResult(parsed);
       } else {
-        throw new Error(t.noDataReturned);
+        throw new Error(`${t.noDataReturned} ${t.pasteOfferManuallyTip}`);
       }
     } catch (err) {
       console.error(err);
@@ -3121,7 +3142,18 @@ STRICT FORMAT RULES:
                     />
                   </div>
 
-                  {aiError && <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl text-xs sm:text-sm flex items-center gap-2"><AlertTriangle size={18} /> {aiError}</div>}
+                  {aiError && (
+                    <div className="p-3.5 sm:p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl text-xs sm:text-sm space-y-1.5">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                        <span className="font-semibold">{aiError}</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 pl-6.5">
+                        <Info size={14} className="shrink-0 mt-0.5" />
+                        <span>{t.pasteOfferManuallyTip}</span>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-end pt-1">
                     <button type="submit" disabled={isLoadingAI} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold shadow-md disabled:opacity-50 cursor-pointer transition-all text-xs sm:text-sm 2xl:text-base">
                       {isLoadingAI ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />} {isLoadingAI ? t.generating : (generationMode === 'cv' ? t.optimizeCV : t.optimizeLetter)}
@@ -3129,6 +3161,21 @@ STRICT FORMAT RULES:
                   </div>
                 </form>
               </div>
+
+              {/* Empty / Placeholder State when no document has been generated */}
+              {!aiResult && !isLoadingAI && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 p-6 sm:p-8 text-center max-w-2xl mx-auto">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3.5">
+                    <Sparkles size={24} />
+                  </div>
+                  <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-white mb-1.5">{t.noDocumentGeneratedTitle}</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg mx-auto">{t.noDocumentGeneratedDesc}</p>
+                  <div className="mt-4 p-3 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-900/60 rounded-xl text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5 text-left">
+                    <Info size={16} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                    <span className="leading-normal">{t.pasteOfferManuallyTip}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Display CV Result */}
               {aiResult && generationMode === 'cv' && aiResult.cv && (

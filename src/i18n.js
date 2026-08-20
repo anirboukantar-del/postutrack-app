@@ -192,6 +192,9 @@ export const translations = {
     generationError: "Erreur lors de la génération",
     invalidAiJson: "L'IA a généré un JSON invalide. Essayez de relancer.",
     noDataReturned: "L'IA n'a renvoyé aucune donnée.",
+    pasteOfferManuallyTip: "Si aucun CV ou lettre n'est généré (ou en cas d'erreur), pensez à copier et coller manuellement le texte de l'offre d'emploi dans le champ ci-dessus.",
+    noDocumentGeneratedTitle: "Aucun document généré pour le moment",
+    noDocumentGeneratedDesc: "Renseignez la description de l'offre d'emploi ci-dessus et lancez la génération. Si aucun résultat n'est obtenu, pensez à copier-coller manuellement le contenu de l'offre.",
     pdfLoading: "Chargement de la librairie PDF en cours...",
 
     // Startup Privacy & Local Storage Warning
@@ -429,6 +432,9 @@ export const translations = {
     generationError: "Generation error",
     invalidAiJson: "The AI generated invalid JSON. Please try generating again.",
     noDataReturned: "The AI did not return any data.",
+    pasteOfferManuallyTip: "If no resume or cover letter is outputted (or if an error occurs), consider copying and pasting the job offer description text manually into the field above.",
+    noDocumentGeneratedTitle: "No document generated yet",
+    noDocumentGeneratedDesc: "Fill in the job description above and start generation. If no output is produced, consider copying and pasting the job offer content manually.",
     pdfLoading: "Loading PDF library...",
 
     // Startup Privacy & Local Storage Warning
