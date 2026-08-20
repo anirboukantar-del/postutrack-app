@@ -29,7 +29,24 @@ import {
   Percent,
   Share2,
   Layers,
-  Globe
+  Globe,
+  Rocket,
+  Key,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Mail,
+  FileCheck,
+  Trash2,
+  RotateCcw,
+  AlertOctagon,
+  Github,
+  ShieldAlert,
+  Lock,
+  X
 } from 'lucide-react';
 import { translations } from './i18n';
 
@@ -382,10 +399,886 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
   );
 }
 
+function OnboardingStartingPage({
+  t,
+  lang,
+  profile,
+  setProfile,
+  setApplications,
+  apiKey,
+  setApiKey,
+  openAiKey,
+  setOpenAiKey,
+  anthropicKey,
+  setAnthropicKey,
+  selectedAiModel,
+  setSelectedAiModel,
+  onComplete,
+  onSkip,
+  processFile
+}) {
+  const [activeStep, setActiveStep] = useState(1);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [isCvDragging, setIsCvDragging] = useState(false);
+  const [isLetterDragging, setIsLetterDragging] = useState(false);
+  const [importNotice, setImportNotice] = useState('');
+
+  const hasCv = Boolean(profile.masterCV && profile.masterCV.trim().length > 15);
+  const hasLetter = Boolean(profile.masterLetter && profile.masterLetter.trim().length > 15);
+  
+  const currentKey = selectedAiModel === 'gemini' 
+    ? apiKey 
+    : selectedAiModel === 'openai' 
+    ? openAiKey 
+    : anthropicKey;
+  const hasKey = Boolean(currentKey && currentKey.trim().length > 5);
+
+  const countWords = (str) => {
+    if (!str) return 0;
+    return str.trim().split(/\s+/).filter(Boolean).length;
+  };
+
+  const cvWords = countWords(profile.masterCV);
+  const letterWords = countWords(profile.masterLetter);
+
+  const completionCount = (hasCv ? 1 : 0) + (hasLetter ? 1 : 0) + (hasKey ? 1 : 0);
+  const completionPercent = Math.round((completionCount / 3) * 100);
+
+  const handleImportProfileFile = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        let imported = false;
+
+        // Case 1: PostuTrack full backup { profile: {...}, applications: [...] }
+        if (data.profile && typeof data.profile === 'object') {
+          setProfile(prev => ({
+            ...prev,
+            ...data.profile,
+            masterCV: data.profile.masterCV || prev.masterCV || '',
+            masterLetter: data.profile.masterLetter || prev.masterLetter || ''
+          }));
+          if (data.applications && Array.isArray(data.applications) && setApplications) {
+            setApplications(data.applications);
+          }
+          imported = true;
+        } 
+        // Case 2: Standalone Profile object { fullName, email, masterCV, ... }
+        else if (
+          data.fullName !== undefined || 
+          data.email !== undefined || 
+          data.masterCV !== undefined || 
+          data.masterLetter !== undefined ||
+          data.phone !== undefined ||
+          data.location !== undefined
+        ) {
+          setProfile(prev => ({
+            ...prev,
+            fullName: data.fullName ?? prev.fullName ?? '',
+            email: data.email ?? prev.email ?? '',
+            phone: data.phone ?? prev.phone ?? '',
+            location: data.location ?? prev.location ?? '',
+            website: data.website ?? prev.website ?? '',
+            masterCV: data.masterCV ?? prev.masterCV ?? '',
+            masterLetter: data.masterLetter ?? prev.masterLetter ?? ''
+          }));
+          imported = true;
+        }
+
+        if (imported) {
+          // If keys are provided in export, load them
+          if (data.apiKey) setApiKey(data.apiKey);
+          if (data.openAiKey) setOpenAiKey(data.openAiKey);
+          if (data.anthropicKey) setAnthropicKey(data.anthropicKey);
+          if (data.selectedAiModel) setSelectedAiModel(data.selectedAiModel);
+
+          setImportNotice(t.onboardingImportProfileSuccess);
+          setTimeout(() => setImportNotice(''), 4500);
+        } else {
+          alert(t.onboardingImportProfileError);
+        }
+      } catch (err) {
+        console.error("Import profile error:", err);
+        alert(t.onboardingImportProfileError);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleCvDrop = (e) => {
+    e.preventDefault();
+    setIsCvDragging(false);
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFile(e.dataTransfer.files[0], setProfile);
+    }
+  };
+
+  const handleLetterDrop = (e) => {
+    e.preventDefault();
+    setIsLetterDragging(false);
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFile(e.dataTransfer.files[0], (text) => setProfile(prev => ({ ...prev, masterLetter: text })));
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto space-y-8 py-2">
+      {/* Welcome Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 text-white rounded-3xl p-8 sm:p-10 shadow-xl border border-indigo-800/40">
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-semibold tracking-wide">
+              <Rocket size={14} className="text-indigo-400" />
+              {t.onboardingIntroBadge}
+            </div>
+
+            {/* Profile Import Button in Header */}
+            <label 
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold backdrop-blur-xs transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+              title={t.onboardingImportProfileTooltip}
+            >
+              <Upload size={14} className="text-indigo-300" />
+              <span>{t.onboardingImportProfileBtn}</span>
+              <input type="file" accept=".json" className="hidden" onChange={handleImportProfileFile} />
+            </label>
+          </div>
+          
+          <div className="max-w-3xl">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">
+              {t.welcomeTitle}
+            </h1>
+            <p className="text-indigo-100/90 text-sm sm:text-base leading-relaxed">
+              {t.welcomeSubtitle}
+            </p>
+          </div>
+
+          {importNotice && (
+            <div className="p-3.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-100 rounded-2xl text-xs sm:text-sm font-semibold flex items-center gap-2.5 backdrop-blur-xs shadow-lg animate-in fade-in">
+              <CheckCircle size={18} className="text-emerald-300 shrink-0" />
+              <span>{importNotice}</span>
+            </div>
+          )}
+
+          {/* Quick Real-Time Status Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+            {/* CV Status */}
+            <div 
+              onClick={() => setActiveStep(1)} 
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${activeStep === 1 ? 'ring-2 ring-indigo-400 bg-white/10' : 'bg-white/5 hover:bg-white/10'} ${hasCv ? 'border-emerald-400/40' : 'border-white/10'}`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-indigo-200 flex items-center gap-1.5">
+                  <FileText size={14} /> 1. {t.onboardingStep1Title}
+                </span>
+                {hasCv ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                    <Check size={10} /> {t.onboardingCvSuccessBadge}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    {t.onboardingCvPendingBadge}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-indigo-100/80 truncate">
+                {hasCv ? `${profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat')} • ${cvWords} ${t.onboardingWordsCount || (lang === 'en' ? 'words' : 'mots')}` : (lang === 'en' ? 'PDF or TXT format' : 'Format PDF ou TXT')}
+              </p>
+            </div>
+
+            {/* Letter Status */}
+            <div 
+              onClick={() => setActiveStep(2)} 
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${activeStep === 2 ? 'ring-2 ring-indigo-400 bg-white/10' : 'bg-white/5 hover:bg-white/10'} ${hasLetter ? 'border-emerald-400/40' : 'border-white/10'}`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-indigo-200 flex items-center gap-1.5">
+                  <Mail size={14} /> 2. {t.onboardingStep2Title}
+                </span>
+                {hasLetter ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                    <Check size={10} /> {t.onboardingLetterSuccessBadge}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10 text-gray-300 border border-white/10">
+                    {t.onboardingLetterPendingBadge}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-indigo-100/80 truncate">
+                {hasLetter ? `${letterWords} ${t.onboardingWordsCount || (lang === 'en' ? 'words' : 'mots')}` : (lang === 'en' ? 'Standard reference letter' : 'Lettre modèle de référence')}
+              </p>
+            </div>
+
+            {/* API Key Status */}
+            <div 
+              onClick={() => setActiveStep(3)} 
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${activeStep === 3 ? 'ring-2 ring-indigo-400 bg-white/10' : 'bg-white/5 hover:bg-white/10'} ${hasKey ? 'border-emerald-400/40' : 'border-white/10'}`}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-semibold text-indigo-200 flex items-center gap-1.5">
+                  <Key size={14} /> 3. {t.onboardingStep3Title}
+                </span>
+                {hasKey ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                    <Check size={10} /> {selectedAiModel.toUpperCase()}
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                    {t.onboardingKeyPendingBadge}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-indigo-100/80 truncate">
+                {hasKey ? (lang === 'en' ? 'Stored locally & secured' : 'Enregistrée localement') : (lang === 'en' ? 'Free Gemini, OpenAI, Claude' : 'Gemini gratuit, OpenAI, Claude')}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Decorative Background Glow */}
+        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-1/3 -mb-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
+      </div>
+
+      {/* Main Stepper Container */}
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200/80 dark:border-gray-700 overflow-hidden transition-colors">
+        {/* Step Navigation Tabs */}
+        <div className="grid grid-cols-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-850">
+          <button
+            onClick={() => setActiveStep(1)}
+            className={`py-4 px-4 sm:px-6 text-left flex items-center gap-3 transition-colors cursor-pointer border-b-2 ${
+              activeStep === 1
+                ? 'border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+            }`}
+          >
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+              hasCv 
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' 
+                : activeStep === 1 
+                ? 'bg-indigo-600 text-white dark:bg-indigo-500' 
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}>
+              {hasCv ? <Check size={14} /> : '1'}
+            </div>
+            <div className="hidden sm:block min-w-0">
+              <p className="text-xs font-semibold leading-none">{t.onboardingStep1Title}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-1">
+                {hasCv ? t.onboardingCvSuccessBadge : t.onboardingCvPendingBadge}
+              </p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setActiveStep(2)}
+            className={`py-4 px-4 sm:px-6 text-left flex items-center gap-3 transition-colors cursor-pointer border-b-2 ${
+              activeStep === 2
+                ? 'border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+            }`}
+          >
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+              hasLetter 
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' 
+                : activeStep === 2 
+                ? 'bg-indigo-600 text-white dark:bg-indigo-500' 
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}>
+              {hasLetter ? <Check size={14} /> : '2'}
+            </div>
+            <div className="hidden sm:block min-w-0">
+              <p className="text-xs font-semibold leading-none">{t.onboardingStep2Title}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-1">
+                {hasLetter ? t.onboardingLetterSuccessBadge : t.onboardingLetterPendingBadge}
+              </p>
+            </div>
+          </button>
+
+          <button
+            onClick={() => setActiveStep(3)}
+            className={`py-4 px-4 sm:px-6 text-left flex items-center gap-3 transition-colors cursor-pointer border-b-2 ${
+              activeStep === 3
+                ? 'border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-semibold'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+            }`}
+          >
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+              hasKey 
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' 
+                : activeStep === 3 
+                ? 'bg-indigo-600 text-white dark:bg-indigo-500' 
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}>
+              {hasKey ? <Check size={14} /> : '3'}
+            </div>
+            <div className="hidden sm:block min-w-0">
+              <p className="text-xs font-semibold leading-none">{t.onboardingStep3Title}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-1">
+                {hasKey ? t.onboardingKeySuccessBadge : t.onboardingKeyPendingBadge}
+              </p>
+            </div>
+          </button>
+        </div>
+
+        {/* Step Body Content */}
+        <div className="p-6 sm:p-8">
+          {/* STEP 1: IMPORT CV */}
+          {activeStep === 1 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <FileText className="text-indigo-600 dark:text-indigo-400" size={20} />
+                  {t.onboardingStep1Title}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {t.onboardingStep1Subtitle}
+                </p>
+              </div>
+
+              {/* Drag & Drop Target */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsCvDragging(true); }}
+                onDragLeave={() => setIsCvDragging(false)}
+                onDrop={handleCvDrop}
+                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+                  isCvDragging 
+                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 scale-[1.01]' 
+                    : hasCv 
+                    ? 'border-emerald-300 dark:border-emerald-800/60 bg-emerald-50/30 dark:bg-emerald-950/10' 
+                    : 'border-gray-300 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-750 hover:bg-gray-100/50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <div className="max-w-md mx-auto space-y-3">
+                  <div className={`w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shadow-xs ${
+                    hasCv 
+                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' 
+                      : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                  }`}>
+                    {hasCv ? <FileCheck size={28} /> : <Upload size={28} />}
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      {t.onboardingDragOrClick}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      {t.onboardingSupportedFormats}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+                    <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer">
+                      <Upload size={15} />
+                      {t.importCVBtn}
+                      <input 
+                        type="file" 
+                        accept=".pdf,.txt" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            processFile(e.target.files[0], setProfile);
+                            e.target.value = '';
+                          }
+                        }} 
+                      />
+                    </label>
+
+                    <label 
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-650 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/60 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                      title={t.onboardingImportProfileTooltip}
+                    >
+                      <UserCheck size={15} className="text-indigo-500 dark:text-indigo-400" />
+                      {t.onboardingImportProfileBtn}
+                      <input 
+                        type="file" 
+                        accept=".json" 
+                        className="hidden" 
+                        onChange={handleImportProfileFile} 
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Extracted Profile Details Preview */}
+              <div className="p-5 bg-slate-50 dark:bg-gray-750 border border-slate-200 dark:border-gray-700 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                    {t.onboardingExtractedProfileTitle}
+                  </h4>
+                  {hasCv && (
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle size={14} /> {t.onboardingCvSuccessBadge} ({cvWords} {lang === 'en' ? 'words' : 'mots'})
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.fullName}</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={profile.fullName || ''} 
+                      placeholder="Jean Dupont"
+                      onChange={(e) => setProfile(prev => ({ ...prev, fullName: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.email}</label>
+                    <input 
+                      type="email" 
+                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={profile.email || ''} 
+                      placeholder="jean.dupont@email.com"
+                      onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.phone}</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={profile.phone || ''} 
+                      placeholder="+33 6 12 34 56 78"
+                      onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.location}</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={profile.location || ''} 
+                      placeholder="Paris, France"
+                      onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.website}</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={profile.website || ''} 
+                      placeholder="https://linkedin.com/in/jean-dupont"
+                      onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Master CV Raw Textarea */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    {t.onboardingOrPasteDirectly}
+                  </label>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {cvWords} {lang === 'en' ? 'words' : 'mots'} • {profile.masterCV?.length || 0} {lang === 'en' ? 'chars' : 'caractères'}
+                  </span>
+                </div>
+                <textarea 
+                  rows={6}
+                  className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder={lang === 'en' ? "Paste your full resume text here (Experiences, Education, Skills, Projects)..." : "Collez le texte brut complet de votre CV ici (Expériences, Formations, Compétences, Projets)..."}
+                  value={profile.masterCV || ''}
+                  onChange={(e) => setProfile(prev => ({ ...prev, masterCV: e.target.value }))}
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(2)}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                >
+                  {t.onboardingNextBtn} <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 2: IMPORT COVER LETTER */}
+          {activeStep === 2 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Mail className="text-indigo-600 dark:text-indigo-400" size={20} />
+                  {t.onboardingStep2Title}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {t.onboardingStep2Subtitle}
+                </p>
+              </div>
+
+              {/* Drag & Drop Target for Letter */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsLetterDragging(true); }}
+                onDragLeave={() => setIsLetterDragging(false)}
+                onDrop={handleLetterDrop}
+                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+                  isLetterDragging 
+                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 scale-[1.01]' 
+                    : hasLetter 
+                    ? 'border-emerald-300 dark:border-emerald-800/60 bg-emerald-50/30 dark:bg-emerald-950/10' 
+                    : 'border-gray-300 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-750 hover:bg-gray-100/50 dark:hover:bg-gray-700/50'
+                }`}
+              >
+                <div className="max-w-md mx-auto space-y-3">
+                  <div className={`w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shadow-xs ${
+                    hasLetter 
+                      ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' 
+                      : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                  }`}>
+                    {hasLetter ? <FileCheck size={28} /> : <Upload size={28} />}
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                      {t.onboardingDragOrClick}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      {t.onboardingSupportedFormats}
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer">
+                      <Upload size={15} />
+                      {t.importLetterBtn}
+                      <input 
+                        type="file" 
+                        accept=".pdf,.txt" 
+                        className="hidden" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            processFile(e.target.files[0], (text) => setProfile(prev => ({ ...prev, masterLetter: text })));
+                            e.target.value = '';
+                          }
+                        }} 
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Master Letter Textarea */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    {t.masterLetterLabel}
+                  </label>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                    {letterWords} {lang === 'en' ? 'words' : 'mots'} • {profile.masterLetter?.length || 0} {lang === 'en' ? 'chars' : 'caractères'}
+                  </span>
+                </div>
+                <textarea 
+                  rows={7}
+                  className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder={t.masterLetterPlaceholder || (lang === 'en' ? "Paste your favorite cover letter template here (or leave blank to let AI draft from scratch)..." : "Collez votre lettre type de motivation ici (ou laissez vide pour que l'IA génère de zéro)...")}
+                  value={profile.masterLetter || ''}
+                  onChange={(e) => setProfile(prev => ({ ...prev, masterLetter: e.target.value }))}
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(1)}
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <ArrowLeft size={14} /> {t.onboardingPrevBtn}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(3)}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                >
+                  {t.onboardingNextBtn} <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: CONFIGURE API KEY */}
+          {activeStep === 3 && (
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Key className="text-indigo-600 dark:text-indigo-400" size={20} />
+                  {t.onboardingStep3Title}
+                </h3>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {t.onboardingStep3Subtitle}
+                </p>
+              </div>
+
+              {/* Provider Selection Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                {/* Google Gemini Card */}
+                <div
+                  onClick={() => setSelectedAiModel('gemini')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
+                    selectedAiModel === 'gemini'
+                      ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-750'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white">Google Gemini</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                      {lang === 'en' ? 'Free & Recommended' : 'Gratuit & Conseillé'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {lang === 'en' ? 'Fast, generous free tier via Google AI Studio.' : 'Rapide, quota gratuit sans carte bancaire.'}
+                  </p>
+                </div>
+
+                {/* OpenAI Card */}
+                <div
+                  onClick={() => setSelectedAiModel('openai')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    selectedAiModel === 'openai'
+                      ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-750'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white">OpenAI ChatGPT</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      GPT-4o
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {lang === 'en' ? 'Requires an OpenAI platform API account.' : 'Nécessite un compte API OpenAI actif.'}
+                  </p>
+                </div>
+
+                {/* Anthropic Card */}
+                <div
+                  onClick={() => setSelectedAiModel('anthropic')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    selectedAiModel === 'anthropic'
+                      ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-750'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white">Anthropic Claude</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                      Claude 3.5
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {lang === 'en' ? 'Requires an Anthropic Claude console key.' : 'Nécessite une clé Anthropic Console.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Free Gemini Helper Banner */}
+              {selectedAiModel === 'gemini' && (
+                <div className="p-4 bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl flex items-center justify-between flex-wrap gap-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-indigo-900 dark:text-indigo-300">
+                      {t.onboardingFreeGeminiHelp}
+                    </p>
+                    <p className="text-[11px] text-indigo-700 dark:text-indigo-400">
+                      {lang === 'en' ? 'Click below to open Google AI Studio and generate your free key in 1 click.' : 'Cliquez ci-dessous pour ouvrir Google AI Studio et créer votre clé gratuite en 1 clic.'}
+                    </p>
+                  </div>
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors"
+                  >
+                    {t.onboardingGetFreeGeminiBtn}
+                  </a>
+                </div>
+              )}
+
+              {/* Selected Key Input */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {selectedAiModel === 'gemini' 
+                    ? t.geminiKeyLabel 
+                    : selectedAiModel === 'openai' 
+                    ? t.openAiKeyLabel 
+                    : t.anthropicKeyLabel}
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={showApiKey ? 'text' : 'password'}
+                    placeholder={
+                      selectedAiModel === 'gemini'
+                        ? t.geminiKeyPlaceholder
+                        : selectedAiModel === 'openai'
+                        ? t.openAiKeyPlaceholder
+                        : t.anthropicKeyPlaceholder
+                    }
+                    className="w-full p-3.5 pr-11 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                    value={
+                      selectedAiModel === 'gemini'
+                        ? apiKey
+                        : selectedAiModel === 'openai'
+                        ? openAiKey
+                        : anthropicKey
+                    }
+                    onChange={(e) => {
+                      if (selectedAiModel === 'gemini') setApiKey(e.target.value);
+                      else if (selectedAiModel === 'openai') setOpenAiKey(e.target.value);
+                      else setAnthropicKey(e.target.value);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer p-1"
+                    title={showApiKey ? 'Hide' : 'Show'}
+                  >
+                    {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Privacy / Security Notice */}
+              <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl flex items-start gap-3">
+                <ShieldCheck size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-emerald-900 dark:text-emerald-300 space-y-0.5">
+                  <p className="font-semibold">{t.apiKeyPrivacyNote}</p>
+                  <p className="text-emerald-700 dark:text-emerald-400 text-[11px]">
+                    {lang === 'en' 
+                      ? 'All AI calls are executed securely directly from your browser session.' 
+                      : 'Les requêtes IA sont exécutées de manière sécurisée directement depuis votre session de navigation.'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Navigation & Launch */}
+              <div className="pt-4 flex items-center justify-between flex-wrap gap-4 border-t border-gray-100 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep(2)}
+                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <ArrowLeft size={14} /> {t.onboardingPrevBtn}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onComplete}
+                  className="px-7 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                >
+                  <Rocket size={16} /> {t.onboardingCompleteBtn}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Global Footer Actions */}
+        <div className="px-6 sm:px-8 py-4 bg-gray-50 dark:bg-gray-850 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-32 bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+              <div 
+                className="bg-indigo-600 dark:bg-indigo-400 h-full rounded-full transition-all duration-300"
+                style={{ width: `${completionPercent}%` }}
+              />
+            </div>
+            <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+              {completionPercent}% {lang === 'en' ? 'ready' : 'configuré'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline cursor-pointer"
+            >
+              {t.onboardingSkipBtn}
+            </button>
+
+            {activeStep < 3 && (
+              <button
+                type="button"
+                onClick={onComplete}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+              >
+                {t.onboardingCompleteBtn}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState(() => {
+    try {
+      return localStorage.getItem('postutrack_onboarding_completed') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      const isCompleted = localStorage.getItem('postutrack_onboarding_completed') === 'true';
+      return isCompleted ? 'dashboard' : 'onboarding';
+    } catch (e) {
+      return 'onboarding';
+    }
+  });
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState(null);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [resetSuccessNotice, setResetSuccessNotice] = useState(false);
+  const [isStartupWarningDismissed, setIsStartupWarningDismissed] = useState(() => {
+    try {
+      return localStorage.getItem('postutrack_startup_warning_dismissed') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const handleDismissStartupWarning = () => {
+    try {
+      localStorage.setItem('postutrack_startup_warning_dismissed', 'true');
+    } catch (e) {}
+    setIsStartupWarningDismissed(true);
+  };
+
+  const handleCompleteOnboarding = () => {
+    try {
+      localStorage.setItem('postutrack_onboarding_completed', 'true');
+    } catch (e) {}
+    setIsOnboardingCompleted(true);
+    setActiveTab('dashboard');
+  };
+
+  const handleSkipOnboarding = () => {
+    try {
+      localStorage.setItem('postutrack_onboarding_completed', 'true');
+    } catch (e) {}
+    setIsOnboardingCompleted(true);
+    setActiveTab('dashboard');
+  };
 
   // --- GESTION DE LA LANGUE (FR / EN) ---
   const [lang, setLang] = useState(() => {
@@ -410,9 +1303,9 @@ export default function App() {
   const [applications, setApplications] = useState(() => {
     try {
       const saved = localStorage.getItem('postutrack_applications');
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           return parsed.map(app => ({
             ...app,
             source: app.source || 'LinkedIn',
@@ -448,7 +1341,8 @@ export default function App() {
       phone: '',
       location: '',
       website: '',
-      masterCV: ''
+      masterCV: '',
+      masterLetter: ''
     };
   });
 
@@ -461,6 +1355,54 @@ export default function App() {
       console.error(e);
     }
   }, [profile]);
+
+  // --- REINITIALISATION COMPLETE DE L'APPLICATION ---
+  const handleResetAllData = () => {
+    try {
+      localStorage.setItem('postutrack_applications', JSON.stringify([]));
+      localStorage.setItem('postutrack_profile', JSON.stringify({
+        fullName: '',
+        email: '',
+        phone: '',
+        location: '',
+        website: '',
+        masterCV: '',
+        masterLetter: ''
+      }));
+      localStorage.removeItem('postutrack_apikey');
+      localStorage.removeItem('postutrack_openaikey');
+      localStorage.removeItem('postutrack_anthropickey');
+      localStorage.removeItem('postutrack_aimodel');
+      localStorage.removeItem('postutrack_onboarding_completed');
+      localStorage.removeItem('postutrack_startup_warning_dismissed');
+    } catch (e) {
+      console.error(e);
+    }
+    setApplications([]);
+    setProfile({
+      fullName: '',
+      email: '',
+      phone: '',
+      location: '',
+      website: '',
+      masterCV: '',
+      masterLetter: ''
+    });
+    setApiKey('');
+    setOpenAiKey('');
+    setAnthropicKey('');
+    setSelectedAiModel('gemini');
+    setBaseCV('');
+    setBaseLetter('');
+    setAiResult(null);
+    setAiError('');
+    setIsOnboardingCompleted(false);
+    setIsStartupWarningDismissed(false);
+    setIsResetConfirmOpen(false);
+    setActiveTab('onboarding');
+    setResetSuccessNotice(true);
+    setTimeout(() => setResetSuccessNotice(false), 4000);
+  };
 
   // --- 3. SAUVEGARDE DES CLÉS API ET DU MODÈLE ---
   const [apiKey, setApiKey] = useState(() => {
@@ -510,10 +1452,37 @@ export default function App() {
   const [letterTone, setLetterTone] = useState('professional');
   const [isCopied, setIsCopied] = useState(false);
 
-  // --- SAUVEGARDE ET RESTAURATION ---
+  // --- SAUVEGARDE ET EXPORTS AVEC DÉLAIS DE RÉPONSE ---
   const handleExportData = () => {
+    // Calcul et enrichissement des candidatures avec les délais de réponse
+    const enrichedApplications = applications.map(app => {
+      const respDays = getResponseDays(app);
+      return {
+        ...app,
+        responseTimeDays: respDays !== null ? respDays : null,
+        responseTimeFormatted: respDays !== null 
+          ? `${respDays} ${lang === 'en' ? (respDays <= 1 ? 'day' : 'days') : (respDays <= 1 ? 'jour' : 'jours')}` 
+          : (lang === 'en' ? 'Pending' : 'En attente')
+      };
+    });
+
+    const responseTimesList = enrichedApplications
+      .map(a => a.responseTimeDays)
+      .filter(d => d !== null && !isNaN(d));
+
+    const avgTime = responseTimesList.length > 0
+      ? parseFloat((responseTimesList.reduce((a, b) => a + b, 0) / responseTimesList.length).toFixed(1))
+      : null;
+
     const backup = {
-      applications: applications,
+      exportDate: new Date().toISOString(),
+      formatVersion: "2.0",
+      analytics: {
+        totalApplications: applications.length,
+        answeredApplications: responseTimesList.length,
+        averageResponseTimeDays: avgTime
+      },
+      applications: enrichedApplications,
       profile: profile
     };
     
@@ -522,6 +1491,61 @@ export default function App() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `PostuTrack_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportCSV = () => {
+    if (!applications || applications.length === 0) {
+      alert(t.noApplicationsToExport);
+      return;
+    }
+
+    const isEn = lang === 'en';
+    const headers = [
+      isEn ? 'Company' : 'Entreprise',
+      isEn ? 'Position' : 'Poste',
+      isEn ? 'Status' : 'Statut',
+      isEn ? 'Contract' : 'Type de contrat',
+      isEn ? 'Source' : 'Source / Canal',
+      isEn ? 'Application Date' : 'Date de candidature',
+      isEn ? 'Response Date' : 'Date de réponse',
+      isEn ? 'Response Time (Days)' : 'Délai de réponse (Jours)',
+      isEn ? 'Response Time (Formatted)' : 'Délai de réponse (Formaté)',
+      isEn ? 'Location' : 'Localisation',
+      isEn ? 'Listing URL' : 'Lien de l\'offre'
+    ];
+
+    const rows = applications.map(app => {
+      const respDays = getResponseDays(app);
+      const respDaysFormatted = respDays !== null 
+        ? `${respDays} ${isEn ? (respDays <= 1 ? 'day' : 'days') : (respDays <= 1 ? 'jour' : 'jours')}` 
+        : (isEn ? 'Pending' : 'En attente');
+
+      return [
+        app.company || '',
+        app.role || '',
+        getStatusLabel(app.status, t),
+        getContractLabel(app.type, t),
+        getSourceLabel(app.source || 'LinkedIn', t),
+        app.date || '',
+        app.responseDate || '',
+        respDays !== null ? respDays : '',
+        respDaysFormatted,
+        app.location || '',
+        app.url || ''
+      ].map(val => {
+        const str = String(val ?? '').replace(/"/g, '""');
+        return `"${str}"`;
+      }).join(';');
+    });
+
+    const csvContent = '\uFEFF' + [headers.map(h => `"${h}"`).join(';'), ...rows].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PostuTrack_Candidatures_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -805,11 +1829,10 @@ ${aiResult.coverLetter}`;
     setBaseCV(text);
   };
 
-  const handleFileUpload = async (e, targetStateSetter) => {
-    const file = e.target.files[0];
+  const processFile = async (file, targetStateSetter) => {
     if (!file) return;
     
-    if (file.type === 'application/pdf') {
+    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
       if (!window.pdfjsLib) {
         if (targetStateSetter === setProfile) {
           setProfile(p => ({ ...p, masterCV: t.pdfLoading }));
@@ -862,6 +1885,13 @@ ${aiResult.coverLetter}`;
       };
       reader.readAsText(file);
     }
+  };
+
+  const handleFileUpload = async (e, targetStateSetter) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    await processFile(file, targetStateSetter);
+    e.target.value = '';
   };
 
   const handleExtractUrl = async () => {
@@ -1220,7 +2250,7 @@ STRICT FORMAT RULES:
     }
 
     return (
-      <div className="w-full flex justify-center bg-gray-100 p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
+      <div className="w-full flex justify-center bg-gray-100 dark:bg-gray-900 p-2 sm:p-6 md:p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
             @page {
@@ -1236,12 +2266,12 @@ STRICT FORMAT RULES:
 
         <div 
           id="cv-render" 
-          className="bg-white border border-gray-300 p-10 w-[210mm] max-w-[210mm] box-border shadow-lg text-black font-serif select-text print:border-none print:shadow-none print:p-8 print:m-0 print:w-[210mm] print:h-[297mm] print:absolute print:inset-0 flex flex-col gap-4"
+          className="bg-white border border-gray-300 p-6 sm:p-8 md:p-10 w-full max-w-[210mm] min-h-[297mm] box-border shadow-md text-black font-serif select-text print:border-none print:shadow-none print:p-8 print:m-0 print:w-[210mm] print:h-[297mm] print:absolute print:inset-0 flex flex-col gap-4"
           style={{ 
             userSelect: 'text', 
             WebkitUserSelect: 'text', 
             pageBreakAfter: 'avoid', 
-            breakAfter: 'avoid',
+            breakAfter: 'avoid', 
             pageBreakInside: 'avoid',
             breakInside: 'avoid'
           }}
@@ -1333,6 +2363,7 @@ STRICT FORMAT RULES:
 
   const getTabHeading = () => {
     switch (activeTab) {
+      case 'onboarding': return t.onboarding;
       case 'dashboard': return t.dashboard;
       case 'applications': return t.applications;
       case 'tailor': return t.tailor;
@@ -1342,24 +2373,34 @@ STRICT FORMAT RULES:
   };
 
   const renderSidebar = () => (
-    <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 print:hidden transition-colors duration-200">
-      <div className="p-6">
-        <h1 className="text-2xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2">
+    <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 print:hidden transition-colors duration-200 shrink-0">
+      <div className="p-5 xl:p-6 2xl:p-8">
+        <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 tracking-tight">
           PostuTrack
         </h1>
       </div>
-      <nav className="flex-1 px-4 space-y-2">
-        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-          <LayoutDashboard size={20} /> {t.dashboard}
+      <nav className="flex-1 px-3 xl:px-4 space-y-1.5 xl:space-y-2">
+        {(!isOnboardingCompleted || activeTab === 'onboarding') && (
+          <button onClick={() => setActiveTab('onboarding')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+            <Rocket size={20} className="text-indigo-500 shrink-0" /> 
+            <span className="truncate">{t.onboarding}</span>
+          </button>
+        )}
+        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <LayoutDashboard size={20} className="shrink-0" /> 
+          <span className="truncate">{t.dashboard}</span>
         </button>
-        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-          <ListTodo size={20} /> {t.applications}
+        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <ListTodo size={20} className="shrink-0" /> 
+          <span className="truncate">{t.applications}</span>
         </button>
-        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors cursor-pointer ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-          <Sparkles size={20} className="text-amber-500" /> {t.tailor}
+        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <Sparkles size={20} className="text-amber-500 shrink-0" /> 
+          <span className="truncate">{t.tailor}</span>
         </button>
-        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}>
-          <UserCheck size={20} className="text-emerald-500" /> {t.profile}
+        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <UserCheck size={20} className="text-emerald-500 shrink-0" /> 
+          <span className="truncate">{t.profile}</span>
         </button>
       </nav>
     </aside>
@@ -1369,25 +2410,38 @@ STRICT FORMAT RULES:
     <div className="min-h-screen bg-[#f8fafc] dark:bg-gray-900 font-sans flex text-gray-900 dark:text-gray-100 transition-colors duration-200">
       {renderSidebar()}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 px-6 py-4 flex justify-between items-center print:hidden transition-colors duration-200">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 sm:py-4 2xl:py-5 flex justify-between items-center print:hidden transition-colors duration-200">
           <div className="flex items-center gap-3">
             {/* Mobile Title Icon */}
-            <div className="md:hidden font-bold text-blue-600 text-lg">PostuTrack</div>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white hidden md:block">
+            <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight">PostuTrack</div>
+            <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
               {getTabHeading()}
             </h2>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* BOUTON GITHUB */}
+            <a
+              href="https://github.com/anirboukantar-del/postutrack-app"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 2xl:py-2 text-xs 2xl:text-sm font-semibold rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all cursor-pointer shadow-xs shrink-0"
+              title={t.viewOnGithub}
+              aria-label={t.viewOnGithub}
+            >
+              <Github size={15} className="text-gray-800 dark:text-gray-200 shrink-0" />
+              <span className="hidden sm:inline">GitHub</span>
+            </a>
+
             {/* BOUTON DE CHANGEMENT DE LANGUE (FR / EN) */}
             <button 
               onClick={toggleLanguage} 
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 2xl:py-2 text-xs 2xl:text-sm font-semibold rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-xs shrink-0"
               title={t.switchLanguage}
               aria-label={t.switchLanguage}
             >
-              <Languages size={15} className="text-blue-600 dark:text-blue-400" />
-              <span className="flex items-center gap-1 tracking-wider">
+              <Languages size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="flex items-center gap-1 tracking-wider text-[11px] sm:text-xs">
                 <span className={lang === 'fr' ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}>FR</span>
                 <span className="text-gray-300 dark:text-gray-600 text-[10px]">|</span>
                 <span className={lang === 'en' ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}>EN</span>
@@ -1397,143 +2451,258 @@ STRICT FORMAT RULES:
             {/* BOUTON DU THÈME */}
             <button 
               onClick={toggleTheme} 
-              className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center cursor-pointer"
+              className="p-1.5 sm:p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center cursor-pointer shrink-0"
               title={t.toggleTheme}
             >
-              {theme === 'dark' ? <Sun size={19} className="text-yellow-400" /> : <Moon size={19} />}
+              {theme === 'dark' ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
             </button>
 
             {/* PROFIL AVATAR */}
-            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded-full border border-blue-100 dark:border-gray-700 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors">
-              <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
+            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer bg-blue-50 dark:bg-blue-900/30 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-blue-100 dark:border-gray-700 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors shrink-0">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shrink-0">
                 {getInitials(profile.fullName)}
               </div>
-              <span className="text-xs font-semibold text-blue-900 dark:text-blue-300 max-w-[120px] truncate">{profile.fullName || t.user}</span>
+              <span className="text-xs 2xl:text-sm font-semibold text-blue-900 dark:text-blue-300 max-w-[80px] xs:max-w-[120px] sm:max-w-[160px] truncate">{profile.fullName || t.user}</span>
             </div>
           </div>
         </header>
 
         {/* Mobile Navigation Tabs */}
-        <div className="md:hidden flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1 overflow-x-auto print:hidden">
-          <button onClick={() => setActiveTab('dashboard')} className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>{t.dashboard}</button>
-          <button onClick={() => setActiveTab('applications')} className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>{t.applications}</button>
-          <button onClick={() => setActiveTab('tailor')} className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>{t.tailor}</button>
-          <button onClick={() => setActiveTab('profile')} className={`px-3 py-2 text-xs font-medium rounded-lg whitespace-nowrap ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>{t.profile}</button>
+        <div className="md:hidden flex items-center gap-1 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 overflow-x-auto scrollbar-none print:hidden sticky top-[53px] z-10">
+          {(!isOnboardingCompleted || activeTab === 'onboarding') && (
+            <button onClick={() => setActiveTab('onboarding')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+              <Rocket size={14} className="shrink-0" />
+              <span>{t.onboarding}</span>
+            </button>
+          )}
+          <button onClick={() => setActiveTab('dashboard')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <LayoutDashboard size={14} className="shrink-0" />
+            <span>{t.dashboard}</span>
+          </button>
+          <button onClick={() => setActiveTab('applications')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <ListTodo size={14} className="shrink-0" />
+            <span>{t.applications}</span>
+          </button>
+          <button onClick={() => setActiveTab('tailor')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <Sparkles size={14} className="text-amber-500 shrink-0" />
+            <span>{t.tailor}</span>
+          </button>
+          <button onClick={() => setActiveTab('profile')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <UserCheck size={14} className="text-emerald-500 shrink-0" />
+            <span>{t.profile}</span>
+          </button>
         </div>
 
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 2xl:p-10 overflow-auto">
+          {/* AVERTISSEMENT DE CONFIDENTIALITÉ & STOCKAGE LOCAL AU DÉMARRAGE */}
+          {!isStartupWarningDismissed && (
+            <div className="mb-6 p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-amber-500/10 dark:from-amber-950/40 dark:via-amber-900/20 dark:to-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl shadow-xs max-w-6xl mx-auto animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="p-2.5 bg-amber-500/20 dark:bg-amber-500/30 text-amber-700 dark:text-amber-300 rounded-xl shrink-0 mt-0.5 border border-amber-400/30">
+                    <ShieldAlert size={22} className="text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm sm:text-base font-bold text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
+                        <Lock size={15} className="text-amber-600 dark:text-amber-400" />
+                        {t.startupPrivacyWarningTitle}
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                        100% Local
+                      </span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-amber-900/90 dark:text-amber-200/90 leading-relaxed max-w-4xl">
+                      {t.startupPrivacyWarningText}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDismissStartupWarning}
+                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <Check size={14} />
+                    <span>{t.startupPrivacyWarningGotIt}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDismissStartupWarning}
+                    className="p-1.5 text-amber-700/80 hover:text-amber-950 dark:text-amber-400 dark:hover:text-amber-200 hover:bg-amber-200/50 dark:hover:bg-amber-900/50 rounded-lg transition-colors cursor-pointer"
+                    title={t.startupPrivacyWarningGotIt}
+                    aria-label={t.startupPrivacyWarningGotIt}
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {resetSuccessNotice && (
+            <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm font-medium flex items-center gap-2 max-w-4xl mx-auto shadow-xs">
+              <CheckCircle size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>{t.resetSuccessNotice}</span>
+            </div>
+          )}
+
+          {activeTab === 'onboarding' && (
+            <OnboardingStartingPage
+              t={t}
+              lang={lang}
+              profile={profile}
+              setProfile={setProfile}
+              setApplications={setApplications}
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              openAiKey={openAiKey}
+              setOpenAiKey={setOpenAiKey}
+              anthropicKey={anthropicKey}
+              setAnthropicKey={setAnthropicKey}
+              selectedAiModel={selectedAiModel}
+              setSelectedAiModel={setSelectedAiModel}
+              onComplete={handleCompleteOnboarding}
+              onSkip={handleSkipOnboarding}
+              processFile={processFile}
+            />
+          )}
+
           {activeTab === 'dashboard' && (
-            <div className="space-y-8 max-w-6xl mx-auto">
+            <div className="space-y-6 sm:space-y-8 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
               {/* Top Metric Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 2xl:gap-6">
                 {/* Total Applications */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
-                  <div className="p-3 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0"><Briefcase size={22} /></div>
+                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-blue-200 dark:hover:border-blue-800">
+                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-lg sm:rounded-xl shrink-0">
+                    <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.totalApplications}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{totalApplications}</p>
+                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.totalApplications}</p>
+                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{totalApplications}</p>
                   </div>
                 </div>
 
                 {/* Interviews */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
-                  <div className="p-3 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl shrink-0"><Clock size={22} /></div>
+                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-purple-200 dark:hover:border-purple-800">
+                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-lg sm:rounded-xl shrink-0">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.interviews}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{interviewsCount}</p>
+                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.interviews}</p>
+                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{interviewsCount}</p>
                   </div>
                 </div>
 
                 {/* Offers */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
-                  <div className="p-3 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0"><CheckCircle size={22} /></div>
+                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-emerald-200 dark:hover:border-emerald-800">
+                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-lg sm:rounded-xl shrink-0">
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.offersReceived}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{offersCount}</p>
+                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.offersReceived}</p>
+                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{offersCount}</p>
                   </div>
                 </div>
 
                 {/* Rejections */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
-                  <div className="p-3 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl shrink-0"><XCircle size={22} /></div>
+                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-rose-200 dark:hover:border-rose-800">
+                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-lg sm:rounded-xl shrink-0">
+                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.rejections}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{rejectionsCount}</p>
+                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.rejections}</p>
+                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{rejectionsCount}</p>
                   </div>
                 </div>
 
                 {/* Average Response Time */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
-                  <div className="p-3 bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl shrink-0"><Timer size={22} /></div>
+                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-amber-200 dark:hover:border-amber-800">
+                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-lg sm:rounded-xl shrink-0">
+                    <Timer className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.avgResponseTime}</p>
+                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.avgResponseTime}</p>
                     {avgResponseDays !== null ? (
                       <div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5 flex items-baseline gap-1">
-                          {avgResponseDays} <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{avgResponseDays <= 1 ? t.avgDaySingle : t.avgDays}</span>
+                        <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5 flex items-baseline gap-1">
+                          {avgResponseDays} <span className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400">{avgResponseDays <= 1 ? t.avgDaySingle : t.avgDays}</span>
                         </p>
-                        <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{t.basedOnAnswers ? t.basedOnAnswers.replace('{count}', answeredApps.length) : `${answeredApps.length} réponses`}</p>
+                        <p className="text-[9px] sm:text-[10px] 2xl:text-xs text-gray-400 dark:text-gray-500 truncate">{t.basedOnAnswers ? t.basedOnAnswers.replace('{count}', answeredApps.length) : `${answeredApps.length} réponses`}</p>
                       </div>
                     ) : (
-                      <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mt-1">{t.noResponseData}</p>
+                      <p className="text-[11px] sm:text-xs font-medium text-gray-400 dark:text-gray-500 mt-1">{t.noResponseData}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Overall Reply Rate */}
-                <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex items-center gap-3.5">
-                  <div className="p-3 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0"><Percent size={22} /></div>
+                <div className="bg-white dark:bg-gray-800 p-3.5 sm:p-4.5 2xl:p-6 rounded-xl sm:rounded-2xl shadow-2xs border border-gray-100 dark:border-gray-700 flex items-center gap-2.5 sm:gap-3.5 transition-all hover:border-indigo-200 dark:hover:border-indigo-800">
+                  <div className="p-2 sm:p-3 2xl:p-3.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg sm:rounded-xl shrink-0">
+                    <Percent className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6" />
+                  </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">{t.replyRate}</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white mt-0.5">{overallReplyRate}%</p>
-                    <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{answeredApps.length} / {totalApplications} {t.repliesCount?.toLowerCase() || 'réponses'}</p>
+                    <p className="text-[11px] sm:text-xs 2xl:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{t.replyRate}</p>
+                    <p className="text-xl sm:text-2xl 2xl:text-3xl font-bold text-gray-900 dark:text-white mt-0.5">{overallReplyRate}%</p>
+                    <p className="text-[9px] sm:text-[10px] 2xl:text-xs text-gray-400 dark:text-gray-500 truncate">{answeredApps.length} / {totalApplications} {t.repliesCount?.toLowerCase() || 'réponses'}</p>
                   </div>
                 </div>
               </div>
 
               {/* Platform / Source Analytics Section */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-6">
-                <div className="flex justify-between items-start flex-wrap gap-4 mb-6">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-4 sm:p-6 2xl:p-8">
+                <div className="flex justify-between items-start flex-wrap gap-3 sm:gap-4 mb-5 sm:mb-6">
                   <div>
                     <div className="flex items-center gap-2">
                       <Globe className="text-blue-600 dark:text-blue-400" size={20} />
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.sourceAnalysis}</h3>
+                      <h3 className="text-base sm:text-lg 2xl:text-xl font-bold text-gray-900 dark:text-white">{t.sourceAnalysis}</h3>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t.sourceAnalysisSubtitle}</p>
+                    <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-1">{t.sourceAnalysisSubtitle}</p>
                   </div>
-                  <button 
-                    onClick={() => setActiveTab('applications')} 
-                    className="px-3.5 py-1.5 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <ListTodo size={14} /> {t.applications}
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button 
+                      onClick={handleExportCSV} 
+                      className="px-3 py-1.5 2xl:px-4 2xl:py-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/60 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl text-xs 2xl:text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                      title={t.exportDataTooltip}
+                    >
+                      <Download size={14} className="text-emerald-600 dark:text-emerald-400" />
+                      <span>{t.exportCSVBtn}</span>
+                    </button>
+                    <button 
+                      onClick={() => setActiveTab('applications')} 
+                      className="px-3.5 py-1.5 2xl:px-4 2xl:py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-xl text-xs 2xl:text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <ListTodo size={14} /> {t.applications}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Highlights: Best & Worst Source cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 2xl:gap-6 mb-6">
                   {/* Most replies source */}
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 dark:from-emerald-950/40 dark:to-teal-950/20 border border-emerald-200/80 dark:border-emerald-800/60">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 dark:from-emerald-950/40 dark:to-teal-950/20 border border-emerald-200/80 dark:border-emerald-800/60">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                      <span className="text-xs 2xl:text-sm font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                         <TrendingUp size={16} /> {t.mostRepliesSource}
                       </span>
                       {sourceStats.mostReplies && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-600 text-white shadow-xs">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs 2xl:text-sm font-bold bg-emerald-600 text-white shadow-2xs">
                           {sourceStats.mostReplies.replyRate}% {t.replyRate.toLowerCase()}
                         </span>
                       )}
                     </div>
                     {sourceStats.mostReplies ? (
                       <div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className={`px-3 py-1 rounded-lg text-sm font-bold border ${getSourceBadgeStyle(sourceStats.mostReplies.source)}`}>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <span className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border ${getSourceBadgeStyle(sourceStats.mostReplies.source)}`}>
                             {getSourceLabel(sourceStats.mostReplies.source, t)}
                           </span>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                          <span className="text-xs sm:text-sm 2xl:text-base font-semibold text-gray-800 dark:text-gray-200">
                             {sourceStats.mostReplies.answered} / {sourceStats.mostReplies.total} {t.repliesCount.toLowerCase()}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-2">
                           {sourceStats.mostReplies.interviews} {t.interviews.toLowerCase()} • {sourceStats.mostReplies.offers} {t.offersReceived.toLowerCase()} • {sourceStats.mostReplies.rejections} {t.rejections.toLowerCase()}
                           {sourceStats.mostReplies.avgDays && ` • ~${sourceStats.mostReplies.avgDays} ${t.avgDays}`}
                         </p>
@@ -1544,28 +2713,28 @@ STRICT FORMAT RULES:
                   </div>
 
                   {/* Least replies source */}
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-slate-500/10 to-gray-500/5 dark:from-slate-900/40 dark:to-gray-900/20 border border-slate-200 dark:border-slate-800">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-500/10 to-gray-500/5 dark:from-slate-900/40 dark:to-gray-900/20 border border-slate-200 dark:border-slate-800">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <span className="text-xs 2xl:text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
                         <TrendingDown size={16} /> {t.leastRepliesSource}
                       </span>
                       {sourceStats.leastReplies && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-600 text-white shadow-xs">
+                        <span className="px-2.5 py-0.5 rounded-full text-xs 2xl:text-sm font-bold bg-slate-600 text-white shadow-2xs">
                           {sourceStats.leastReplies.replyRate}% {t.replyRate.toLowerCase()}
                         </span>
                       )}
                     </div>
                     {sourceStats.leastReplies ? (
                       <div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className={`px-3 py-1 rounded-lg text-sm font-bold border ${getSourceBadgeStyle(sourceStats.leastReplies.source)}`}>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <span className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border ${getSourceBadgeStyle(sourceStats.leastReplies.source)}`}>
                             {getSourceLabel(sourceStats.leastReplies.source, t)}
                           </span>
-                          <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                          <span className="text-xs sm:text-sm 2xl:text-base font-semibold text-gray-800 dark:text-gray-200">
                             {sourceStats.leastReplies.answered} / {sourceStats.leastReplies.total} {t.repliesCount.toLowerCase()}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                        <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-2">
                           {sourceStats.leastReplies.pending} {t.pending.toLowerCase()} • {sourceStats.leastReplies.rejections} {t.rejections.toLowerCase()}
                           {sourceStats.leastReplies.avgDays ? ` • ~${sourceStats.leastReplies.avgDays} ${t.avgDays}` : ''}
                         </p>
@@ -1577,33 +2746,33 @@ STRICT FORMAT RULES:
                 </div>
 
                 {/* Detailed Source Breakdown Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-sm">
+                <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+                  <table className="w-full text-left border-collapse text-xs sm:text-sm 2xl:text-base min-w-[560px]">
                     <thead>
-                      <tr className="bg-gray-50 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider border-b dark:border-gray-700">
-                        <th className="p-3 font-semibold">{t.source}</th>
-                        <th className="p-3 font-semibold text-center">{t.totalApplications}</th>
-                        <th className="p-3 font-semibold text-center">{t.repliesCount}</th>
-                        <th className="p-3 font-semibold min-w-[160px]">{t.replyRate}</th>
-                        <th className="p-3 font-semibold text-center">{t.positiveRate}</th>
-                        <th className="p-3 font-semibold text-right">{t.avgResponseTime}</th>
+                      <tr className="bg-gray-50 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs 2xl:text-sm uppercase tracking-wider border-b dark:border-gray-700">
+                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold">{t.source}</th>
+                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-center">{t.totalApplications}</th>
+                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-center">{t.repliesCount}</th>
+                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold min-w-[140px] sm:min-w-[160px]">{t.replyRate}</th>
+                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-center">{t.positiveRate}</th>
+                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-right">{t.avgResponseTime}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700/80">
                       {sourceStats.list.map((item) => (
                         <tr key={item.source} className="hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors">
-                          <td className="p-3 font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getSourceBadgeStyle(item.source)}`}>
+                          <td className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-semibold border ${getSourceBadgeStyle(item.source)}`}>
                               {getSourceLabel(item.source, t)}
                             </span>
                           </td>
-                          <td className="p-3 text-center font-bold text-gray-800 dark:text-gray-200">{item.total}</td>
-                          <td className="p-3 text-center text-xs">
+                          <td className="p-2.5 sm:p-3 2xl:p-4 text-center font-bold text-gray-800 dark:text-gray-200">{item.total}</td>
+                          <td className="p-2.5 sm:p-3 2xl:p-4 text-center text-xs 2xl:text-sm">
                             <span className="font-semibold text-gray-700 dark:text-gray-300">{item.answered}</span>
                             <span className="text-gray-400 dark:text-gray-500 ml-1">({item.interviews} E, {item.offers} O, {item.rejections} R)</span>
                           </td>
-                          <td className="p-3">
-                            <div className="flex items-center gap-2.5">
+                          <td className="p-2.5 sm:p-3 2xl:p-4">
+                            <div className="flex items-center gap-2">
                               <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                                 <div 
                                   className={`h-full rounded-full transition-all duration-500 ${
@@ -1612,20 +2781,20 @@ STRICT FORMAT RULES:
                                   style={{ width: `${item.replyRate}%` }}
                                 />
                               </div>
-                              <span className="text-xs font-bold text-gray-700 dark:text-gray-300 w-9 text-right">{item.replyRate}%</span>
+                              <span className="text-[11px] sm:text-xs 2xl:text-sm font-bold text-gray-700 dark:text-gray-300 w-9 text-right">{item.replyRate}%</span>
                             </div>
                           </td>
-                          <td className="p-3 text-center">
-                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                          <td className="p-2.5 sm:p-3 2xl:p-4 text-center">
+                            <span className={`px-2 py-0.5 rounded text-xs 2xl:text-sm font-semibold ${
                               item.positiveRate > 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'
                             }`}>
                               {item.positiveRate}%
                             </span>
                           </td>
-                          <td className="p-3 text-right">
+                          <td className="p-2.5 sm:p-3 2xl:p-4 text-right">
                             {item.avgDays !== null ? (
                               <span className="inline-flex items-center gap-1 font-semibold text-gray-800 dark:text-gray-200">
-                                <Timer size={13} className="text-amber-500" /> {item.avgDays} {item.avgDays <= 1 ? t.avgDaySingle : t.avgDays}
+                                <Timer size={13} className="text-amber-500 shrink-0" /> {item.avgDays} {item.avgDays <= 1 ? t.avgDaySingle : t.avgDays}
                               </span>
                             ) : (
                               <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
@@ -1648,56 +2817,145 @@ STRICT FORMAT RULES:
           )}
 
           {activeTab === 'applications' && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors max-w-6xl mx-auto">
-              <div className="p-5 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-center flex-wrap gap-4">
-                <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t.applications}</h3>
-                <button onClick={() => { setEditingApplication(null); setIsAddModalOpen(true); }} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors cursor-pointer shadow-sm">
-                  {t.newApplication}
-                </button>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
+              <div className="p-4 sm:p-5 2xl:p-6 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-start sm:items-center flex-col sm:flex-row gap-3.5 sm:gap-4">
+                <div>
+                  <h3 className="text-base sm:text-lg 2xl:text-xl font-bold text-gray-800 dark:text-white">{t.applications}</h3>
+                  <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-0.5">{totalApplications} {t.totalApplications.toLowerCase()} • {answeredApps.length} {t.answered.toLowerCase()}</p>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full sm:w-auto">
+                  <button 
+                    onClick={handleExportCSV} 
+                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    title={t.exportDataTooltip}
+                  >
+                    <Download size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>{t.exportCSVBtn}</span>
+                  </button>
+                  <button 
+                    onClick={() => { setEditingApplication(null); setIsAddModalOpen(true); }} 
+                    className="flex-1 sm:flex-none justify-center px-4 py-2 2xl:px-5 2xl:py-2.5 bg-blue-600 text-white rounded-xl text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-blue-700 transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+                  >
+                    <Plus size={16} className="shrink-0" />
+                    <span>{t.newApplication}</span>
+                  </button>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+
+              {/* Mobile Card List (< 640px) */}
+              <div className="block sm:hidden divide-y divide-gray-100 dark:divide-gray-700/80">
+                {applications.map(app => (
+                  <div key={app.id} className="p-4 space-y-2.5 hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                          <span>{app.company}</span>
+                          {app.url && (
+                            <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center" title="Lien vers l'offre">
+                              <ExternalLink size={13} />
+                            </a>
+                          )}
+                        </div>
+                        <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">{app.role}</div>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
+                        {getSourceLabel(app.source || 'LinkedIn', t)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[10px] font-semibold border dark:border-gray-600">
+                          {getContractLabel(app.type, t)}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400 text-[11px]">{app.date}</span>
+                      </div>
+                      {getResponseDays(app) !== null && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                          <Timer size={10} /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <select
+                        value={app.status}
+                        onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer outline-none appearance-none text-center shadow-2xs ${getStatusColor(app.status)}`}
+                      >
+                        {STATUS_KEYS.map(statusKey => (
+                          <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium">
+                            {getStatusLabel(statusKey, t)}
+                          </option>
+                        ))}
+                      </select>
+
+                      <div className="flex items-center gap-1.5">
+                        <button 
+                          onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
+                          className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-medium cursor-pointer transition-colors"
+                        >
+                          {t.edit}
+                        </button>
+                        <button 
+                          onClick={() => setApplications(applications.filter(item => item.id !== app.id))} 
+                          className="px-2.5 py-1.5 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg text-xs font-medium cursor-pointer transition-colors"
+                        >
+                          {t.delete}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {applications.length === 0 && (
+                  <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">{t.noApplications}</div>
+                )}
+              </div>
+
+              {/* Desktop / Tablet Table (>= 640px) */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm 2xl:text-base">
                   <thead>
-                    <tr className="bg-gray-100/60 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs uppercase tracking-wider">
-                      <th className="p-3.5">{t.company}</th>
-                      <th className="p-3.5">{t.role}</th>
-                      <th className="p-3.5">{t.source}</th>
-                      <th className="p-3.5">{t.contract}</th>
-                      <th className="p-3.5">{t.date}</th>
-                      <th className="p-3.5">{t.status}</th>
-                      <th className="p-3.5 text-right">{t.actions}</th>
+                    <tr className="bg-gray-100/60 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs 2xl:text-sm uppercase tracking-wider">
+                      <th className="p-3.5 2xl:p-4">{t.company}</th>
+                      <th className="p-3.5 2xl:p-4">{t.role}</th>
+                      <th className="p-3.5 2xl:p-4">{t.source}</th>
+                      <th className="p-3.5 2xl:p-4">{t.contract}</th>
+                      <th className="p-3.5 2xl:p-4">{t.date}</th>
+                      <th className="p-3.5 2xl:p-4">{t.status}</th>
+                      <th className="p-3.5 2xl:p-4 text-right">{t.actions}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-sm">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {applications.map(app => (
                       <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td className="p-3.5 font-semibold text-gray-900 dark:text-gray-100">
+                        <td className="p-3.5 2xl:p-4 font-semibold text-gray-900 dark:text-gray-100">
                           <div className="flex items-center gap-2">
                             {app.company}
                             {app.url && <a href={app.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center" title="Lien vers l'offre"><ExternalLink size={14} /></a>}
                           </div>
                         </td>
-                        <td className="p-3.5 text-gray-700 dark:text-gray-300 font-medium">{app.role}</td>
-                        <td className="p-3.5">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
+                        <td className="p-3.5 2xl:p-4 text-gray-700 dark:text-gray-300 font-medium">{app.role}</td>
+                        <td className="p-3.5 2xl:p-4">
+                          <span className={`px-2.5 py-1 rounded-full text-xs 2xl:text-sm font-semibold border ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
                             {getSourceLabel(app.source || 'LinkedIn', t)}
                           </span>
                         </td>
-                        <td className="p-3.5"><span className="px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-xs font-medium border dark:border-gray-600">{getContractLabel(app.type, t)}</span></td>
-                        <td className="p-3.5 text-gray-500 dark:text-gray-400 text-xs">
+                        <td className="p-3.5 2xl:p-4"><span className="px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-xs 2xl:text-sm font-medium border dark:border-gray-600">{getContractLabel(app.type, t)}</span></td>
+                        <td className="p-3.5 2xl:p-4 text-gray-500 dark:text-gray-400 text-xs 2xl:text-sm">
                           <div>{app.date}</div>
                           {app.responseDate && (
-                            <div className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5" title={`${t.responseDate}: ${app.responseDate}`}>
+                            <div className="text-[11px] 2xl:text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5" title={`${t.responseDate}: ${app.responseDate}`}>
                               <Clock size={11} /> {app.responseDate}
                             </div>
                           )}
                         </td>
-                        <td className="p-3.5">
+                        <td className="p-3.5 2xl:p-4">
                           <div className="flex items-center gap-2 flex-wrap">
                             <select
                               value={app.status}
                               onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                              className={`px-3 py-1 rounded-full text-xs font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity ${getStatusColor(app.status)}`}
+                              className={`px-3 py-1 rounded-full text-xs 2xl:text-sm font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity ${getStatusColor(app.status)}`}
                               style={{ textAlignLast: 'center' }}
                             >
                               {STATUS_KEYS.map(statusKey => (
@@ -1707,17 +2965,17 @@ STRICT FORMAT RULES:
                               ))}
                             </select>
                             {getResponseDays(app) !== null && (
-                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
+                              <span className="text-[11px] 2xl:text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
                                 <Timer size={11} /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="p-3.5 text-right space-x-2">
-                          <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs font-medium cursor-pointer transition-colors">
+                        <td className="p-3.5 2xl:p-4 text-right space-x-2">
+                          <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs 2xl:text-sm font-medium cursor-pointer transition-colors">
                             {t.edit}
                           </button>
-                          <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2.5 py-1 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-md text-xs font-medium cursor-pointer transition-colors">
+                          <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2.5 py-1 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-md text-xs 2xl:text-sm font-medium cursor-pointer transition-colors">
                             {t.delete}
                           </button>
                         </td>
@@ -1733,37 +2991,37 @@ STRICT FORMAT RULES:
           )}
 
           {activeTab === 'tailor' && (
-            <div className="space-y-6 max-w-6xl mx-auto">
-              <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 print:hidden transition-colors ${isPrinting ? 'print:hidden' : ''}`}>
-                <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
+            <div className="space-y-6 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
+              <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-4 sm:p-6 2xl:p-8 print:hidden transition-colors ${isPrinting ? 'print:hidden' : ''}`}>
+                <div className="flex items-center justify-between mb-5 sm:mb-6 flex-wrap gap-3 sm:gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-xl"><Sparkles size={24} /></div>
+                    <div className="p-2 sm:p-2.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-xl"><Sparkles className="w-5 h-5 sm:w-6 sm:h-6" /></div>
                     <div>
-                      <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t.tailor}</h2>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t.tailorSubtitle}</p>
+                      <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white">{t.tailor}</h2>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t.tailorSubtitle}</p>
                     </div>
                   </div>
-                  <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
+                  <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl w-full sm:w-auto">
                     <button 
                       onClick={() => setGenerationMode('cv')} 
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white dark:bg-gray-700 shadow-xs text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     >
                       {t.cvMode}
                     </button>
                     <button 
                       onClick={() => setGenerationMode('letter')} 
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white dark:bg-gray-700 shadow-xs text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                     >
                       {t.letterMode}
                     </button>
                   </div>
                 </div>
 
-                <form onSubmit={handleGenerateAI} className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <form onSubmit={handleGenerateAI} className="space-y-4 sm:space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 2xl:gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.associatedJob}</label>
-                      <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)}>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.associatedJob}</label>
+                      <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)}>
                         <option value="">{t.noJobLinked}</option>
                         {applications.map(app => <option key={app.id} value={app.id}>{app.company} - {app.role}</option>)}
                       </select>
@@ -1772,24 +3030,24 @@ STRICT FORMAT RULES:
                     {generationMode === 'cv' ? (
                       <>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.strategyFidelity}</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={modificationStrategy} onChange={(e) => setModificationStrategy(e.target.value)}>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.strategyFidelity}</label>
+                          <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={modificationStrategy} onChange={(e) => setModificationStrategy(e.target.value)}>
                             <option value="strict">{t.strategyStrict}</option>
                             <option value="balanced">{t.strategyBalanced}</option>
                             <option value="rewrite">{t.strategyRewrite}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.atsKeywordsDensity}</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={keywordDensity} onChange={(e) => setKeywordDensity(e.target.value)}>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.atsKeywordsDensity}</label>
+                          <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={keywordDensity} onChange={(e) => setKeywordDensity(e.target.value)}>
                             <option value="low">{t.atsLow}</option>
                             <option value="moderate">{t.atsModerate}</option>
                             <option value="high">{t.atsHigh}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.cvTextDensity}</label>
-                          <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={cvDensity} onChange={(e) => setCvDensity(e.target.value)}>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.cvTextDensity}</label>
+                          <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={cvDensity} onChange={(e) => setCvDensity(e.target.value)}>
                             <option value="expanded">{t.densityExpanded}</option>
                             <option value="standard">{t.densityStandard}</option>
                             <option value="compact">{t.densityCompact}</option>
@@ -1797,9 +3055,9 @@ STRICT FORMAT RULES:
                         </div>
                       </>
                     ) : (
-                      <div className="md:col-span-3">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.letterTone}</label>
-                        <select className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={letterTone} onChange={(e) => setLetterTone(e.target.value)}>
+                      <div className="sm:col-span-2 lg:col-span-3">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.letterTone}</label>
+                        <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={letterTone} onChange={(e) => setLetterTone(e.target.value)}>
                           <option value="professional">{t.toneProfessional}</option>
                           <option value="audacious">{t.toneAudacious}</option>
                           <option value="original">{t.toneOriginal}</option>
@@ -1808,53 +3066,53 @@ STRICT FORMAT RULES:
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 2xl:gap-6">
                     {generationMode === 'cv' ? (
                       <div>
                         <div className="flex justify-between items-end mb-1">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.sourceMasterCV}</label>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.sourceMasterCV}</label>
                           <button type="button" onClick={() => setBaseCV(profile.masterCV)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">{t.restore}</button>
                         </div>
-                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-xs font-mono bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={baseCV} onChange={(e) => setBaseCV(e.target.value)} />
+                        <textarea rows={5} className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs font-mono bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={baseCV} onChange={(e) => setBaseCV(e.target.value)} />
                       </div>
                     ) : (
                       <div>
                         <div className="flex justify-between items-end mb-1">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.sourceMasterLetter}</label>
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.sourceMasterLetter}</label>
                           <button type="button" onClick={() => setBaseLetter(profile.masterLetter)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">{t.restore}</button>
                         </div>
-                        <textarea rows={5} className="w-full p-2.5 border rounded-lg text-xs font-mono bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={baseLetter} onChange={(e) => setBaseLetter(e.target.value)} placeholder={t.masterLetterPlaceholder} />
+                        <textarea rows={5} className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs font-mono bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={baseLetter} onChange={(e) => setBaseLetter(e.target.value)} placeholder={t.masterLetterPlaceholder} />
                       </div>
                     )}
                     <div>
-                      <div className="flex justify-between items-end mb-1">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t.jobDescription}</label>
-                        <div className="flex items-center gap-2">
-                          <input type="url" placeholder={t.urlExtractorPlaceholder} className="px-3 py-1 text-xs border rounded-md w-36 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} />
-                          <button type="button" onClick={handleExtractUrl} disabled={isExtracting || !jobUrl} className="text-xs bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded border dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-50 cursor-pointer">
-                            {isExtracting ? <Loader2 size={14} className="animate-spin" /> : t.extractBtn}
+                      <div className="flex justify-between items-end mb-1 flex-wrap gap-1">
+                        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.jobDescription}</label>
+                        <div className="flex items-center gap-1.5 sm:gap-2">
+                          <input type="url" placeholder={t.urlExtractorPlaceholder} className="px-2.5 py-1 text-xs border rounded-lg w-28 sm:w-36 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} />
+                          <button type="button" onClick={handleExtractUrl} disabled={isExtracting || !jobUrl} className="text-xs bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg border dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-50 cursor-pointer">
+                            {isExtracting ? <Loader2 size={13} className="animate-spin" /> : t.extractBtn}
                           </button>
                         </div>
                       </div>
-                      <textarea rows={5} className="w-full p-3 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" placeholder={t.jobDescPlaceholder} value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
+                      <textarea rows={5} className="w-full p-2.5 sm:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" placeholder={t.jobDescPlaceholder} value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.customInstructionsLabel}</label>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.customInstructionsLabel}</label>
                     <textarea 
                       rows={2} 
-                      className="w-full p-2.5 border rounded-lg text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" 
+                      className="w-full p-2.5 sm:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" 
                       placeholder={t.customInstructionsPlaceholder} 
                       value={customInstruction} 
                       onChange={(e) => setCustomInstruction(e.target.value)} 
                     />
                   </div>
 
-                  {aiError && <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg text-sm flex items-center gap-2"><AlertTriangle size={18} /> {aiError}</div>}
-                  <div className="flex justify-end">
-                    <button type="submit" disabled={isLoadingAI} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-medium shadow-md disabled:opacity-50 cursor-pointer transition-all">
-                      {isLoadingAI ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />} {isLoadingAI ? t.generating : (generationMode === 'cv' ? t.optimizeCV : t.optimizeLetter)}
+                  {aiError && <div className="p-3 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl text-xs sm:text-sm flex items-center gap-2"><AlertTriangle size={18} /> {aiError}</div>}
+                  <div className="flex justify-end pt-1">
+                    <button type="submit" disabled={isLoadingAI} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold shadow-md disabled:opacity-50 cursor-pointer transition-all text-xs sm:text-sm 2xl:text-base">
+                      {isLoadingAI ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />} {isLoadingAI ? t.generating : (generationMode === 'cv' ? t.optimizeCV : t.optimizeLetter)}
                     </button>
                   </div>
                 </form>
@@ -1862,22 +3120,22 @@ STRICT FORMAT RULES:
 
               {/* Display CV Result */}
               {aiResult && generationMode === 'cv' && aiResult.cv && (
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
-                    <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                      <FileText className="text-blue-600 dark:text-blue-400" size={20} /> {t.cvFormatRenderCV}
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 print:hidden">
+                    <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white flex items-center gap-2">
+                      <FileText className="text-blue-600 dark:text-blue-400" size={18} /> {t.cvFormatRenderCV}
                     </h3>
-                    <div className="flex gap-2">
-                      <button onClick={handleExportRenderCV} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-lg text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-medium cursor-pointer transition-colors">
-                        <Download size={16} /> {t.yamlExport}
+                    <div className="flex gap-2 w-full sm:w-auto justify-end">
+                      <button onClick={handleExportRenderCV} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-semibold cursor-pointer transition-colors">
+                        <Download size={15} /> {t.yamlExport}
                       </button>
-                      <button onClick={triggerPrint} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm cursor-pointer transition-colors">
-                        <Download size={16} /> {t.pdfExport}
+                      <button onClick={triggerPrint} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-xs cursor-pointer transition-colors">
+                        <Download size={15} /> {t.pdfExport}
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex justify-center bg-gray-200 dark:bg-gray-900">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-2 sm:p-6 flex justify-center bg-gray-100 dark:bg-gray-900 overflow-x-auto">
                     {renderCVTemplate()}
                   </div>
                 </div>
@@ -1885,24 +3143,24 @@ STRICT FORMAT RULES:
 
               {/* Display Letter Result */}
               {aiResult && generationMode === 'letter' && aiResult.coverLetter && (
-                <div className="space-y-6">
-                  <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4 print:hidden">
-                    <h3 className="font-bold text-gray-800 dark:text-white flex items-center gap-2"><Sparkles className="text-indigo-600 dark:text-indigo-400" size={20} /> {t.coverLetterTitle}</h3>                
-                    <div className="flex gap-2">
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 print:hidden">
+                    <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white flex items-center gap-2"><Sparkles className="text-indigo-600 dark:text-indigo-400" size={18} /> {t.coverLetterTitle}</h3>                
+                    <div className="flex gap-2 w-full sm:w-auto justify-end">
                       <button 
                         onClick={handleCopyLetter} 
-                        className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 font-medium shadow-sm cursor-pointer transition-all"
+                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold shadow-2xs cursor-pointer transition-all"
                       >
-                        {isCopied ? <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={16} />} 
+                        {isCopied ? <CheckCircle size={15} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={15} />} 
                         {isCopied ? <span className="text-emerald-700 dark:text-emerald-400">{t.copied}</span> : t.copyText}
                       </button>
-                      <button onClick={triggerPrint} className="flex items-center gap-1.5 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium shadow-sm cursor-pointer transition-colors">
-                        <Download size={16} /> {t.printPdf}
+                      <button onClick={triggerPrint} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-xs cursor-pointer transition-colors">
+                        <Download size={15} /> {t.printPdf}
                       </button>
                     </div>
                   </div>
                   
-                  <div className="w-full flex justify-center bg-gray-100 dark:bg-gray-900 p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
+                  <div className="w-full flex justify-center bg-gray-100 dark:bg-gray-900 p-2 sm:p-6 md:p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
                     <style dangerouslySetInnerHTML={{__html: `
                       @media print {
                         @page {
@@ -1917,7 +3175,7 @@ STRICT FORMAT RULES:
                     `}} />
                     <div 
                       id="cv-render" 
-                      className="bg-white border border-gray-300 p-12 w-[210mm] min-h-[297mm] max-w-[210mm] box-border shadow-lg text-gray-800 font-sans select-text print:border-none print:shadow-none print:p-12 print:m-0 print:w-[210mm] print:absolute print:inset-0 text-[13px] leading-relaxed relative flex flex-col"
+                      className="bg-white border border-gray-300 p-6 sm:p-10 md:p-12 w-full max-w-[210mm] min-h-[297mm] box-border shadow-md text-gray-800 font-sans select-text print:border-none print:shadow-none print:p-12 print:m-0 print:w-[210mm] print:absolute print:inset-0 text-xs sm:text-[13px] leading-relaxed relative flex flex-col"
                       style={{ 
                         userSelect: 'text', 
                         WebkitUserSelect: 'text', 
@@ -1927,9 +3185,9 @@ STRICT FORMAT RULES:
                         breakInside: 'avoid'
                       }}
                     >
-                      <div className="mb-10 flex justify-between items-start">
+                      <div className="mb-6 sm:mb-10 flex justify-between items-start flex-wrap gap-4">
                         <div>
-                          <p className="font-bold text-base text-black">{profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat')}</p>
+                          <p className="font-bold text-sm sm:text-base text-black">{profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat')}</p>
                           <p>{profile.location}</p>
                           <p>{profile.email}</p>
                           <p>{profile.phone}</p>
@@ -1950,7 +3208,17 @@ STRICT FORMAT RULES:
 
           {activeTab === 'profile' && (
             <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-6">{t.profileTitle}</h2>
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t.profileTitle}</h2>
+                <button 
+                  type="button"
+                  onClick={() => setActiveTab('onboarding')}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg border border-indigo-200 dark:border-indigo-800/60 transition-colors cursor-pointer"
+                >
+                  <Rocket size={14} className="text-indigo-500" />
+                  {t.onboardingRestartGuide}
+                </button>
+              </div>
               <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('postutrack_profile', JSON.stringify(profile)); setSavedNotice(true); setTimeout(() => setSavedNotice(false), 3000); }} className="space-y-6">
                 
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
@@ -1988,7 +3256,7 @@ STRICT FORMAT RULES:
                   <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" placeholder={t.masterLetterPlaceholder} value={profile.masterLetter || ''} onChange={e => setProfile({...profile, masterLetter: e.target.value})} />
                 </div>
 
-                {/* Section Sauvegarde */}
+                {/* Section Sauvegarde & Export */}
                 <div className="mt-8 p-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl">
                   <div className="flex items-center gap-2 mb-2">
                     <Download className="text-amber-600 dark:text-amber-400" size={20} />
@@ -1996,10 +3264,16 @@ STRICT FORMAT RULES:
                   </div>
                   <p className="text-xs text-amber-700 dark:text-amber-500 mb-4">{t.backupSubtitle}</p>
                   <div className="flex flex-wrap gap-3">
-                    <button type="button" onClick={handleExportData} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 shadow-sm transition-colors cursor-pointer">
+                    <button type="button" onClick={handleExportData} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5" title={t.exportDataTooltip}>
+                      <Download size={15} />
                       {t.exportDataBtn}
                     </button>
-                    <label className="cursor-pointer px-4 py-2 bg-white border border-amber-300 text-amber-700 dark:bg-gray-800 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-gray-700 rounded-lg text-sm font-medium hover:bg-amber-100/50 shadow-xs transition-colors">
+                    <button type="button" onClick={handleExportCSV} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5" title={t.exportDataTooltip}>
+                      <Download size={15} />
+                      {t.exportCSVBtn}
+                    </button>
+                    <label className="cursor-pointer px-4 py-2 bg-white border border-amber-300 text-amber-700 dark:bg-gray-800 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-gray-700 rounded-lg text-sm font-medium hover:bg-amber-100/50 shadow-xs transition-colors flex items-center gap-1.5">
+                      <Upload size={15} />
                       {t.importBackupBtn}
                       <input type="file" accept=".json" className="hidden" onChange={handleImportData} />
                     </label>
@@ -2068,6 +3342,23 @@ STRICT FORMAT RULES:
                   </div>
                 </div>
 
+                {/* Section Zone de Danger / Réinitialisation */}
+                <div className="mt-8 p-5 bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertOctagon className="text-rose-600 dark:text-rose-400" size={20} />
+                    <h4 className="font-bold text-rose-900 dark:text-rose-300">{t.dangerZoneTitle}</h4>
+                  </div>
+                  <p className="text-xs text-rose-700 dark:text-rose-400 mb-4">{t.dangerZoneSubtitle}</p>
+                  <button
+                    type="button"
+                    onClick={() => setIsResetConfirmOpen(true)}
+                    className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors cursor-pointer flex items-center gap-2"
+                  >
+                    <Trash2 size={16} />
+                    {t.resetDataBtn}
+                  </button>
+                </div>
+
                 {savedNotice && <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm font-medium flex items-center gap-2"><CheckCircle size={18} /> {t.profileSavedNotice}</div>}
                 <div className="flex justify-end">
                   <button type="submit" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-md transition-all cursor-pointer">
@@ -2095,6 +3386,44 @@ STRICT FORMAT RULES:
           else setApplications([savedApp, ...applications]);
         }}
       />
+
+      {/* Modal de Confirmation de Réinitialisation Complète */}
+      {isResetConfirmOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 max-w-md w-full p-6 text-left space-y-4">
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="p-3 bg-rose-100 dark:bg-rose-900/40 rounded-xl">
+                <AlertTriangle size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.resetConfirmTitle}</h3>
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              {t.resetConfirmDesc}
+            </p>
+
+            <div className="flex justify-end items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsResetConfirmOpen(false)}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+              >
+                {t.resetCancelBtn}
+              </button>
+              <button
+                type="button"
+                onClick={handleResetAllData}
+                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 size={16} />
+                {t.resetConfirmBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

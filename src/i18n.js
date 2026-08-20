@@ -12,6 +12,7 @@ export const translations = {
     language: "Langue",
     currentLangName: "Français",
     switchLanguage: "Switch to English",
+    viewOnGithub: "Code source sur GitHub",
 
     // Dashboard
     totalApplications: "Total Candidatures",
@@ -148,8 +149,11 @@ export const translations = {
     masterLetterLabel: "Lettre de Motivation Maître (Optionnelle)",
     importLetterBtn: "Importer (PDF/TXT)",
     backupTitle: "Sauvegarde & Transfert (Backup)",
-    backupSubtitle: "Exportez vos données pour les transférer vers la version logicielle ou pour les mettre en sécurité.",
-    exportDataBtn: "Exporter mes données (.json)",
+    backupSubtitle: "Exportez vos données avec les délais de réponse calculés pour les sauvegarder ou les analyser sur Excel / Tableur.",
+    exportDataBtn: "Exporter sauvegarde (.json)",
+    exportCSVBtn: "Exporter en CSV",
+    exportDataTooltip: "Exporte toutes les candidatures avec métadonnées, dates et délais de réponse calculés.",
+    noApplicationsToExport: "Aucune candidature à exporter.",
     importBackupBtn: "Importer une sauvegarde",
     aiConfigTitle: "Configuration de l'IA",
     geminiOption: "Google Gemini (Recommandé)",
@@ -166,6 +170,16 @@ export const translations = {
     profileSavedNotice: "Profil et Documents sauvegardés !",
     backupInvalidError: "Fichier de sauvegarde invalide ou corrompu.",
 
+    // Danger Zone / Reset App
+    dangerZoneTitle: "Zone de Danger / Réinitialisation",
+    dangerZoneSubtitle: "Effacez toutes les données stockées localement pour remettre l'application à zéro.",
+    resetDataBtn: "Supprimer les données et réinitialiser",
+    resetConfirmTitle: "Réinitialiser toutes les données ?",
+    resetConfirmDesc: "Attention : cette action effacera définitivement toutes vos candidatures, vos documents maîtres (CV & Lettre), vos informations de profil et vos clés API enregistrées. L'application retournera à son état de premier démarrage.",
+    resetConfirmBtn: "Oui, tout supprimer et réinitialiser",
+    resetCancelBtn: "Annuler",
+    resetSuccessNotice: "L'application et toutes les données locales ont été réinitialisées avec succès.",
+
     // AI Prompts & Error Messages
     missingGeminiKey: "Veuillez configurer votre clé API Gemini dans l'onglet Mon Profil.",
     missingOpenAiKey: "Veuillez configurer votre clé API OpenAI dans l'onglet Mon Profil.",
@@ -178,7 +192,49 @@ export const translations = {
     generationError: "Erreur lors de la génération",
     invalidAiJson: "L'IA a généré un JSON invalide. Essayez de relancer.",
     noDataReturned: "L'IA n'a renvoyé aucune donnée.",
-    pdfLoading: "Chargement de la librairie PDF en cours..."
+    pdfLoading: "Chargement de la librairie PDF en cours...",
+
+    // Startup Privacy & Local Storage Warning
+    startupPrivacyWarningTitle: "Avertissement : Confidentialité & Données 100% Locales",
+    startupPrivacyWarningText: "Toutes vos données (candidatures, CVs, lettres de motivation, informations de profil et clés API) sont stockées exclusivement en local dans la mémoire de votre navigateur. Aucune donnée n'est hébergée sur un serveur distant : ne partagez jamais vos fichiers de sauvegarde ou vos accès avec des tiers.",
+    startupPrivacyWarningGotIt: "J'ai compris",
+    startupPrivacyWarningDontShowAgain: "Ne plus afficher",
+
+    // Onboarding / Starting Page
+    onboarding: "Démarrage",
+    welcomeTitle: "Bienvenue sur PostuTrack",
+    welcomeSubtitle: "Votre copilote intelligent pour suivre vos candidatures, analyser vos délais de réponse et générer des CVs & lettres adaptés par IA.",
+    onboardingIntroBadge: "Configuration Initiale Rapide",
+    onboardingStep1Title: "Importer votre CV",
+    onboardingStep1Subtitle: "Téléversez votre CV (PDF ou TXT) pour extraire votre profil et créer votre CV Maître.",
+    onboardingStep2Title: "Importer votre Lettre",
+    onboardingStep2Subtitle: "Ajoutez votre lettre de motivation type ou modèle (PDF ou TXT) pour inspirer l'IA.",
+    onboardingStep3Title: "Connecter votre Clé API IA",
+    onboardingStep3Subtitle: "Renseignez votre clé API (Gemini gratuit, OpenAI ou Claude) pour activer l'adaptation sur-mesure.",
+    onboardingProgressTitle: "Progression de la configuration",
+    onboardingStepOf: "Étape {current} sur {total}",
+    onboardingCvSuccessBadge: "CV Maître enregistré",
+    onboardingCvPendingBadge: "En attente d'import",
+    onboardingLetterSuccessBadge: "Lettre Maître enregistrée",
+    onboardingLetterPendingBadge: "Non renseignée (optionnelle)",
+    onboardingKeySuccessBadge: "Clé API prête",
+    onboardingKeyPendingBadge: "En attente de clé",
+    onboardingDragOrClick: "Glissez-déposez votre fichier ici, ou cliquez pour parcourir",
+    onboardingSupportedFormats: "Formats acceptés : PDF ou TXT (Extraction instantanée)",
+    onboardingOrPasteDirectly: "Ou saisissez / modifiez le texte directement :",
+    onboardingExtractedProfileTitle: "Profil candidat extrait :",
+    onboardingFreeGeminiHelp: "Vous pouvez obtenir une clé gratuite en 30 secondes sur Google AI Studio (aucune carte bancaire requise).",
+    onboardingGetFreeGeminiBtn: "Obtenir une clé Gemini gratuite ↗",
+    onboardingNextBtn: "Étape suivante",
+    onboardingPrevBtn: "Étape précédente",
+    onboardingCompleteBtn: "Accéder à mon espace PostuTrack",
+    onboardingSkipBtn: "Passer cette étape et explorer l'application",
+    onboardingImportProfileBtn: "Importer un profil (.json)",
+    onboardingImportProfileTooltip: "Importez un fichier de profil ou une sauvegarde PostuTrack précédente pour configurer vos informations instantanément.",
+    onboardingImportProfileSuccess: "Profil et documents importés avec succès !",
+    onboardingImportProfileError: "Fichier de profil ou de sauvegarde JSON invalide.",
+    onboardingRestartGuide: "Guide de démarrage",
+    onboardingReadyBanner: "Votre espace de candidature est prêt ! Vous pouvez désormais suivre vos offres et générer des candidatures sur-mesure."
   },
   en: {
     // Navigation & General
@@ -193,6 +249,7 @@ export const translations = {
     language: "Language",
     currentLangName: "English",
     switchLanguage: "Passer en Français",
+    viewOnGithub: "Source code on GitHub",
 
     // Dashboard
     totalApplications: "Total Applications",
@@ -329,8 +386,11 @@ export const translations = {
     masterLetterLabel: "Master Cover Letter (Optional)",
     importLetterBtn: "Import (PDF/TXT)",
     backupTitle: "Backup & Transfer",
-    backupSubtitle: "Export your data to transfer to the desktop software version or keep it safe.",
-    exportDataBtn: "Export my data (.json)",
+    backupSubtitle: "Export your data with calculated response times to save as backup or analyze in Excel / Spreadsheets.",
+    exportDataBtn: "Export Backup (.json)",
+    exportCSVBtn: "Export as CSV",
+    exportDataTooltip: "Exports all job applications with dates, metadata, and calculated response times.",
+    noApplicationsToExport: "No applications to export.",
     importBackupBtn: "Import a backup",
     aiConfigTitle: "AI Configuration",
     geminiOption: "Google Gemini (Recommended)",
@@ -347,6 +407,16 @@ export const translations = {
     profileSavedNotice: "Profile and Documents saved successfully!",
     backupInvalidError: "Invalid or corrupted backup file.",
 
+    // Danger Zone / Reset App
+    dangerZoneTitle: "Danger Zone / Reset",
+    dangerZoneSubtitle: "Wipe all locally stored data to reset the application back to initial default.",
+    resetDataBtn: "Delete all data and reset app",
+    resetConfirmTitle: "Reset all application data?",
+    resetConfirmDesc: "Warning: This action will permanently delete all your tracked applications, master documents (Resume & Letter), profile information, and saved API keys. The app will return to its initial first-launch state.",
+    resetConfirmBtn: "Yes, delete everything & reset",
+    resetCancelBtn: "Cancel",
+    resetSuccessNotice: "All local data has been successfully deleted and the app has been reset.",
+
     // AI Prompts & Error Messages
     missingGeminiKey: "Please configure your Gemini API key in the My Profile tab.",
     missingOpenAiKey: "Please configure your OpenAI API key in the My Profile tab.",
@@ -359,6 +429,48 @@ export const translations = {
     generationError: "Generation error",
     invalidAiJson: "The AI generated invalid JSON. Please try generating again.",
     noDataReturned: "The AI did not return any data.",
-    pdfLoading: "Loading PDF library..."
+    pdfLoading: "Loading PDF library...",
+
+    // Startup Privacy & Local Storage Warning
+    startupPrivacyWarningTitle: "Warning: Privacy & 100% Local Storage",
+    startupPrivacyWarningText: "All your data (job applications, resumes, cover letters, profile details, and API keys) is stored strictly locally in your browser's local memory. No data is stored on remote servers: do not share your backup files or credentials with anyone.",
+    startupPrivacyWarningGotIt: "I understand",
+    startupPrivacyWarningDontShowAgain: "Don't show again",
+
+    // Onboarding / Starting Page
+    onboarding: "Getting Started",
+    welcomeTitle: "Welcome to PostuTrack",
+    welcomeSubtitle: "Your intelligent co-pilot to track job applications, monitor response turnarounds, and craft AI-tailored resumes and cover letters.",
+    onboardingIntroBadge: "Quick Initial Setup",
+    onboardingStep1Title: "Import your Resume (CV)",
+    onboardingStep1Subtitle: "Upload your Master Resume (PDF or TXT) to automatically extract your contact info and save your master profile.",
+    onboardingStep2Title: "Import your Cover Letter",
+    onboardingStep2Subtitle: "Add your standard cover letter template (PDF or TXT) to inspire the AI writer.",
+    onboardingStep3Title: "Connect your AI API Key",
+    onboardingStep3Subtitle: "Enter your API key (Free Gemini, OpenAI, or Claude) to activate intelligent CV tailoring.",
+    onboardingProgressTitle: "Setup Completion Progress",
+    onboardingStepOf: "Step {current} of {total}",
+    onboardingCvSuccessBadge: "Master Resume saved",
+    onboardingCvPendingBadge: "Awaiting resume import",
+    onboardingLetterSuccessBadge: "Master Cover Letter saved",
+    onboardingLetterPendingBadge: "Not provided (optional)",
+    onboardingKeySuccessBadge: "AI API Key ready",
+    onboardingKeyPendingBadge: "Awaiting API key",
+    onboardingDragOrClick: "Drag & drop your file here, or click to browse",
+    onboardingSupportedFormats: "Accepted formats: PDF or TXT (Instant parsing)",
+    onboardingOrPasteDirectly: "Or paste / edit the raw text directly:",
+    onboardingExtractedProfileTitle: "Detected candidate profile:",
+    onboardingFreeGeminiHelp: "You can get a free API key in 30 seconds from Google AI Studio (no credit card required).",
+    onboardingGetFreeGeminiBtn: "Get a free Gemini API Key ↗",
+    onboardingNextBtn: "Next Step",
+    onboardingPrevBtn: "Previous Step",
+    onboardingCompleteBtn: "Launch my PostuTrack workspace",
+    onboardingSkipBtn: "Skip setup and explore the app",
+    onboardingImportProfileBtn: "Import profile (.json)",
+    onboardingImportProfileTooltip: "Import a profile JSON file or previous PostuTrack backup to instantly populate your information.",
+    onboardingImportProfileSuccess: "Profile and master documents imported successfully!",
+    onboardingImportProfileError: "Invalid profile or backup JSON file.",
+    onboardingRestartGuide: "Getting Started Guide",
+    onboardingReadyBanner: "Your workspace is ready! You can now track applications and generate custom documents."
   }
 };
