@@ -47,11 +47,12 @@ import {
   ShieldAlert,
   Lock,
   X,
-  Info
+  Info,
+  Ghost
 } from 'lucide-react';
 import { translations } from './i18n';
 
-const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé'];
+const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
 const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
 const SOURCE_KEYS = [
   'Workday',
@@ -71,6 +72,51 @@ const SOURCE_KEYS = [
   'Candidature Spontanée',
   'Autre'
 ];
+
+/**
+ * Checks if an application has exceeded 2 weeks (14 days) without any answer.
+ * If status is still pending with no responseDate, it is considered ghosted.
+ */
+export const isApplicationGhosted = (app) => {
+  if (!app || !app.date) return false;
+  // If answered (Interview, Offer, Rejected, or has responseDate), it is not ghosted
+  if (Boolean(app.responseDate) || ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(app.status)) {
+    return false;
+  }
+  if (app.status === 'Ghosted' || app.status === 'Ghosté' || app.status === 'Sans réponse (Ghosté)') {
+    return true;
+  }
+
+  const appDate = new Date(app.date);
+  if (isNaN(appDate.getTime())) return false;
+
+  const today = new Date();
+  const d1 = Date.UTC(appDate.getFullYear(), appDate.getMonth(), appDate.getDate());
+  const d2 = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+
+  return diffDays >= 14;
+};
+
+/**
+ * Automatically transitions pending applications older than 2 weeks (>= 14 days) with no answers to 'Ghosted'.
+ */
+export const autoApplyGhostStatus = (apps) => {
+  if (!Array.isArray(apps)) return { updated: [], changed: false };
+  let changed = false;
+  const updated = apps.map(app => {
+    const isPending = ['Postulé', 'En cours', 'Applied', 'In Progress'].includes(app.status) || !app.status;
+    if (isPending && isApplicationGhosted(app)) {
+      changed = true;
+      return {
+        ...app,
+        status: 'Ghosted'
+      };
+    }
+    return app;
+  });
+  return { updated, changed };
+};
 
 const DEFAULT_APPLICATIONS = [
   { id: 1, company: 'Google', role: 'Software Engineer', date: '2026-08-01', responseDate: '2026-08-08', source: 'Workday', status: 'Entretien', type: 'CDI', url: 'https://careers.google.com' },
@@ -97,6 +143,11 @@ const getStatusLabel = (status, t) => {
     case 'Refusé':
     case 'Rejected':
       return t.statusRejected;
+    case 'Ghosted':
+    case 'Ghosté':
+    case 'Sans réponse (Ghosté)':
+    case 'Sans réponse':
+      return t.statusGhosted;
     default:
       return status;
   }
@@ -119,6 +170,11 @@ const getStatusColor = (status) => {
     case 'Refusé':
     case 'Rejected':
       return 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300';
+    case 'Ghosted':
+    case 'Ghosté':
+    case 'Sans réponse (Ghosté)':
+    case 'Sans réponse':
+      return 'bg-slate-200/80 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600';
     default:
       return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
   }
@@ -235,23 +291,37 @@ const getResponseDays = (app) => {
   return diffDays;
 };
 
+export const formatExternalUrl = (url) => {
+  if (!url) return '';
+  const trimmed = String(url).trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
+};
+
 const openExternalLink = async (url, e) => {
   if (e) {
-    e.preventDefault();
+    if (typeof e.preventDefault === 'function') e.preventDefault();
+    if (typeof e.stopPropagation === 'function') e.stopPropagation();
   }
   if (!url) return;
+  const targetUrl = formatExternalUrl(url);
+  if (!targetUrl) return;
+
   try {
     if (typeof window !== 'undefined' && (window.__TAURI_INTERNALS__ || window.__TAURI__)) {
       const { openUrl } = await import('@tauri-apps/plugin-opener');
       if (typeof openUrl === 'function') {
-        await openUrl(url);
+        await openUrl(targetUrl);
         return;
       }
     }
   } catch (err) {
     console.warn('Could not open external link with Tauri opener plugin:', err);
   }
-  window.open(url, '_blank', 'noopener,noreferrer');
+  window.open(targetUrl, '_blank', 'noopener,noreferrer');
 };
 
 function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor, t }) {
@@ -523,7 +593,7 @@ function OnboardingStartingPage({
             masterLetter: data.profile.masterLetter || prev.masterLetter || ''
           }));
           if (data.applications && Array.isArray(data.applications) && setApplications) {
-            setApplications(data.applications);
+            setApplications(autoApplyGhostStatus(data.applications).updated);
           }
           imported = true;
         } 
@@ -1367,18 +1437,27 @@ export default function App() {
       if (saved !== null) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return parsed.map(app => ({
+          const mapped = parsed.map(app => ({
             ...app,
             source: app.source || 'LinkedIn',
             responseDate: app.responseDate || ''
           }));
+          return autoApplyGhostStatus(mapped).updated;
         }
       }
     } catch (e) {
       console.error(e);
     }
-    return DEFAULT_APPLICATIONS;
+    return autoApplyGhostStatus(DEFAULT_APPLICATIONS).updated;
   });
+
+  // Automatically update any applications older than 2 weeks with no answers to "Ghosted"
+  useEffect(() => {
+    setApplications(prev => {
+      const { updated, changed } = autoApplyGhostStatus(prev);
+      return changed ? updated : prev;
+    });
+  }, []);
 
   useEffect(() => {
     try {
@@ -1619,7 +1698,9 @@ export default function App() {
     reader.onload = (event) => {
       try {
         const backup = JSON.parse(event.target.result);
-        if (backup.applications) setApplications(backup.applications);
+        if (backup.applications && Array.isArray(backup.applications)) {
+          setApplications(autoApplyGhostStatus(backup.applications).updated);
+        }
         if (backup.profile) setProfile(backup.profile);
         
         setSavedNotice(true);
@@ -1684,14 +1765,54 @@ ${aiResult.coverLetter}`;
     if (!baseLetter || baseLetter === profile.masterLetter) setBaseLetter(profile.masterLetter || '');
   }, [profile.masterLetter]);
 
-  useEffect(() => {
-    if (selectedAppId && !jobUrl) {
-      const app = applications.find(a => a.id.toString() === selectedAppId.toString());
-      if (app && app.url) {
-        setJobUrl(app.url);
+  const extractOfferFromUrl = async (urlToExtract) => {
+    if (!urlToExtract) return;
+    setIsExtracting(true);
+    setJobDescription(t.extractingPage);
+    
+    try {
+      const formatted = formatExternalUrl(urlToExtract);
+      const proxyUrl = `https://r.jina.ai/${encodeURIComponent(formatted)}`;
+      const response = await fetch(proxyUrl, {
+        headers: { 'Accept': 'text/plain' }
+      });
+      
+      if (!response.ok) throw new Error(t.networkExtractionError);
+      
+      let text = await response.text();
+      
+      text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
+      text = text.replace(/^(Accueil|Home|Connexion|Login|Emplois|Jobs|Rechercher|Search|Menu).*$/gim, ''); 
+      text = text.replace(/(\n\s*){3,}/g, '\n\n'); 
+      
+      if (text && text.length > 100) {
+        setJobDescription(text.trim().substring(0, 10000));
+      } else {
+        setJobDescription(t.extractedTooShort);
+      }
+    } catch (e) {
+      console.error(e);
+      setJobDescription(t.extractFailed);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
+  const handleSelectAssociatedApplication = (appId) => {
+    setSelectedAppId(appId);
+    if (!appId) {
+      setJobUrl('');
+      return;
+    }
+    const app = applications.find(a => a.id.toString() === appId.toString());
+    if (app) {
+      const targetUrl = app.url || '';
+      setJobUrl(targetUrl);
+      if (targetUrl) {
+        extractOfferFromUrl(targetUrl);
       }
     }
-  }, [selectedAppId]);
+  };
 
   const getInitials = (name) => {
     if (!name || typeof name !== 'string') return 'JD';
@@ -1731,6 +1852,7 @@ ${aiResult.coverLetter}`;
   const interviewsCount = applications.filter(app => app.status === 'Entretien' || app.status === 'Interview').length;
   const offersCount = applications.filter(app => app.status === 'Offre' || app.status === 'Offer').length;
   const rejectionsCount = applications.filter(app => app.status === 'Refusé' || app.status === 'Rejected').length;
+  const ghostedCount = applications.filter(app => app.status === 'Ghosted' || app.status === 'Ghosté' || app.status === 'Sans réponse (Ghosté)' || app.status === 'Sans réponse').length;
 
   const answeredApps = useMemo(() => {
     return applications.filter(app => ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(app.status) || Boolean(app.responseDate));
@@ -1755,7 +1877,7 @@ ${aiResult.coverLetter}`;
     const map = {};
 
     applications.forEach(app => {
-      const rawSource = app.source || 'LinkedIn';
+      const rawSource = app.source || 'Workday';
       if (!map[rawSource]) {
         map[rawSource] = {
           source: rawSource,
@@ -1763,6 +1885,7 @@ ${aiResult.coverLetter}`;
           interviews: 0,
           offers: 0,
           rejections: 0,
+          ghosted: 0,
           pending: 0,
           answered: 0,
           responseTimes: []
@@ -1774,11 +1897,13 @@ ${aiResult.coverLetter}`;
       const isInterview = app.status === 'Entretien' || app.status === 'Interview';
       const isOffer = app.status === 'Offre' || app.status === 'Offer';
       const isRejected = app.status === 'Refusé' || app.status === 'Rejected';
+      const isGhosted = app.status === 'Ghosted' || app.status === 'Ghosté' || app.status === 'Sans réponse (Ghosté)' || app.status === 'Sans réponse';
       const isAnswered = isInterview || isOffer || isRejected || Boolean(app.responseDate);
 
       if (isInterview) item.interviews += 1;
       if (isOffer) item.offers += 1;
       if (isRejected) item.rejections += 1;
+      if (isGhosted) item.ghosted += 1;
 
       if (isAnswered) {
         item.answered += 1;
@@ -1957,34 +2082,7 @@ ${aiResult.coverLetter}`;
 
   const handleExtractUrl = async () => {
     if (!jobUrl) return;
-    setIsExtracting(true);
-    setJobDescription(t.extractingPage);
-    
-    try {
-      const proxyUrl = `https://r.jina.ai/${encodeURIComponent(jobUrl)}`;
-      const response = await fetch(proxyUrl, {
-        headers: { 'Accept': 'text/plain' }
-      });
-      
-      if (!response.ok) throw new Error(t.networkExtractionError);
-      
-      let text = await response.text();
-      
-      text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
-      text = text.replace(/^(Accueil|Home|Connexion|Login|Emplois|Jobs|Rechercher|Search|Menu).*$/gim, ''); 
-      text = text.replace(/(\n\s*){3,}/g, '\n\n'); 
-      
-      if (text && text.length > 100) {
-        setJobDescription(text.trim().substring(0, 10000));
-      } else {
-        setJobDescription(t.extractedTooShort);
-      }
-    } catch (e) {
-      console.error(e);
-      setJobDescription(t.extractFailed);
-    } finally {
-      setIsExtracting(false);
-    }
+    await extractOfferFromUrl(jobUrl);
   };
 
   const handleGenerateAI = async (e) => {
@@ -2654,7 +2752,7 @@ STRICT FORMAT RULES:
           {activeTab === 'dashboard' && (
             <div className="space-y-6 sm:space-y-8 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
               {/* Top Metric Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 2xl:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 2xl:gap-6">
                 {/* Total Applications */}
                 <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800/60 transition-all">
                   <div className="flex items-start justify-between gap-2 mb-3">
@@ -2704,6 +2802,20 @@ STRICT FORMAT RULES:
                   </div>
                   <div>
                     <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
+                  </div>
+                </div>
+
+                {/* Ghosted / Sans réponse */}
+                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.ghostedCountLabel || t.ghosted || 'Ghosté(s)'}</span>
+                    <div className="p-2 sm:p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl shrink-0">
+                      <Ghost className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{ghostedCount}</p>
+                    <p className="text-[11px] 2xl:text-xs text-gray-400 dark:text-gray-500 mt-1 leading-tight">{t.ghostedTooltip || '> 14j sans retour'}</p>
                   </div>
                 </div>
 
@@ -2789,7 +2901,7 @@ STRICT FORMAT RULES:
                     {sourceStats.mostReplies ? (
                       <div>
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <span className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border ${getSourceBadgeStyle(sourceStats.mostReplies.source)}`}>
+                          <span className={`inline-flex items-center whitespace-nowrap px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border shrink-0 ${getSourceBadgeStyle(sourceStats.mostReplies.source)}`}>
                             {getSourceLabel(sourceStats.mostReplies.source, t)}
                           </span>
                           <span className="text-xs sm:text-sm 2xl:text-base font-semibold text-gray-800 dark:text-gray-200">
@@ -2821,7 +2933,7 @@ STRICT FORMAT RULES:
                     {sourceStats.leastReplies ? (
                       <div>
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <span className={`px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border ${getSourceBadgeStyle(sourceStats.leastReplies.source)}`}>
+                          <span className={`inline-flex items-center whitespace-nowrap px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border shrink-0 ${getSourceBadgeStyle(sourceStats.leastReplies.source)}`}>
                             {getSourceLabel(sourceStats.leastReplies.source, t)}
                           </span>
                           <span className="text-xs sm:text-sm 2xl:text-base font-semibold text-gray-800 dark:text-gray-200">
@@ -2856,9 +2968,9 @@ STRICT FORMAT RULES:
                       {sourceStats.list.map((item) => (
                         <tr key={item.source} className="hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors">
                           <td className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <span className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-semibold border ${getSourceBadgeStyle(item.source)}`}>
-                              {getSourceLabel(item.source, t)}
-                            </span>
+                      <span className={`inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-semibold border shrink-0 ${getSourceBadgeStyle(item.source)}`}>
+                        {getSourceLabel(item.source, t)}
+                      </span>
                           </td>
                           <td className="p-2.5 sm:p-3 2xl:p-4 text-center font-bold text-gray-800 dark:text-gray-200">{item.total}</td>
                           <td className="p-2.5 sm:p-3 2xl:p-4 text-center text-xs 2xl:text-sm">
@@ -2915,7 +3027,10 @@ STRICT FORMAT RULES:
               <div className="p-4 sm:p-5 2xl:p-6 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-start sm:items-center flex-col sm:flex-row gap-3.5 sm:gap-4">
                 <div>
                   <h3 className="text-base sm:text-lg 2xl:text-xl font-bold text-gray-800 dark:text-white">{t.applications}</h3>
-                  <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-0.5">{totalApplications} {t.totalApplications.toLowerCase()} • {answeredApps.length} {t.answered.toLowerCase()}</p>
+                  <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    {totalApplications} {t.totalApplications.toLowerCase()} • {answeredApps.length} {t.answered.toLowerCase()}
+                    {ghostedCount > 0 ? ` • ${ghostedCount} ${lang === 'en' ? 'ghosted' : 'sans réponse'}` : ''}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full sm:w-auto">
                   <button 
@@ -2946,12 +3061,13 @@ STRICT FORMAT RULES:
                           <span>{app.company}</span>
                           {app.url && (
                             <a 
-                              href={app.url} 
+                              href={formatExternalUrl(app.url)} 
                               target="_blank" 
-                              rel="noreferrer" 
+                              rel="noopener noreferrer" 
                               onClick={(e) => openExternalLink(app.url, e)}
-                              className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer" 
-                              title="Lien vers l'offre"
+                              className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer p-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded transition-colors" 
+                              title={app.url}
+                              aria-label={app.url}
                             >
                               <ExternalLink size={13} />
                             </a>
@@ -2959,20 +3075,20 @@ STRICT FORMAT RULES:
                         </div>
                         <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">{app.role}</div>
                       </div>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
+                      <span className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
                         {getSourceLabel(app.source || 'LinkedIn', t)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[10px] font-semibold border dark:border-gray-600">
+                        <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[10px] font-semibold border dark:border-gray-600 shrink-0">
                           {getContractLabel(app.type, t)}
                         </span>
-                        <span className="text-gray-500 dark:text-gray-400 text-[11px]">{app.date}</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-[11px] whitespace-nowrap">{app.date}</span>
                       </div>
                       {getResponseDays(app) !== null && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                        <span className="inline-flex items-center whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0 gap-1">
                           <Timer size={10} /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
                         </span>
                       )}
@@ -2982,7 +3098,7 @@ STRICT FORMAT RULES:
                       <select
                         value={app.status}
                         onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer outline-none appearance-none text-center shadow-2xs ${getStatusColor(app.status)}`}
+                        className={`inline-flex items-center whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer outline-none appearance-none text-center shadow-2xs ${getStatusColor(app.status)}`}
                       >
                         {STATUS_KEYS.map(statusKey => (
                           <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium">
@@ -2991,16 +3107,16 @@ STRICT FORMAT RULES:
                         ))}
                       </select>
 
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 shrink-0">
                         <button 
                           onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
-                          className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-medium cursor-pointer transition-colors"
+                          className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap"
                         >
                           {t.edit}
                         </button>
                         <button 
                           onClick={() => setApplications(applications.filter(item => item.id !== app.id))} 
-                          className="px-2.5 py-1.5 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg text-xs font-medium cursor-pointer transition-colors"
+                          className="px-2.5 py-1.5 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap"
                         >
                           {t.delete}
                         </button>
@@ -3014,60 +3130,76 @@ STRICT FORMAT RULES:
               </div>
 
               {/* Desktop / Tablet Table (>= 640px) */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs sm:text-sm 2xl:text-base">
+              <div className="hidden sm:block">
+                <table className="w-full table-fixed text-left border-collapse text-xs sm:text-sm 2xl:text-base">
+                  <colgroup>
+                    <col className="w-[18%]" />
+                    <col className="w-[20%]" />
+                    <col className="w-[13%]" />
+                    <col className="w-[11%]" />
+                    <col className="w-[12%]" />
+                    <col className="w-[16%]" />
+                    <col className="w-[10%]" />
+                  </colgroup>
                   <thead>
                     <tr className="bg-gray-100/60 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs 2xl:text-sm uppercase tracking-wider">
-                      <th className="p-3.5 2xl:p-4">{t.company}</th>
-                      <th className="p-3.5 2xl:p-4">{t.role}</th>
-                      <th className="p-3.5 2xl:p-4">{t.source}</th>
-                      <th className="p-3.5 2xl:p-4">{t.contract}</th>
-                      <th className="p-3.5 2xl:p-4">{t.date}</th>
-                      <th className="p-3.5 2xl:p-4">{t.status}</th>
-                      <th className="p-3.5 2xl:p-4 text-right">{t.actions}</th>
+                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.company}</th>
+                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.role}</th>
+                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.source}</th>
+                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.contract}</th>
+                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.date}</th>
+                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.status}</th>
+                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 text-right truncate">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {applications.map(app => (
                       <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td className="p-3.5 2xl:p-4 font-semibold text-gray-900 dark:text-gray-100">
-                          <div className="flex items-center gap-2">
-                            {app.company}
+                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 font-semibold text-gray-900 dark:text-gray-100">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="truncate" title={app.company}>{app.company}</span>
                             {app.url && (
                               <a 
-                                href={app.url} 
+                                href={formatExternalUrl(app.url)} 
                                 target="_blank" 
-                                rel="noreferrer" 
+                                rel="noopener noreferrer" 
                                 onClick={(e) => openExternalLink(app.url, e)}
-                                className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer" 
-                                title="Lien vers l'offre"
+                                className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer shrink-0 p-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded transition-colors" 
+                                title={app.url}
+                                aria-label={app.url}
                               >
-                                <ExternalLink size={14} />
+                                <ExternalLink size={13} />
                               </a>
                             )}
                           </div>
                         </td>
-                        <td className="p-3.5 2xl:p-4 text-gray-700 dark:text-gray-300 font-medium">{app.role}</td>
-                        <td className="p-3.5 2xl:p-4">
-                          <span className={`px-2.5 py-1 rounded-full text-xs 2xl:text-sm font-semibold border ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
-                            {getSourceLabel(app.source || 'LinkedIn', t)}
+                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 text-gray-700 dark:text-gray-300 font-medium">
+                          <div className="truncate" title={app.role}>{app.role}</div>
+                        </td>
+                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4">
+                          <span className={`inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-semibold border shrink-0 max-w-full truncate ${getSourceBadgeStyle(app.source || 'LinkedIn')}`} title={getSourceLabel(app.source || 'LinkedIn', t)}>
+                            <span className="truncate">{getSourceLabel(app.source || 'LinkedIn', t)}</span>
                           </span>
                         </td>
-                        <td className="p-3.5 2xl:p-4"><span className="px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-xs 2xl:text-sm font-medium border dark:border-gray-600">{getContractLabel(app.type, t)}</span></td>
-                        <td className="p-3.5 2xl:p-4 text-gray-500 dark:text-gray-400 text-xs 2xl:text-sm">
-                          <div>{app.date}</div>
+                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4">
+                          <span className="inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-medium border dark:border-gray-600 max-w-full truncate" title={getContractLabel(app.type, t)}>
+                            <span className="truncate">{getContractLabel(app.type, t)}</span>
+                          </span>
+                        </td>
+                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 text-gray-500 dark:text-gray-400 text-xs 2xl:text-sm">
+                          <div className="truncate">{app.date}</div>
                           {app.responseDate && (
-                            <div className="text-[11px] 2xl:text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5" title={`${t.responseDate}: ${app.responseDate}`}>
-                              <Clock size={11} /> {app.responseDate}
+                            <div className="text-[10px] sm:text-[11px] 2xl:text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5 truncate" title={`${t.responseDate}: ${app.responseDate}`}>
+                              <Clock size={10} className="shrink-0" /> <span className="truncate">{app.responseDate}</span>
                             </div>
                           )}
                         </td>
-                        <td className="p-3.5 2xl:p-4">
-                          <div className="flex items-center gap-2 flex-wrap">
+                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4">
+                          <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
                             <select
                               value={app.status}
                               onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                              className={`px-3 py-1 rounded-full text-xs 2xl:text-sm font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity ${getStatusColor(app.status)}`}
+                              className={`inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity max-w-[110px] sm:max-w-[130px] truncate ${getStatusColor(app.status)}`}
                               style={{ textAlignLast: 'center' }}
                             >
                               {STATUS_KEYS.map(statusKey => (
@@ -3077,17 +3209,17 @@ STRICT FORMAT RULES:
                               ))}
                             </select>
                             {getResponseDays(app) !== null && (
-                              <span className="text-[11px] 2xl:text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
-                                <Timer size={11} /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
+                              <span className="inline-flex items-center whitespace-nowrap text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0 gap-0.5" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
+                                <Timer size={10} className="shrink-0" /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="p-3.5 2xl:p-4 text-right space-x-2">
-                          <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs 2xl:text-sm font-medium cursor-pointer transition-colors">
+                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 text-right space-x-1.5 whitespace-nowrap">
+                          <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs font-medium cursor-pointer transition-colors">
                             {t.edit}
                           </button>
-                          <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2.5 py-1 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-md text-xs 2xl:text-sm font-medium cursor-pointer transition-colors">
+                          <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2 py-1 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-md text-xs font-medium cursor-pointer transition-colors">
                             {t.delete}
                           </button>
                         </td>
@@ -3133,7 +3265,7 @@ STRICT FORMAT RULES:
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 2xl:gap-6">
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.associatedJob}</label>
-                      <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={selectedAppId} onChange={(e) => setSelectedAppId(e.target.value)}>
+                      <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={selectedAppId} onChange={(e) => handleSelectAssociatedApplication(e.target.value)}>
                         <option value="">{t.noJobLinked}</option>
                         {applications.map(app => <option key={app.id} value={app.id}>{app.company} - {app.role}</option>)}
                       </select>
@@ -3249,10 +3381,6 @@ STRICT FORMAT RULES:
                   </div>
                   <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-white mb-1.5">{t.noDocumentGeneratedTitle}</h3>
                   <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg mx-auto">{t.noDocumentGeneratedDesc}</p>
-                  <div className="mt-4 p-3 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-900/60 rounded-xl text-xs text-amber-900 dark:text-amber-300 flex items-start gap-2.5 text-left">
-                    <Info size={16} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                    <span className="leading-normal">{t.pasteOfferManuallyTip}</span>
-                  </div>
                 </div>
               )}
 
@@ -3517,11 +3645,15 @@ STRICT FORMAT RULES:
         onGoToTailor={(appId) => {
           setIsAddModalOpen(false);
           setActiveTab('tailor');
-          setSelectedAppId(appId);
+          handleSelectAssociatedApplication(appId);
         }}
         onSave={(savedApp, isEdit) => {
-          if (isEdit) setApplications(applications.map(app => app.id === savedApp.id ? savedApp : app));
-          else setApplications([savedApp, ...applications]);
+          setApplications(prev => {
+            const nextList = isEdit
+              ? prev.map(app => app.id === savedApp.id ? savedApp : app)
+              : [savedApp, ...prev];
+            return autoApplyGhostStatus(nextList).updated;
+          });
         }}
       />
 

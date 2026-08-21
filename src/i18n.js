@@ -19,6 +19,9 @@ export const translations = {
     interviews: "Entretiens",
     offersReceived: "Offres reçues",
     rejections: "Refus",
+    ghosted: "Sans réponse",
+    ghostedCountLabel: "Ghosté(s)",
+    ghostedTooltip: "Candidatures de plus de 14 jours sans réponse",
     avgResponseTime: "Délai moyen de réponse",
     avgDays: "jours",
     avgDaySingle: "jour",
@@ -38,7 +41,7 @@ export const translations = {
     answered: "Répondu",
 
     // Applications Table & Management
-    newApplication: "+ Nouvelle Candidature",
+    newApplication: "Nouvelle Candidature",
     editApplication: "Modifier la candidature",
     addApplication: "Ajouter une candidature",
     company: "Entreprise",
@@ -75,11 +78,11 @@ export const translations = {
     sourceAshby: "Ashby",
     sourceIndeed: "Indeed",
     sourceFranceTravail: "France Travail",
-    sourceCompanySite: "Site Carrière Entreprise",
+    sourceCompanySite: "Site Entreprise",
     sourceEmail: "Email direct",
-    sourceReferral: "Cooptation / Réseau",
+    sourceReferral: "Cooptation",
     sourceSpontaneous: "Candidature Spontanée",
-    sourceOther: "Autre (Personnalisé)",
+    sourceOther: "Autre",
 
     // Contract Types
     contractCDI: "CDI",
@@ -95,6 +98,7 @@ export const translations = {
     statusInterview: "Entretien",
     statusOffer: "Offre",
     statusRejected: "Refusé",
+    statusGhosted: "Ghosté (Sans réponse)",
 
     // AI Tailor
     tailorSubtitle: "Générez un CV ou une Lettre optimisés pour l'offre.",
@@ -203,7 +207,7 @@ export const translations = {
     noDataReturned: "L'IA n'a renvoyé aucune donnée.",
     pasteOfferManuallyTip: "Si aucun CV ou lettre n'est généré (ou en cas d'erreur), pensez à copier et coller manuellement le texte de l'offre d'emploi dans le champ ci-dessus.",
     noDocumentGeneratedTitle: "Aucun document généré pour le moment",
-    noDocumentGeneratedDesc: "Renseignez la description de l'offre d'emploi ci-dessus et lancez la génération. Si aucun résultat n'est obtenu, pensez à copier-coller manuellement le contenu de l'offre.",
+    noDocumentGeneratedDesc: "Renseignez la description de l'offre d'emploi ci-dessus ou sélectionnez une candidature pour générer votre document personnalisé.",
     pdfLoading: "Chargement de la librairie PDF en cours...",
 
     // Startup Privacy & Local Storage Warning
@@ -268,6 +272,9 @@ export const translations = {
     interviews: "Interviews",
     offersReceived: "Offers Received",
     rejections: "Rejections",
+    ghosted: "No Response",
+    ghostedCountLabel: "Ghosted",
+    ghostedTooltip: "Applications older than 14 days with no response",
     avgResponseTime: "Avg. Response Time",
     avgDays: "days",
     avgDaySingle: "day",
@@ -287,7 +294,7 @@ export const translations = {
     answered: "Answered",
 
     // Applications Table & Management
-    newApplication: "+ New Application",
+    newApplication: "New Application",
     editApplication: "Edit Application",
     addApplication: "Add Application",
     company: "Company",
@@ -324,11 +331,11 @@ export const translations = {
     sourceAshby: "Ashby",
     sourceIndeed: "Indeed",
     sourceFranceTravail: "France Travail",
-    sourceCompanySite: "Company Career Site",
+    sourceCompanySite: "Career Site",
     sourceEmail: "Direct Email",
-    sourceReferral: "Referral / Network",
+    sourceReferral: "Referral",
     sourceSpontaneous: "Cold Outreach",
-    sourceOther: "Other (Custom)",
+    sourceOther: "Other",
 
     // Contract Types
     contractCDI: "Permanent (CDI)",
@@ -344,6 +351,7 @@ export const translations = {
     statusInterview: "Interview",
     statusOffer: "Offer",
     statusRejected: "Rejected",
+    statusGhosted: "Ghosted",
 
     // AI Tailor
     tailorSubtitle: "Generate a tailored resume or cover letter optimized for the job.",
@@ -452,7 +460,7 @@ export const translations = {
     noDataReturned: "The AI did not return any data.",
     pasteOfferManuallyTip: "If no resume or cover letter is outputted (or if an error occurs), consider copying and pasting the job offer description text manually into the field above.",
     noDocumentGeneratedTitle: "No document generated yet",
-    noDocumentGeneratedDesc: "Fill in the job description above and start generation. If no output is produced, consider copying and pasting the job offer content manually.",
+    noDocumentGeneratedDesc: "Fill in the job description above or select an application to generate your customized document.",
     pdfLoading: "Loading PDF library...",
 
     // Startup Privacy & Local Storage Warning
