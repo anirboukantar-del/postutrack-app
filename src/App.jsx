@@ -48,13 +48,26 @@ import {
   Lock,
   X,
   Info,
-  Ghost
+  Ghost,
+  Link,
+  Wand2,
+  CheckCheck,
+  Palette,
+  LayoutTemplate,
+  SlidersHorizontal,
+  Code,
+  Image as ImageIcon
 } from 'lucide-react';
 import { translations } from './i18n';
+import HiringWeatherSection from './HiringWeather';
+import { importJobFromUrl, detectSourceFromUrl, detectContractType, cleanJobDescription, normalizeJobUrl } from './urlJobExtractor';
+import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplates';
+import { ProfilePhotoUploader } from './ProfilePhotoUploader';
+import { DevResumeLab } from './DevResumeLab';
 
-const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
-const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
-const SOURCE_KEYS = [
+export const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
+export const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
+export const SOURCE_KEYS = [
   'Workday',
   'LinkedIn',
   'Welcome to the Jungle',
@@ -324,7 +337,20 @@ const openExternalLink = async (url, e) => {
   window.open(targetUrl, '_blank', 'noopener,noreferrer');
 };
 
-function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor, t }) {
+function AddApplicationModal({
+  isOpen,
+  onClose,
+  onSave,
+  editingApp,
+  onGoToTailor,
+  t,
+  lang = 'fr',
+  apiKey = '',
+  openAiKey = '',
+  anthropicKey = '',
+  selectedAiModel = 'gemini',
+  initialUrl = ''
+}) {
   const [formData, setFormData] = useState({
     company: '',
     role: '',
@@ -338,7 +364,73 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
     url: ''
   });
 
+  const [importUrlInput, setImportUrlInput] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFeedback, setImportFeedback] = useState(null);
+
+  const handlePerformImport = async (urlToImport) => {
+    const cleanUrl = (urlToImport || '').trim();
+    if (!cleanUrl) return;
+
+    setIsImporting(true);
+    setImportFeedback(null);
+
+    try {
+      const extracted = await importJobFromUrl(cleanUrl, {
+        apiKey,
+        openAiKey,
+        anthropicKey,
+        selectedAiModel,
+        t,
+        lang
+      });
+
+      const isKnownSource = SOURCE_KEYS.includes(extracted.source);
+      
+      setFormData(prev => ({
+        ...prev,
+        company: extracted.company || prev.company,
+        role: extracted.role || prev.role,
+        type: extracted.type || prev.type || 'CDI',
+        source: isKnownSource ? extracted.source : (extracted.source ? 'Autre' : prev.source),
+        customSource: isKnownSource ? '' : (extracted.source || prev.customSource || ''),
+        location: extracted.location || prev.location || '',
+        url: extracted.url || cleanUrl
+      }));
+
+      setImportUrlInput(cleanUrl);
+      setImportFeedback({
+        success: true,
+        message: `${extracted.role || (lang === 'en' ? 'Position' : 'Poste')} @ ${extracted.company || (lang === 'en' ? 'Company' : 'Entreprise')} • ${extracted.type || 'CDI'}`,
+        isAi: extracted.isAiExtracted
+      });
+    } catch (err) {
+      console.error('Import error:', err);
+      setImportFeedback({
+        success: false,
+        message: err.message || (t.importError || "Impossible d'extraire automatiquement l'offre.")
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          setImportUrlInput(text.trim());
+          handlePerformImport(text.trim());
+        }
+      }
+    } catch (err) {
+      console.warn('Clipboard read error:', err);
+    }
+  };
+
   useEffect(() => {
+    setImportFeedback(null);
     if (editingApp) {
       const isKnown = SOURCE_KEYS.includes(editingApp.source);
       setFormData({
@@ -353,6 +445,7 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
         location: editingApp.location || '',
         url: editingApp.url || ''
       });
+      setImportUrlInput(editingApp.url || '');
     } else {
       setFormData({
         company: '',
@@ -364,10 +457,15 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
         status: 'Postulé',
         type: 'CDI',
         location: '',
-        url: ''
+        url: initialUrl || ''
       });
+      setImportUrlInput(initialUrl || '');
+
+      if (initialUrl && initialUrl.trim().length > 5) {
+        handlePerformImport(initialUrl);
+      }
     }
-  }, [editingApp, isOpen]);
+  }, [editingApp, isOpen, initialUrl]);
 
   if (!isOpen) return null;
 
@@ -410,86 +508,222 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-xs">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6 dark:text-white border dark:border-gray-700 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-            {editingApp ? t.editApplication : t.addApplication}
-          </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-            <XCircle size={24} />
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg p-5 sm:p-6 dark:text-white border border-gray-100 dark:border-gray-700 max-h-[92vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              {editingApp ? t.editApplication : t.addApplication}
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {t.importFromUrlSubtitle || "Collez le lien d'une offre pour auto-remplir l'entreprise, le poste et le contrat."}
+            </p>
+          </div>
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+          >
+            <XCircle size={22} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.company}</label>
-            <input required type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-              value={formData.company} onChange={e => setFormData({...formData, company: e.target.value})} placeholder={t.companyPlaceholder} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.role}</label>
-            <input required type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-              value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} placeholder={t.rolePlaceholder} />
-          </div>
-          
-          {/* Source selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.source}</label>
-            <select 
-              className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-              value={formData.source}
-              onChange={e => setFormData({...formData, source: e.target.value})}
-            >
-              {SOURCE_KEYS.map(sourceKey => (
-                <option key={sourceKey} value={sourceKey}>{getSourceLabel(sourceKey, t)}</option>
-              ))}
-            </select>
-            {formData.source === 'Autre' && (
-              <input
-                type="text"
-                className="mt-2 w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder={t.sourceCustomPlaceholder || "Préciser la source..."}
-                value={formData.customSource}
-                onChange={e => setFormData({...formData, customSource: e.target.value})}
-              />
-            )}
+
+        {/* Section Smart Import from URL */}
+        <div className="mb-5 p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/70 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/80 dark:border-blue-800/60 rounded-xl space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold text-blue-950 dark:text-blue-200 flex items-center gap-1.5">
+              <Sparkles size={15} className="text-blue-600 dark:text-blue-400" />
+              {t.importFromUrlTitle || "Importation automatique depuis l'URL"}
+            </span>
+            <span className="text-[11px] text-blue-700/80 dark:text-blue-300">
+              WTTJ, LinkedIn, Lever, Greenhouse...
+            </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.date}</label>
-              <input type="date" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
-                value={formData.date} onChange={e => setFormData({...formData, date: e.target.value})} />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="url"
+                value={importUrlInput}
+                onChange={(e) => setImportUrlInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handlePerformImport(importUrlInput);
+                  }
+                }}
+                placeholder={t.importUrlPlaceholder || "Collez l'URL de l'offre..."}
+                className="w-full pl-3 pr-14 py-2 text-xs sm:text-sm bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+              />
+              <button
+                type="button"
+                onClick={handlePasteFromClipboard}
+                title={t.pasteUrl || "Coller"}
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded transition-colors cursor-pointer"
+              >
+                {t.pasteUrl || "Coller"}
+              </button>
             </div>
+
+            <button
+              type="button"
+              disabled={isImporting || !importUrlInput.trim()}
+              onClick={() => handlePerformImport(importUrlInput)}
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="hidden sm:inline">{t.importingBtn || "Analyse..."}</span>
+                </>
+              ) : (
+                <>
+                  <Wand2 size={14} />
+                  <span>{t.importBtn || "Importer"}</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {importFeedback && (
+            <div className={`text-xs p-2 rounded-lg flex items-center gap-1.5 animate-in fade-in duration-200 ${
+              importFeedback.success 
+                ? 'bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800' 
+                : 'bg-rose-100/90 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200 border border-rose-300 dark:border-rose-800'
+            }`}>
+              {importFeedback.success ? (
+                <>
+                  <CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span className="font-medium truncate flex-1">{importFeedback.message}</span>
+                  {importFeedback.isAi && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white shrink-0">
+                      IA
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={14} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                  <span className="font-medium">{importFeedback.message}</span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.contractType}</label>
-              <select className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})}>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                {t.company} <span className="text-rose-500">*</span>
+              </label>
+              <input 
+                required 
+                type="text" 
+                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                value={formData.company} 
+                onChange={e => setFormData({...formData, company: e.target.value})} 
+                placeholder={t.companyPlaceholder} 
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                {t.role} <span className="text-rose-500">*</span>
+              </label>
+              <input 
+                required 
+                type="text" 
+                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                value={formData.role} 
+                onChange={e => setFormData({...formData, role: e.target.value})} 
+                placeholder={t.rolePlaceholder} 
+              />
+            </div>
+          </div>
+          
+          {/* Contract Type & Platform */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                {t.contractType}
+              </label>
+              <select 
+                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer"
+                value={formData.type} 
+                onChange={e => setFormData({...formData, type: e.target.value})}
+              >
                 {CONTRACT_KEYS.map(contractKey => (
                   <option key={contractKey} value={contractKey}>{getContractLabel(contractKey, t)}</option>
                 ))}
               </select>
             </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                {t.source}
+              </label>
+              <select 
+                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer"
+                value={formData.source}
+                onChange={e => setFormData({...formData, source: e.target.value})}
+              >
+                {SOURCE_KEYS.map(sourceKey => (
+                  <option key={sourceKey} value={sourceKey}>{getSourceLabel(sourceKey, t)}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.status}</label>
-            <select className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-              value={formData.status} onChange={e => handleStatusChange(e.target.value)}>
-              {STATUS_KEYS.map(statusKey => (
-                <option key={statusKey} value={statusKey}>{getStatusLabel(statusKey, t)}</option>
-              ))}
-            </select>
+          {formData.source === 'Autre' && (
+            <div>
+              <input
+                type="text"
+                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder={t.sourceCustomPlaceholder || "Préciser la plateforme..."}
+                value={formData.customSource}
+                onChange={e => setFormData({...formData, customSource: e.target.value})}
+              />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                {t.date}
+              </label>
+              <input 
+                type="date" 
+                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                value={formData.date} 
+                onChange={e => setFormData({...formData, date: e.target.value})} 
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                {t.status}
+              </label>
+              <select 
+                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer"
+                value={formData.status} 
+                onChange={e => handleStatusChange(e.target.value)}
+              >
+                {STATUS_KEYS.map(statusKey => (
+                  <option key={statusKey} value={statusKey}>{getStatusLabel(statusKey, t)}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Response Date (shown if answered status) */}
           {isAnsweredStatus && (
-            <div className="p-3 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-lg">
+            <div className="p-3 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl">
               <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1 flex items-center gap-1.5">
                 <Timer size={14} /> {t.responseDate}
               </label>
               <input 
                 type="date" 
-                className="w-full p-2 border rounded-md bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none" 
+                className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none" 
                 value={formData.responseDate} 
                 onChange={e => setFormData({...formData, responseDate: e.target.value})} 
               />
@@ -498,28 +732,54 @@ function AddApplicationModal({ isOpen, onClose, onSave, editingApp, onGoToTailor
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.offerUrl}</label>
-            <input type="url" className="w-full p-2.5 border rounded-lg bg-white text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
-              value={formData.url || ''} onChange={e => setFormData({...formData, url: e.target.value})} placeholder={t.urlPlaceholder} />
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              {t.offerUrl}
+            </label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="url" 
+                className="w-full p-2.5 border rounded-xl bg-white text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
+                value={formData.url || ''} 
+                onChange={e => setFormData({...formData, url: e.target.value})} 
+                placeholder={t.urlPlaceholder} 
+              />
+              {formData.url && (
+                <button
+                  type="button"
+                  onClick={() => handlePerformImport(formData.url)}
+                  title={t.extractBtn || "Extraire"}
+                  className="p-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium cursor-pointer transition-colors shrink-0"
+                >
+                  <Wand2 size={16} />
+                </button>
+              )}
+            </div>
           </div>
           
           {editingApp && (
-            <div className="pt-2">
+            <div className="pt-1">
               <button 
                 type="button" 
                 onClick={() => onGoToTailor(editingApp.id)} 
-                className="w-full py-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg font-medium text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="w-full py-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl font-medium text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <Sparkles size={16} /> {t.viewAdaptCV}
               </button>
             </div>
           )}
 
-          <div className="pt-4 flex justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium cursor-pointer transition-colors">
+          <div className="pt-3 flex justify-end gap-2.5 border-t dark:border-gray-700">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium cursor-pointer transition-colors"
+            >
               {t.cancel}
             </button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium cursor-pointer shadow-sm transition-colors">
+            <button 
+              type="submit" 
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-xs transition-colors"
+            >
               {t.save}
             </button>
           </div>
@@ -947,6 +1207,16 @@ function OnboardingStartingPage({
                     </span>
                   )}
                 </div>
+
+                {/* Profile Photo Uploader */}
+                <ProfilePhotoUploader
+                  photo={profile.photo || ''}
+                  name={profile.fullName || ''}
+                  onPhotoChange={(photo) => setProfile(prev => ({ ...prev, photo }))}
+                  t={t}
+                  lang={lang}
+                  variant="card"
+                />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div>
@@ -1378,6 +1648,8 @@ export default function App() {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState(null);
+  const [initialModalUrl, setInitialModalUrl] = useState('');
+  const [quickUrlInput, setQuickUrlInput] = useState('');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [resetSuccessNotice, setResetSuccessNotice] = useState(false);
   const [isStartupWarningDismissed, setIsStartupWarningDismissed] = useState(() => {
@@ -1471,12 +1743,16 @@ export default function App() {
   const [profile, setProfile] = useState(() => {
     try {
       const saved = localStorage.getItem('postutrack_profile');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { photo: '', ...parsed };
+      }
     } catch (e) {
       console.error(e);
     }
     return {
       fullName: 'Jean Dupont',
+      photo: '',
       email: '',
       phone: '',
       location: '',
@@ -1502,6 +1778,7 @@ export default function App() {
       localStorage.setItem('postutrack_applications', JSON.stringify([]));
       localStorage.setItem('postutrack_profile', JSON.stringify({
         fullName: '',
+        photo: '',
         email: '',
         phone: '',
         location: '',
@@ -1515,12 +1792,16 @@ export default function App() {
       localStorage.removeItem('postutrack_aimodel');
       localStorage.removeItem('postutrack_onboarding_completed');
       localStorage.removeItem('postutrack_startup_warning_dismissed');
+      localStorage.removeItem('postutrack_resume_template');
+      localStorage.removeItem('postutrack_resume_color');
+      localStorage.removeItem('postutrack_resume_density');
     } catch (e) {
       console.error(e);
     }
     setApplications([]);
     setProfile({
       fullName: '',
+      photo: '',
       email: '',
       phone: '',
       location: '',
@@ -1532,6 +1813,11 @@ export default function App() {
     setOpenAiKey('');
     setAnthropicKey('');
     setSelectedAiModel('gemini');
+    setSelectedResumeTemplate('rendercv');
+    setResumeAccentColor('#2563eb');
+    setResumeDensity('normal');
+    setShowResumePhoto(true);
+    setResumePhotoSize('md');
     setBaseCV('');
     setBaseLetter('');
     setAiResult(null);
@@ -1585,6 +1871,77 @@ export default function App() {
   const [modificationStrategy, setModificationStrategy] = useState('balanced');
   const [keywordDensity, setKeywordDensity] = useState('moderate');
   const [customInstruction, setCustomInstruction] = useState('');
+
+  // Resume Template & Customization States (RenderCV Original + Reactive Resume models)
+  const [selectedResumeTemplate, setSelectedResumeTemplate] = useState(() => {
+    try { 
+      const saved = localStorage.getItem('postutrack_resume_template');
+      return RESUME_TEMPLATES.some(tpl => tpl.id === saved) ? saved : 'rendercv'; 
+    } catch (e) { 
+      return 'rendercv'; 
+    }
+  });
+  const [resumeAccentColor, setResumeAccentColor] = useState(() => {
+    try { return localStorage.getItem('postutrack_resume_color') || '#2563eb'; } catch (e) { return '#2563eb'; }
+  });
+  const [resumeDensity, setResumeDensity] = useState(() => {
+    try { return localStorage.getItem('postutrack_resume_density') || 'normal'; } catch (e) { return 'normal'; }
+  });
+  const [showResumePhoto, setShowResumePhoto] = useState(() => {
+    try { return localStorage.getItem('postutrack_resume_show_photo') !== 'false'; } catch (e) { return true; }
+  });
+  const [resumePhotoSize, setResumePhotoSize] = useState(() => {
+    try { return localStorage.getItem('postutrack_resume_photo_size') || 'md'; } catch (e) { return 'md'; }
+  });
+  const [showDevStudio, setShowDevStudio] = useState(() => {
+    try {
+      const saved = localStorage.getItem('postutrack_show_dev_studio');
+      return saved !== null ? saved === 'true' : true;
+    } catch (e) {
+      return true;
+    }
+  });
+
+  // Weather simulation state for Dev testing (null means real live date)
+  const [simulatedMonth, setSimulatedMonth] = useState(() => {
+    try {
+      const saved = localStorage.getItem('postutrack_simulated_month');
+      return saved !== null && saved !== '' ? parseInt(saved, 10) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (simulatedMonth !== null && !isNaN(simulatedMonth)) {
+        localStorage.setItem('postutrack_simulated_month', String(simulatedMonth));
+      } else {
+        localStorage.removeItem('postutrack_simulated_month');
+      }
+    } catch (e) {}
+  }, [simulatedMonth]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('postutrack_resume_template', selectedResumeTemplate);
+      localStorage.setItem('postutrack_resume_color', resumeAccentColor);
+      localStorage.setItem('postutrack_resume_density', resumeDensity);
+      localStorage.setItem('postutrack_resume_show_photo', String(showResumePhoto));
+      localStorage.setItem('postutrack_resume_photo_size', resumePhotoSize);
+      localStorage.setItem('postutrack_show_dev_studio', String(showDevStudio));
+    } catch (e) {}
+  }, [selectedResumeTemplate, resumeAccentColor, resumeDensity, showResumePhoto, resumePhotoSize, showDevStudio]);
+
+  const handleToggleDevStudio = () => {
+    setShowDevStudio(prev => {
+      const nextState = !prev;
+      if (!nextState && activeTab === 'dev') {
+        setActiveTab('profile');
+      }
+      return nextState;
+    });
+  };
 
   // AI Letter States
   const [generationMode, setGenerationMode] = useState('cv'); // 'cv' or 'letter'
@@ -1771,7 +2128,8 @@ ${aiResult.coverLetter}`;
     setJobDescription(t.extractingPage);
     
     try {
-      const formatted = formatExternalUrl(urlToExtract);
+      const normalized = normalizeJobUrl(urlToExtract);
+      const formatted = formatExternalUrl(normalized || urlToExtract);
       const proxyUrl = `https://r.jina.ai/${encodeURIComponent(formatted)}`;
       const response = await fetch(proxyUrl, {
         headers: { 'Accept': 'text/plain' }
@@ -1779,14 +2137,11 @@ ${aiResult.coverLetter}`;
       
       if (!response.ok) throw new Error(t.networkExtractionError);
       
-      let text = await response.text();
+      const rawText = await response.text();
+      const cleaned = cleanJobDescription(rawText, formatted);
       
-      text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); 
-      text = text.replace(/^(Accueil|Home|Connexion|Login|Emplois|Jobs|Rechercher|Search|Menu).*$/gim, ''); 
-      text = text.replace(/(\n\s*){3,}/g, '\n\n'); 
-      
-      if (text && text.length > 100) {
-        setJobDescription(text.trim().substring(0, 10000));
+      if (cleaned && cleaned.length > 50) {
+        setJobDescription(cleaned.substring(0, 12000));
       } else {
         setJobDescription(t.extractedTooShort);
       }
@@ -2413,21 +2768,6 @@ STRICT FORMAT RULES:
     const cv = aiResult?.cv;
     if (!cv) return null;
 
-    const displayName = cv.fullName || profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat');
-    const displayLocation = cv.location || profile.location;
-    const displayEmail = cv.email || profile.email;
-    const displayPhone = cv.phone || profile.phone;
-    const displayWebsite = cv.website || profile.website;
-
-    let structuredSkills = [];
-    if (cv.skills && cv.skills.length > 0) {
-      if (typeof cv.skills[0] === 'string') {
-        structuredSkills = [{ category: t.skillsDefaultCategory, items: cv.skills }];
-      } else {
-        structuredSkills = cv.skills;
-      }
-    }
-
     return (
       <div className="w-full flex justify-center bg-gray-100 dark:bg-gray-900 p-2 sm:p-6 md:p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
         <style dangerouslySetInnerHTML={{__html: `
@@ -2442,102 +2782,42 @@ STRICT FORMAT RULES:
             }
           }
         `}} />
-
-        <div 
-          id="cv-render" 
-          className="bg-white border border-gray-300 p-6 sm:p-8 md:p-10 w-full max-w-[210mm] min-h-[297mm] box-border shadow-md text-black font-serif select-text print:border-none print:shadow-none print:p-8 print:m-0 print:w-[210mm] print:h-[297mm] print:absolute print:inset-0 flex flex-col gap-4"
-          style={{ 
-            userSelect: 'text', 
-            WebkitUserSelect: 'text', 
-            pageBreakAfter: 'avoid', 
-            breakAfter: 'avoid', 
-            pageBreakInside: 'avoid',
-            breakInside: 'avoid'
-          }}
-        >
-          {/* Header */}
-          <div className="text-center mb-1">
-            <h1 className="text-3xl font-normal mb-1">{displayName}</h1>
-            <div className="text-[12px] flex justify-center items-center gap-3 flex-wrap text-gray-700">
-              {displayLocation && <span>{displayLocation}</span>}
-              {displayEmail && <span>| {displayEmail}</span>}
-              {displayPhone && <span>| {displayPhone}</span>}
-              {displayWebsite && <span>| {displayWebsite}</span>}
-            </div>
-          </div>
-          
-          {/* Summary */}
-          {cv.summary && (
-            <div>
-              <p className="text-[12.5px] leading-relaxed text-justify">{cv.summary}</p>
-            </div>
-          )}
-
-          {/* Experiences */}
-          {cv.experiences && cv.experiences.length > 0 && (
-            <div>
-              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">
-                {t.experienceTitle}
-              </h3>
-              <div className="flex flex-col gap-3">
-                {cv.experiences.map((exp, idx) => (
-                  <div key={idx}>
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <div className="font-bold text-[13px]">{exp.company}</div>
-                      <div className="text-[12px] text-gray-700">{exp.period}</div>
-                    </div>
-                    <div className="italic text-[12.5px] mb-0.5 text-gray-800">{exp.role}</div>
-                    <ul className="list-disc list-inside text-[12px] space-y-0.5 pl-1.5 text-gray-900">
-                      {exp.achievements?.map((ach, i) => <li key={i} className="leading-snug">{ach}</li>)}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Education */}
-          {cv.education && cv.education.length > 0 && (
-            <div>
-              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">
-                {t.educationTitle}
-              </h3>
-              <div className="flex flex-col gap-2.5">
-                {cv.education.map((edu, idx) => (
-                  <div key={idx}>
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <strong className="text-[13px]">{edu.school}</strong>
-                      <span className="text-[12px] text-gray-700">{edu.year}</span>
-                    </div>
-                    <div className="italic text-[12.5px] text-gray-800">{edu.degree}</div>
-                    {edu.description && <p className="text-[12px] text-gray-700 mt-0.5 leading-snug">{edu.description}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Skills */}
-          {structuredSkills.length > 0 && (
-            <div>
-              <h3 className="text-[13.5px] font-bold uppercase border-b-2 border-black mb-2 pb-0.5 tracking-wider">
-                {t.skillsTitle}
-              </h3>
-              <div className="flex flex-col gap-1.5 text-[12px] w-full">
-                {structuredSkills.map((group, idx) => (
-                  <div key={idx} className="flex flex-row items-start">
-                    <h4 className="font-bold uppercase w-[160px] shrink-0 text-right pr-4 leading-tight pt-[2px]">{group.category}</h4>
-                    <div className="text-gray-800 leading-snug flex-1">
-                      {group.items?.join(' • ')}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <ResumeRenderer
+          cv={cv}
+          profile={profile}
+          template={selectedResumeTemplate}
+          accentColorHex={resumeAccentColor}
+          density={resumeDensity}
+          showPhoto={showResumePhoto}
+          photoSize={resumePhotoSize}
+          t={t}
+          lang={lang}
+        />
       </div>
     );
+  };
+
+  const handleQuickImport = (urlToImport) => {
+    const cleanUrl = (urlToImport || '').trim();
+    if (!cleanUrl) return;
+    setEditingApplication(null);
+    setInitialModalUrl(cleanUrl);
+    setIsAddModalOpen(true);
+    setQuickUrlInput('');
+  };
+
+  const handleQuickPasteFromClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          setQuickUrlInput(text.trim());
+          handleQuickImport(text.trim());
+        }
+      }
+    } catch (err) {
+      console.warn('Clipboard read error:', err);
+    }
   };
 
   const getTabHeading = () => {
@@ -2546,6 +2826,7 @@ STRICT FORMAT RULES:
       case 'dashboard': return t.dashboard;
       case 'applications': return t.applications;
       case 'tailor': return t.tailor;
+      case 'dev': return t.devLabTitle || 'Dev Studio — Laboratoire CV (0 Token)';
       case 'profile': return t.profile;
       default: return activeTab;
     }
@@ -2577,11 +2858,51 @@ STRICT FORMAT RULES:
           <Sparkles size={20} className="text-amber-500 shrink-0" /> 
           <span className="truncate">{t.tailor}</span>
         </button>
+        {showDevStudio && (
+          <button onClick={() => setActiveTab('dev')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-semibold border border-amber-300/60 dark:border-amber-700/60' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+            <div className="flex items-center gap-3 min-w-0">
+              <Code size={20} className="text-amber-500 shrink-0" />
+              <span className="truncate">{t.dev || 'Dev Studio'}</span>
+            </div>
+            <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 shrink-0">
+              0 Token
+            </span>
+          </button>
+        )}
         <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <UserCheck size={20} className="text-emerald-500 shrink-0" /> 
           <span className="truncate">{t.profile}</span>
         </button>
       </nav>
+
+      {/* Sidebar Bottom Profile Card */}
+      <div className="p-3.5 xl:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/60">
+        <div 
+          onClick={() => setActiveTab('profile')}
+          className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
+          title={t.profile}
+        >
+          {profile.photo ? (
+            <img 
+              src={profile.photo} 
+              alt={profile.fullName || 'User'} 
+              className="w-9 h-9 xl:w-10 xl:h-10 rounded-full object-cover shrink-0 ring-2 ring-indigo-500/30 shadow-2xs" 
+            />
+          ) : (
+            <div className="w-9 h-9 xl:w-10 xl:h-10 bg-indigo-600 dark:bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs">
+              {getInitials(profile.fullName)}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="text-xs xl:text-sm font-bold text-gray-900 dark:text-white truncate">
+              {profile.fullName || (lang === 'en' ? 'User' : 'Utilisateur')}
+            </div>
+            <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+              {profile.email || (lang === 'en' ? 'Edit profile' : 'Modifier profil')}
+            </div>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 
@@ -2639,9 +2960,17 @@ STRICT FORMAT RULES:
 
             {/* PROFIL AVATAR */}
             <div onClick={() => setActiveTab('profile')} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer bg-blue-50 dark:bg-blue-900/30 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-blue-100 dark:border-gray-700 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors shrink-0">
-              <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shrink-0">
-                {getInitials(profile.fullName)}
-              </div>
+              {profile.photo ? (
+                <img 
+                  src={profile.photo} 
+                  alt={profile.fullName || 'User'} 
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover shrink-0 ring-1 ring-blue-400" 
+                />
+              ) : (
+                <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shrink-0">
+                  {getInitials(profile.fullName)}
+                </div>
+              )}
               <span className="text-xs 2xl:text-sm font-semibold text-blue-900 dark:text-blue-300 max-w-[80px] xs:max-w-[120px] sm:max-w-[160px] truncate">{profile.fullName || t.user}</span>
             </div>
           </div>
@@ -2667,6 +2996,12 @@ STRICT FORMAT RULES:
             <Sparkles size={14} className="text-amber-500 shrink-0" />
             <span>{t.tailor}</span>
           </button>
+          {showDevStudio && (
+            <button onClick={() => setActiveTab('dev')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+              <Code size={14} className="text-amber-500 shrink-0" />
+              <span>{t.dev || 'Dev Studio'}</span>
+            </button>
+          )}
           <button onClick={() => setActiveTab('profile')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <UserCheck size={14} className="text-emerald-500 shrink-0" />
             <span>{t.profile}</span>
@@ -2751,6 +3086,14 @@ STRICT FORMAT RULES:
 
           {activeTab === 'dashboard' && (
             <div className="space-y-6 sm:space-y-8 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
+              {/* Hiring Weather & Optimal Application Timing (Top of Dashboard) */}
+              <HiringWeatherSection 
+                t={t} 
+                lang={lang} 
+                simulatedMonth={simulatedMonth} 
+                onResetDate={() => setSimulatedMonth(null)} 
+              />
+
               {/* Top Metric Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 2xl:gap-6">
                 {/* Total Applications */}
@@ -3042,11 +3385,52 @@ STRICT FORMAT RULES:
                     <span>{t.exportCSVBtn}</span>
                   </button>
                   <button 
-                    onClick={() => { setEditingApplication(null); setIsAddModalOpen(true); }} 
+                    onClick={() => { setEditingApplication(null); setInitialModalUrl(''); setIsAddModalOpen(true); }} 
                     className="flex-1 sm:flex-none justify-center px-4 py-2 2xl:px-5 2xl:py-2.5 bg-blue-600 text-white rounded-xl text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-blue-700 transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
                   >
                     <Plus size={16} className="shrink-0" />
                     <span>{t.newApplication}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Quick URL Import Bar */}
+              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-blue-50/80 dark:from-blue-950/25 dark:via-indigo-950/25 dark:to-blue-950/25 border-b border-blue-100/80 dark:border-blue-900/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-blue-950 dark:text-blue-200 shrink-0">
+                  <Sparkles size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                  <span>{t.quickImportBarTitle || "Import direct depuis une URL"}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-1 sm:max-w-xl">
+                  <div className="relative flex-1">
+                    <input
+                      type="url"
+                      value={quickUrlInput}
+                      onChange={(e) => setQuickUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleQuickImport(quickUrlInput);
+                        }
+                      }}
+                      placeholder={t.quickImportBarPlaceholder || "Collez le lien d'une offre (LinkedIn, WTTJ, Greenhouse...)"}
+                      className="w-full pl-3 pr-14 py-2 text-xs sm:text-sm bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 shadow-2xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleQuickPasteFromClipboard}
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      {t.pasteUrl || "Coller"}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!quickUrlInput.trim()}
+                    onClick={() => handleQuickImport(quickUrlInput)}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                  >
+                    <Wand2 size={14} />
+                    <span>{t.importBtn || "Importer"}</span>
                   </button>
                 </div>
               </div>
@@ -3130,34 +3514,25 @@ STRICT FORMAT RULES:
               </div>
 
               {/* Desktop / Tablet Table (>= 640px) */}
-              <div className="hidden sm:block">
-                <table className="w-full table-fixed text-left border-collapse text-xs sm:text-sm 2xl:text-base">
-                  <colgroup>
-                    <col className="w-[18%]" />
-                    <col className="w-[20%]" />
-                    <col className="w-[13%]" />
-                    <col className="w-[11%]" />
-                    <col className="w-[12%]" />
-                    <col className="w-[16%]" />
-                    <col className="w-[10%]" />
-                  </colgroup>
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs md:text-sm min-w-full">
                   <thead>
                     <tr className="bg-gray-100/60 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs 2xl:text-sm uppercase tracking-wider">
-                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.company}</th>
-                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.role}</th>
-                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.source}</th>
-                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.contract}</th>
-                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.date}</th>
-                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 truncate">{t.status}</th>
-                      <th className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 text-right truncate">{t.actions}</th>
+                      <th className="px-2.5 sm:px-3.5 py-3 font-semibold">{t.company}</th>
+                      <th className="px-2.5 sm:px-3.5 py-3 font-semibold">{t.role}</th>
+                      <th className="px-2 sm:px-3 py-3 font-semibold">{t.source}</th>
+                      <th className="px-2 sm:px-3 py-3 font-semibold">{t.contract}</th>
+                      <th className="px-2 sm:px-3 py-3 font-semibold whitespace-nowrap">{t.date}</th>
+                      <th className="px-2 sm:px-3 py-3 font-semibold">{t.status}</th>
+                      <th className="px-2.5 sm:px-3.5 py-3 text-right font-semibold whitespace-nowrap">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {applications.map(app => (
                       <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 font-semibold text-gray-900 dark:text-gray-100">
+                        <td className="px-2.5 sm:px-3.5 py-2.5 font-semibold text-gray-900 dark:text-gray-100">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="truncate" title={app.company}>{app.company}</span>
+                            <span className="truncate max-w-[100px] md:max-w-[150px] lg:max-w-[220px]" title={app.company}>{app.company}</span>
                             {app.url && (
                               <a 
                                 href={formatExternalUrl(app.url)} 
@@ -3168,38 +3543,38 @@ STRICT FORMAT RULES:
                                 title={app.url}
                                 aria-label={app.url}
                               >
-                                <ExternalLink size={13} />
+                                <ExternalLink size={12} />
                               </a>
                             )}
                           </div>
                         </td>
-                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 text-gray-700 dark:text-gray-300 font-medium">
-                          <div className="truncate" title={app.role}>{app.role}</div>
+                        <td className="px-2.5 sm:px-3.5 py-2.5 text-gray-700 dark:text-gray-300 font-medium">
+                          <div className="truncate max-w-[100px] md:max-w-[150px] lg:max-w-[220px]" title={app.role}>{app.role}</div>
                         </td>
-                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4">
-                          <span className={`inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-semibold border shrink-0 max-w-full truncate ${getSourceBadgeStyle(app.source || 'LinkedIn')}`} title={getSourceLabel(app.source || 'LinkedIn', t)}>
+                        <td className="px-2 sm:px-3 py-2.5">
+                          <span className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-[11px] md:text-xs font-semibold border shrink-0 max-w-full truncate ${getSourceBadgeStyle(app.source || 'LinkedIn')}`} title={getSourceLabel(app.source || 'LinkedIn', t)}>
                             <span className="truncate">{getSourceLabel(app.source || 'LinkedIn', t)}</span>
                           </span>
                         </td>
-                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4">
-                          <span className="inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-medium border dark:border-gray-600 max-w-full truncate" title={getContractLabel(app.type, t)}>
+                        <td className="px-2 sm:px-3 py-2.5">
+                          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[11px] md:text-xs font-medium border dark:border-gray-600 max-w-full truncate" title={getContractLabel(app.type, t)}>
                             <span className="truncate">{getContractLabel(app.type, t)}</span>
                           </span>
                         </td>
-                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 text-gray-500 dark:text-gray-400 text-xs 2xl:text-sm">
-                          <div className="truncate">{app.date}</div>
+                        <td className="px-2 sm:px-3 py-2.5 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
+                          <div>{app.date}</div>
                           {app.responseDate && (
-                            <div className="text-[10px] sm:text-[11px] 2xl:text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5 truncate" title={`${t.responseDate}: ${app.responseDate}`}>
+                            <div className="text-[10px] sm:text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5 truncate" title={`${t.responseDate}: ${app.responseDate}`}>
                               <Clock size={10} className="shrink-0" /> <span className="truncate">{app.responseDate}</span>
                             </div>
                           )}
                         </td>
-                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4">
+                        <td className="px-2 sm:px-3 py-2.5">
                           <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
                             <select
                               value={app.status}
                               onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                              className={`inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity max-w-[110px] sm:max-w-[130px] truncate ${getStatusColor(app.status)}`}
+                              className={`inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity shrink-0 ${getStatusColor(app.status)}`}
                               style={{ textAlignLast: 'center' }}
                             >
                               {STATUS_KEYS.map(statusKey => (
@@ -3215,7 +3590,7 @@ STRICT FORMAT RULES:
                             )}
                           </div>
                         </td>
-                        <td className="p-2.5 sm:p-3 lg:p-3.5 2xl:p-4 text-right space-x-1.5 whitespace-nowrap">
+                        <td className="px-2.5 sm:px-3.5 py-2.5 text-right space-x-1 whitespace-nowrap">
                           <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs font-medium cursor-pointer transition-colors">
                             {t.edit}
                           </button>
@@ -3330,7 +3705,20 @@ STRICT FORMAT RULES:
                     )}
                     <div>
                       <div className="flex justify-between items-end mb-1 flex-wrap gap-1">
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.jobDescription}</label>
+                        <div className="flex items-center gap-2">
+                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.jobDescription}</label>
+                          {jobDescription.trim().length > 30 && (
+                            <button
+                              type="button"
+                              onClick={() => setJobDescription(cleanJobDescription(jobDescription))}
+                              title={t.cleanJobDescTooltip}
+                              className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 cursor-pointer flex items-center gap-1 transition-colors"
+                            >
+                              <Wand2 size={11} className="text-amber-500" />
+                              {t.cleanJobDescBtn}
+                            </button>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1.5 sm:gap-2">
                           <input type="url" placeholder={t.urlExtractorPlaceholder} className="px-2.5 py-1 text-xs border rounded-lg w-28 sm:w-36 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} />
                           <button type="button" onClick={handleExtractUrl} disabled={isExtracting || !jobUrl} className="text-xs bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg border dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-50 cursor-pointer">
@@ -3387,17 +3775,210 @@ STRICT FORMAT RULES:
               {/* Display CV Result */}
               {aiResult && generationMode === 'cv' && aiResult.cv && (
                 <div className="space-y-4 sm:space-y-6">
-                  <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 print:hidden">
-                    <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white flex items-center gap-2">
-                      <FileText className="text-blue-600 dark:text-blue-400" size={18} /> {t.cvFormatRenderCV}
-                    </h3>
-                    <div className="flex gap-2 w-full sm:w-auto justify-end">
-                      <button onClick={handleExportRenderCV} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-semibold cursor-pointer transition-colors">
-                        <Download size={15} /> {t.yamlExport}
-                      </button>
-                      <button onClick={triggerPrint} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-xs cursor-pointer transition-colors">
-                        <Download size={15} /> {t.pdfExport}
-                      </button>
+                  {/* CV Customization & Toolbar */}
+                  <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 space-y-4 print:hidden">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-gray-100 dark:border-gray-700 pb-3.5">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <LayoutTemplate className="text-blue-600 dark:text-blue-400" size={18} />
+                          <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white">
+                            {t.resumeTemplatesTitle || 'Modèle de CV'}
+                          </h3>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            {RESUME_TEMPLATES.find(tpl => tpl.id === selectedResumeTemplate)?.name || 'RenderCV Classic'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {selectedResumeTemplate === 'rendercv' 
+                            ? (lang === 'en' ? 'Original academic serif template' : 'Modèle original académique en typographie serif') 
+                            : (lang === 'en' ? 'Modern template inspired by Reactive Resume' : 'Modèle moderne inspiré de Reactive Resume')}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                        {selectedResumeTemplate === 'rendercv' && (
+                          <button onClick={handleExportRenderCV} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-semibold cursor-pointer transition-colors">
+                            <Download size={15} /> {t.yamlExport}
+                          </button>
+                        )}
+                        <button onClick={triggerPrint} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-xs cursor-pointer transition-colors">
+                          <Download size={15} /> {t.pdfExport}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Template Picker Pills/Cards */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        {lang === 'en' ? 'Choose Resume Template' : 'Sélectionner le modèle de CV'}
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {RESUME_TEMPLATES.map((tpl) => {
+                          const isSelected = selectedResumeTemplate === tpl.id;
+                          return (
+                            <button
+                              key={tpl.id}
+                              type="button"
+                              onClick={() => setSelectedResumeTemplate(tpl.id)}
+                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                                isSelected 
+                                  ? 'border-blue-600 dark:border-blue-500 bg-blue-50/70 dark:bg-blue-900/30 ring-2 ring-blue-500/20' 
+                                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                              }`}
+                            >
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className={`text-xs font-bold ${isSelected ? 'text-blue-900 dark:text-blue-200' : 'text-gray-900 dark:text-white'}`}>
+                                    {tpl.name}
+                                  </span>
+                                  {isSelected && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400" />}
+                                </div>
+                                <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
+                                  tpl.id === 'rendercv' 
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' 
+                                    : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                                }`}>
+                                  {tpl.badge}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Secondary Controls: Color Palette, Page Density, Photo Toggle & Photo Size */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+                      {/* Accent Color Picker (disabled for classic monochrome rendercv) */}
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Palette size={14} className="text-gray-500 dark:text-gray-400" />
+                          <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            {t.accentColorTitle || "Couleur d'accent"}
+                          </label>
+                          {selectedResumeTemplate === 'rendercv' && (
+                            <span className="text-[10px] text-gray-400 italic">
+                              ({lang === 'en' ? 'Monochrome' : 'Monochrome'})
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap min-h-[36px]">
+                          {ACCENT_COLORS.map((c) => {
+                            const isActive = resumeAccentColor === c.hex;
+                            return (
+                              <button
+                                key={c.id}
+                                type="button"
+                                onClick={() => setResumeAccentColor(c.hex)}
+                                disabled={selectedResumeTemplate === 'rendercv'}
+                                title={c.name}
+                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                  isActive ? 'ring-2 ring-offset-2 ring-gray-900 dark:ring-white scale-110' : 'hover:scale-105'
+                                }`}
+                                style={{ backgroundColor: c.hex }}
+                              >
+                                {isActive && <span className="w-2 h-2 rounded-full bg-white shadow-xs" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Density / Spacing Selector */}
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <SlidersHorizontal size={14} className="text-gray-500 dark:text-gray-400" />
+                          <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            {t.pageDensityTitle || 'Densité de page (A4)'}
+                          </label>
+                        </div>
+                        <div className="flex gap-1.5 min-h-[36px] items-center">
+                          {[
+                            { id: 'compact', label: t.densityCompactShort || 'Compact', title: t.densityCompact },
+                            { id: 'normal', label: t.densityNormalShort || 'Standard', title: t.densityNormal },
+                            { id: 'relaxed', label: t.densityRelaxedShort || 'Aéré', title: t.densityRelaxed }
+                          ].map((d) => (
+                            <button
+                              key={d.id}
+                              type="button"
+                              title={d.title}
+                              onClick={() => setResumeDensity(d.id)}
+                              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                                resumeDensity === d.id
+                                  ? 'bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-gray-900 dark:border-white shadow-2xs'
+                                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                              }`}
+                            >
+                              {d.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Photo Toggle Switch */}
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <ImageIcon size={14} className="text-gray-500 dark:text-gray-400" />
+                          <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            {t.showPhotoOnResume || 'Photo de profil'}
+                          </label>
+                        </div>
+                        <div className="flex items-center justify-between p-1.5 sm:p-2 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 min-h-[36px]">
+                          <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                            {showResumePhoto 
+                              ? (t.showPhotoOn || 'Visible') 
+                              : (t.showPhotoOff || 'Masquée')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowResumePhoto(!showResumePhoto)}
+                            className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                              showResumePhoto ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                            role="switch"
+                            aria-checked={showResumePhoto}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                showResumePhoto ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Photo Size Selector */}
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <ImageIcon size={14} className="text-gray-500 dark:text-gray-400" />
+                          <label className={`text-xs font-semibold ${showResumePhoto ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
+                            {t.photoSizeTitle || 'Taille de photo'}
+                          </label>
+                        </div>
+                        <div className="flex gap-1.5 min-h-[36px] items-center">
+                          {[
+                            { id: 'sm', label: t.photoSizeSm || 'Petite' },
+                            { id: 'md', label: t.photoSizeMd || 'Moyenne' },
+                            { id: 'lg', label: t.photoSizeLg || 'Grande' }
+                          ].map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              disabled={!showResumePhoto}
+                              onClick={() => setResumePhotoSize(s.id)}
+                              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
+                                !showResumePhoto 
+                                  ? 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700'
+                                  : resumePhotoSize === s.id
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs cursor-pointer'
+                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer'
+                              }`}
+                            >
+                              {s.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -3472,6 +4053,26 @@ STRICT FORMAT RULES:
             </div>
           )}
 
+          {activeTab === 'dev' && showDevStudio && (
+            <DevResumeLab
+              profile={profile}
+              selectedResumeTemplate={selectedResumeTemplate}
+              setSelectedResumeTemplate={setSelectedResumeTemplate}
+              resumeAccentColor={resumeAccentColor}
+              setResumeAccentColor={setResumeAccentColor}
+              resumeDensity={resumeDensity}
+              setResumeDensity={setResumeDensity}
+              showPhoto={showResumePhoto}
+              setShowPhoto={setShowResumePhoto}
+              photoSize={resumePhotoSize}
+              setPhotoSize={setResumePhotoSize}
+              simulatedMonth={simulatedMonth}
+              setSimulatedMonth={setSimulatedMonth}
+              t={t}
+              lang={lang}
+            />
+          )}
+
           {activeTab === 'profile' && (
             <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors">
               <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
@@ -3499,6 +4100,16 @@ STRICT FORMAT RULES:
                     </label>
                   </div>
                 </div>
+
+                {/* Profile Photo Uploader */}
+                <ProfilePhotoUploader
+                  photo={profile.photo || ''}
+                  name={profile.fullName || ''}
+                  onPhotoChange={(photo) => setProfile(prev => ({ ...prev, photo }))}
+                  t={t}
+                  lang={lang}
+                  variant="card"
+                />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div><label className="block text-sm font-medium mb-1">{t.fullName}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.fullName || ''} onChange={e => setProfile({...profile, fullName: e.target.value})} /></div>
@@ -3608,6 +4219,58 @@ STRICT FORMAT RULES:
                   </div>
                 </div>
 
+                {/* Section Dev Studio Toggle / Préférences */}
+                <div className="mt-8 p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-amber-500/10 dark:from-amber-950/30 dark:via-amber-900/10 dark:to-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-start gap-3.5">
+                      <div className="p-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-xl shrink-0 mt-0.5 border border-amber-300 dark:border-amber-700/70">
+                        <Code size={20} />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-gray-900 dark:text-white text-sm">
+                            {t.devStudioToggleTitle || 'Dev Studio (Laboratoire CV 0 Token)'}
+                          </h4>
+                          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                            0 Token
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 max-w-xl leading-relaxed">
+                          {t.devStudioToggleSubtitle || "Activer ou masquer l'onglet Dev Studio dans la barre de navigation pour concevoir et tester vos CVs sans consommer de tokens API."}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 shrink-0 ml-auto sm:ml-0">
+                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                        showDevStudio 
+                          ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700' 
+                          : 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                      }`}>
+                        {showDevStudio 
+                          ? (t.devStudioEnabled || 'Visible dans le menu') 
+                          : (t.devStudioDisabled || 'Masqué du menu')}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleToggleDevStudio}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                          showDevStudio ? 'bg-amber-600' : 'bg-gray-300 dark:bg-gray-600'
+                        }`}
+                        role="switch"
+                        aria-checked={showDevStudio}
+                        title={t.toggleDevStudioBtn || 'Activer / Désactiver le Dev Studio'}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                            showDevStudio ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Section Zone de Danger / Réinitialisation */}
                 <div className="mt-8 p-5 bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 rounded-xl">
                   <div className="flex items-center gap-2 mb-2">
@@ -3639,9 +4302,18 @@ STRICT FORMAT RULES:
       
       <AddApplicationModal 
         isOpen={isAddModalOpen} 
-        onClose={() => setIsAddModalOpen(false)} 
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setInitialModalUrl('');
+        }} 
         editingApp={editingApplication}
         t={t}
+        lang={lang}
+        apiKey={apiKey}
+        openAiKey={openAiKey}
+        anthropicKey={anthropicKey}
+        selectedAiModel={selectedAiModel}
+        initialUrl={initialModalUrl}
         onGoToTailor={(appId) => {
           setIsAddModalOpen(false);
           setActiveTab('tailor');

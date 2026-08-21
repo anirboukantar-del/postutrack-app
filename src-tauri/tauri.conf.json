@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "postutrack",
-  "version": "0.2.0",
+  "version": "0.2.5",
   "identifier": "com.anir.postutrack",
   "build": {
     "frontendDist": "../dist",
@@ -13,8 +13,10 @@
     "windows": [
       {
         "title": "postutrack",
-        "width": 800,
-        "height": 600,
+        "width": 1100,
+        "height": 750,
+        "minWidth": 680,
+        "minHeight": 500,
         "resizable": true,
         "fullscreen": false
       }
