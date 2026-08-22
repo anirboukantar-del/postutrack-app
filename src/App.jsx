@@ -65,6 +65,7 @@ import { importJobFromUrl, detectSourceFromUrl, detectContractType, cleanJobDesc
 import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplates';
 import { ProfilePhotoUploader } from './ProfilePhotoUploader';
 import { DevResumeLab } from './DevResumeLab';
+import { downloadElementAsPDF } from './pdfExport';
 
 export const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
 export const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
@@ -1867,6 +1868,7 @@ export default function App() {
   const [aiResult, setAiResult] = useState(null);
   const [aiError, setAiError] = useState('');
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   
   const [cvDensity, setCvDensity] = useState('expanded');
   const [modificationStrategy, setModificationStrategy] = useState('balanced');
@@ -2177,6 +2179,45 @@ ${aiResult.coverLetter}`;
   const getInitials = (name) => {
     if (!name || typeof name !== 'string') return 'JD';
     return name.split(' ').map(n => n[0]).filter(Boolean).join('').substring(0, 2).toUpperCase() || 'JD';
+  };
+
+  const handleDownloadCVPDF = async () => {
+    if (isExportingPdf) return;
+    try {
+      setIsExportingPdf(true);
+      const name = aiResult?.cv?.fullName || profile?.fullName || 'CV';
+      const cleanName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      await downloadElementAsPDF({
+        elementId: 'cv-render',
+        filename: `CV_${cleanName}.pdf`,
+        isMultiPage: isMultiPageResume
+      });
+    } catch (err) {
+      console.error('PDF download error:', err);
+      // Fallback to print if canvas fails
+      triggerPrint();
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleDownloadLetterPDF = async () => {
+    if (isExportingPdf) return;
+    try {
+      setIsExportingPdf(true);
+      const name = profile?.fullName || 'Candidat';
+      const cleanName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      await downloadElementAsPDF({
+        elementId: 'letter-render',
+        filename: `Lettre_Motivation_${cleanName}.pdf`,
+        isMultiPage: false
+      });
+    } catch (err) {
+      console.error('Letter PDF download error:', err);
+      triggerPrint();
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   const triggerPrint = () => {
@@ -2839,7 +2880,7 @@ STRICT FORMAT RULES:
   };
 
   const renderSidebar = () => (
-    <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 print:hidden transition-colors duration-200 shrink-0">
+    <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 no-print print:hidden transition-colors duration-200 shrink-0">
       <div className="p-5 xl:p-6 2xl:p-8">
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 tracking-tight">
           PostuTrack
@@ -2916,7 +2957,7 @@ STRICT FORMAT RULES:
     <div className="min-h-screen bg-[#f8fafc] dark:bg-gray-900 font-sans flex text-gray-900 dark:text-gray-100 transition-colors duration-200">
       {renderSidebar()}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 sm:py-4 2xl:py-5 flex justify-between items-center print:hidden transition-colors duration-200">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 sm:py-4 2xl:py-5 flex justify-between items-center no-print print:hidden transition-colors duration-200">
           <div className="flex items-center gap-3">
             {/* Mobile Title Icon */}
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight">PostuTrack</div>
@@ -2983,7 +3024,7 @@ STRICT FORMAT RULES:
         </header>
 
         {/* Mobile Navigation Tabs */}
-        <div className="md:hidden flex items-center gap-1 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 overflow-x-auto scrollbar-none print:hidden sticky top-[53px] z-10">
+        <div className="md:hidden flex items-center gap-1 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 overflow-x-auto scrollbar-none no-print print:hidden sticky top-[53px] z-10">
           {(!isOnboardingCompleted || activeTab === 'onboarding') && (
             <button onClick={() => setActiveTab('onboarding')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
               <Rocket size={14} className="shrink-0" />
@@ -3003,7 +3044,7 @@ STRICT FORMAT RULES:
             <span>{t.tailor}</span>
           </button>
           {showDevStudio && (
-            <button onClick={() => setActiveTab('dev')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <button onClick={() => setActiveTab('dev')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
               <Code size={14} className="text-amber-500 shrink-0" />
               <span>{t.dev || 'Dev Studio'}</span>
             </button>
@@ -3807,8 +3848,13 @@ STRICT FORMAT RULES:
                             <Download size={15} /> {t.yamlExport}
                           </button>
                         )}
-                        <button onClick={triggerPrint} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-xs cursor-pointer transition-colors">
-                          <Download size={15} /> {t.pdfExport}
+                        <button 
+                          onClick={handleDownloadCVPDF} 
+                          disabled={isExportingPdf}
+                          className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs cursor-pointer transition-all disabled:opacity-60"
+                        >
+                          {isExportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                          <span>{isExportingPdf ? (lang === 'en' ? 'Generating PDF...' : 'Création PDF...') : (lang === 'en' ? 'Download PDF' : 'Télécharger PDF')}</span>
                         </button>
                       </div>
                     </div>
@@ -4031,7 +4077,7 @@ STRICT FORMAT RULES:
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-2 sm:p-6 flex justify-center bg-gray-100 dark:bg-gray-900 overflow-x-auto">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-2 sm:p-6 flex justify-center bg-gray-100 dark:bg-gray-900 overflow-x-auto print:p-0 print:m-0 print:border-none print:shadow-none print:bg-transparent print:rounded-none print:overflow-visible">
                     {renderCVTemplate()}
                   </div>
                 </div>
@@ -4040,7 +4086,7 @@ STRICT FORMAT RULES:
               {/* Display Letter Result */}
               {aiResult && generationMode === 'letter' && aiResult.coverLetter && (
                 <div className="space-y-4 sm:space-y-6">
-                  <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 print:hidden">
+                  <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 no-print print:hidden">
                     <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white flex items-center gap-2"><Sparkles className="text-indigo-600 dark:text-indigo-400" size={18} /> {t.coverLetterTitle}</h3>                
                     <div className="flex gap-2 w-full sm:w-auto justify-end">
                       <button 
@@ -4050,8 +4096,13 @@ STRICT FORMAT RULES:
                         {isCopied ? <CheckCircle size={15} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={15} />} 
                         {isCopied ? <span className="text-emerald-700 dark:text-emerald-400">{t.copied}</span> : t.copyText}
                       </button>
-                      <button onClick={triggerPrint} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-semibold shadow-xs cursor-pointer transition-colors">
-                        <Download size={15} /> {t.printPdf}
+                      <button 
+                        onClick={handleDownloadLetterPDF} 
+                        disabled={isExportingPdf}
+                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs cursor-pointer transition-all disabled:opacity-60"
+                      >
+                        {isExportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                        <span>{isExportingPdf ? (lang === 'en' ? 'Generating PDF...' : 'Création PDF...') : (lang === 'en' ? 'Download PDF' : 'Télécharger PDF')}</span>
                       </button>
                     </div>
                   </div>
@@ -4070,7 +4121,7 @@ STRICT FORMAT RULES:
                       }
                     `}} />
                     <div 
-                      id="cv-render" 
+                      id="letter-render" 
                       className="single-page-cv bg-white border border-gray-300 p-6 sm:p-10 md:p-12 pb-8 sm:pb-12 md:pb-14 w-full max-w-[210mm] min-h-[297mm] box-border shadow-md text-gray-800 font-sans select-text print:border-none print:shadow-none print:p-10 print:m-0 text-xs sm:text-[13px] leading-relaxed relative flex flex-col"
                       style={{ 
                         userSelect: 'text', 

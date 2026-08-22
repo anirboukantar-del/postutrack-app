@@ -25,10 +25,12 @@ import {
   Sun,
   Calendar,
   FlaskConical,
-  Zap
+  Zap,
+  Loader2
 } from 'lucide-react';
 import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplates';
 import { HIRING_WEATHER_MONTHS } from './HiringWeather';
+import { downloadElementAsPDF } from './pdfExport';
 
 // Preset sample resumes for instant 0-token testing
 const SAMPLE_TECH_CV = {
@@ -163,6 +165,7 @@ export function DevResumeLab({
   const [testCV, setTestCV] = useState(SAMPLE_TECH_CV);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   const realMonthIdx = new Date().getMonth();
   const currentSimMonthIdx = (simulatedMonth !== null && !isNaN(simulatedMonth) && simulatedMonth >= 0 && simulatedMonth <= 11)
@@ -200,6 +203,26 @@ export function DevResumeLab({
     }
   };
 
+  // Direct PDF Download
+  const handleDownloadPdf = async () => {
+    if (isExportingPdf) return;
+    try {
+      setIsExportingPdf(true);
+      const name = testCV?.fullName || 'CV_Test';
+      const cleanName = name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      await downloadElementAsPDF({
+        elementId: 'cv-render',
+        filename: `CV_${cleanName}_${selectedResumeTemplate}.pdf`,
+        isMultiPage: currentMultiPage
+      });
+    } catch (err) {
+      console.error('PDF download error:', err);
+      handlePrint();
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   // Direct print trigger
   const handlePrint = () => {
     window.print();
@@ -232,7 +255,7 @@ export function DevResumeLab({
   return (
     <div className="space-y-5 max-w-7xl mx-auto pb-12">
       {/* Dev Studio Header Banner - Responsive & Non-wrapping */}
-      <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-blue-500/10 dark:from-amber-950/40 dark:via-orange-950/20 dark:to-blue-950/20 p-4 sm:p-5 md:p-6 rounded-2xl border border-amber-300/40 dark:border-amber-700/40 shadow-xs">
+      <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-blue-500/10 dark:from-amber-950/40 dark:via-orange-950/20 dark:to-blue-950/20 p-4 sm:p-5 md:p-6 rounded-2xl border border-amber-300/40 dark:border-amber-700/40 shadow-xs no-print print:hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
@@ -294,7 +317,7 @@ export function DevResumeLab({
       </div>
 
       {/* Control Panel: Template, Color, Density, Photo Toggle & Photo Size */}
-      <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 space-y-4">
+      <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 space-y-4 no-print print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-700 pb-3">
           <div className="flex items-center gap-2">
             <LayoutTemplate className="text-amber-500" size={18} />
@@ -333,10 +356,12 @@ export function DevResumeLab({
             </button>
 
             <button
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs cursor-pointer transition-colors"
+              onClick={handleDownloadPdf}
+              disabled={isExportingPdf}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs cursor-pointer transition-all disabled:opacity-60"
             >
-              <Printer size={14} /> {t.printPdf || 'Imprimer'}
+              {isExportingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              <span>{isExportingPdf ? (lang === 'en' ? 'Generating...' : 'Création...') : (lang === 'en' ? 'Download PDF' : 'Télécharger PDF')}</span>
             </button>
           </div>
         </div>
@@ -751,7 +776,7 @@ export function DevResumeLab({
 
       {/* Live A4 Canvas Container */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between px-1 flex-wrap gap-2">
+        <div className="flex items-center justify-between px-1 flex-wrap gap-2 no-print print:hidden">
           <div className="flex items-center gap-2">
             <Eye size={16} className="text-gray-500" />
             <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -769,7 +794,7 @@ export function DevResumeLab({
           </div>
         </div>
 
-        <div className="w-full flex justify-center bg-gray-150 dark:bg-gray-900 p-2 sm:p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-x-auto shadow-inner print:p-0 print:bg-white print:border-none print:shadow-none">
+        <div className="w-full flex justify-center bg-gray-150 dark:bg-gray-900 p-2 sm:p-6 md:p-8 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-x-auto shadow-inner print:p-0 print:m-0 print:bg-white print:border-none print:shadow-none print:rounded-none print:overflow-visible">
           <style dangerouslySetInnerHTML={{__html: `
             @media print {
               @page {
