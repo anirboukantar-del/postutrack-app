@@ -18,9 +18,137 @@ export function sanitizeFilename(name, fallback = 'document') {
 }
 
 /**
+ * Helper to determine standard PDF font weight/style
+ */
+function getPdfFontProperties(fontWeight, fontStyle) {
+  const isBold = typeof fontWeight === 'string'
+    ? (fontWeight === 'bold' || fontWeight === 'bolder' || parseInt(fontWeight, 10) >= 600)
+    : (typeof fontWeight === 'number' && fontWeight >= 600);
+  const isItalic = fontStyle === 'italic' || fontStyle === 'oblique';
+
+  if (isBold && isItalic) return { family: 'helvetica', style: 'bolditalic' };
+  if (isBold) return { family: 'helvetica', style: 'bold' };
+  if (isItalic) return { family: 'helvetica', style: 'italic' };
+  return { family: 'helvetica', style: 'normal' };
+}
+
+/**
+ * Extracts all visible text nodes and links from DOM clone with exact coordinates
+ * for creating an invisible, 100% selectable and searchable text overlay in the PDF.
+ */
+function extractTextAndLinks(container) {
+  const containerRect = container.getBoundingClientRect();
+  const textItems = [];
+  const linkItems = [];
+
+  // Extract clickable links
+  const links = container.querySelectorAll('a[href]');
+  links.forEach(a => {
+    const r = a.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && a.href) {
+      linkItems.push({
+        x: r.left - containerRect.left,
+        y: r.top - containerRect.top,
+        width: r.width,
+        height: r.height,
+        url: a.href
+      });
+    }
+  });
+
+  // TreeWalker for all visible text nodes
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        if (!node.textContent || !node.textContent.trim()) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        const parent = node.parentElement;
+        if (!parent) return NodeFilter.FILTER_REJECT;
+
+        const tag = parent.tagName ? parent.tagName.toLowerCase() : '';
+        if (tag === 'script' || tag === 'style' || tag === 'svg') return NodeFilter.FILTER_REJECT;
+
+        const style = window.getComputedStyle(parent);
+        if (style.display === 'none' || style.visibility === 'hidden' || parseFloat(style.opacity) === 0) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      }
+    }
+  );
+
+  const range = document.createRange();
+  let node;
+
+  while ((node = walker.nextNode())) {
+    const parent = node.parentElement;
+    const style = window.getComputedStyle(parent);
+    const fontSize = parseFloat(style.fontSize) || 12;
+    const fontProps = getPdfFontProperties(style.fontWeight, style.fontStyle);
+    const text = node.textContent;
+
+    range.selectNodeContents(node);
+    const rects = range.getClientRects();
+
+    if (rects.length <= 1) {
+      const r = rects[0] || range.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) {
+        textItems.push({
+          text: text.trim(),
+          x: r.left - containerRect.left,
+          y: r.top - containerRect.top,
+          width: r.width,
+          height: r.height,
+          fontSize,
+          fontProps,
+          baseline: (r.top - containerRect.top) + (fontSize * 0.85)
+        });
+      }
+    } else {
+      // Split by words to ensure accurate multi-line wrapped positions
+      const words = text.split(/(\s+)/);
+      let currentOffset = 0;
+
+      for (const token of words) {
+        if (!token) continue;
+        const start = currentOffset;
+        const end = currentOffset + token.length;
+        currentOffset = end;
+
+        if (!token.trim()) continue;
+
+        try {
+          range.setStart(node, start);
+          range.setEnd(node, end);
+          const wr = range.getBoundingClientRect();
+          if (wr.width > 0 && wr.height > 0) {
+            textItems.push({
+              text: token,
+              x: wr.left - containerRect.left,
+              y: wr.top - containerRect.top,
+              width: wr.width,
+              height: wr.height,
+              fontSize,
+              fontProps,
+              baseline: (wr.top - containerRect.top) + (fontSize * 0.85)
+            });
+          }
+        } catch {
+          // Continue if selection range bounds fail
+        }
+      }
+    }
+  }
+
+  return { textItems, linkItems };
+}
+
+/**
  * Generates and directly downloads a 100% pixel-perfect vector-sharp PDF file
- * uses native browser rasterization via SVG foreignObject (html-to-image) to eliminate
- * any font doubling, text overlapping, or clipping glitches.
+ * with selectable/searchable text and interactive links.
  */
 export async function downloadElementAsPDF({
   elementId,
@@ -73,6 +201,9 @@ export async function downloadElementAsPDF({
     // Small delay to ensure DOM and stylesheet calculations settle in the clone
     await new Promise(resolve => setTimeout(resolve, 80));
 
+    // Extract selectable text layer and links from the rendered DOM layout
+    const { textItems, linkItems } = extractTextAndLinks(clone);
+
     // Convert cleanly via native browser engine to high-res PNG (2.5x scale)
     const imgDataUrl = await toPng(clone, {
       pixelRatio: 2.5,
@@ -102,16 +233,44 @@ export async function downloadElementAsPDF({
     const pageHeightMM = 297;
     const imgWidthPx = img.width;
     const imgHeightPx = img.height;
+    const containerWidthPx = clone.offsetWidth || 794;
+    const scaleX = pageWidthMM / containerWidthPx;
+    const scaleY = scaleX;
 
     // Check if single or multi-page
     if (!isMultiPage) {
       // Single Page strict fit
       pdf.addImage(imgDataUrl, 'PNG', 0, 0, pageWidthMM, pageHeightMM, undefined, 'FAST');
+
+      // Overlay invisible selectable text
+      textItems.forEach(item => {
+        const xMM = item.x * scaleX;
+        const baselineYMM = item.baseline * scaleY;
+        const fontSizePt = Math.max(4, Math.min(72, item.fontSize * 0.75));
+
+        pdf.setFont(item.fontProps.family, item.fontProps.style);
+        pdf.setFontSize(fontSizePt);
+        try {
+          pdf.text(item.text, xMM, baselineYMM, { renderingMode: 'invisible' });
+        } catch {
+          // ignore any unsupported unicode glyphs in standard font
+        }
+      });
+
+      // Overlay clickable links
+      linkItems.forEach(link => {
+        try {
+          pdf.link(link.x * scaleX, link.y * scaleY, link.width * scaleX, link.height * scaleY, { url: link.url });
+        } catch {
+          // ignore invalid link formats
+        }
+      });
     } else {
       // Multi-page slicing
       const pxPerMM = imgWidthPx / pageWidthMM;
       const pageHeightPx = Math.floor(pageHeightMM * pxPerMM);
       const totalPages = Math.max(1, Math.ceil(imgHeightPx / pageHeightPx));
+      const pageHeightInContainerPx = pageHeightMM / scaleY;
 
       for (let i = 0; i < totalPages; i++) {
         if (i > 0) {
@@ -139,6 +298,44 @@ export async function downloadElementAsPDF({
 
         const pageDataUrl = pageCanvas.toDataURL('image/png');
         pdf.addImage(pageDataUrl, 'PNG', 0, 0, pageWidthMM, pageHeightMM, undefined, 'FAST');
+
+        // Overlay selectable text for this specific page
+        const pageMinY = i * pageHeightInContainerPx;
+        const pageMaxY = (i + 1) * pageHeightInContainerPx;
+
+        textItems.forEach(item => {
+          if (item.y >= pageMinY && item.y < pageMaxY) {
+            const pageBaselineY = item.baseline - pageMinY;
+            const xMM = item.x * scaleX;
+            const baselineYMM = pageBaselineY * scaleY;
+            const fontSizePt = Math.max(4, Math.min(72, item.fontSize * 0.75));
+
+            pdf.setFont(item.fontProps.family, item.fontProps.style);
+            pdf.setFontSize(fontSizePt);
+            try {
+              pdf.text(item.text, xMM, baselineYMM, { renderingMode: 'invisible' });
+            } catch {
+              // ignore
+            }
+          }
+        });
+
+        // Overlay clickable links for this page
+        linkItems.forEach(link => {
+          if (link.y >= pageMinY && link.y < pageMaxY) {
+            try {
+              pdf.link(
+                link.x * scaleX,
+                (link.y - pageMinY) * scaleY,
+                link.width * scaleX,
+                link.height * scaleY,
+                { url: link.url }
+              );
+            } catch {
+              // ignore
+            }
+          }
+        });
       }
     }
 
