@@ -11,6 +11,7 @@ import {
   UserCheck,
   Sparkles,
   FileText,
+  Files,
   Download,
   Loader2,
   Upload,
@@ -1893,6 +1894,9 @@ export default function App() {
   const [resumePhotoSize, setResumePhotoSize] = useState(() => {
     try { return localStorage.getItem('postutrack_resume_photo_size') || 'md'; } catch (e) { return 'md'; }
   });
+  const [isMultiPageResume, setIsMultiPageResume] = useState(() => {
+    try { return localStorage.getItem('postutrack_resume_multipage') === 'true'; } catch (e) { return false; }
+  });
   const [showDevStudio, setShowDevStudio] = useState(() => {
     try {
       const saved = localStorage.getItem('postutrack_show_dev_studio');
@@ -1929,9 +1933,10 @@ export default function App() {
       localStorage.setItem('postutrack_resume_density', resumeDensity);
       localStorage.setItem('postutrack_resume_show_photo', String(showResumePhoto));
       localStorage.setItem('postutrack_resume_photo_size', resumePhotoSize);
+      localStorage.setItem('postutrack_resume_multipage', String(isMultiPageResume));
       localStorage.setItem('postutrack_show_dev_studio', String(showDevStudio));
     } catch (e) {}
-  }, [selectedResumeTemplate, resumeAccentColor, resumeDensity, showResumePhoto, resumePhotoSize, showDevStudio]);
+  }, [selectedResumeTemplate, resumeAccentColor, resumeDensity, showResumePhoto, resumePhotoSize, isMultiPageResume, showDevStudio]);
 
   const handleToggleDevStudio = () => {
     setShowDevStudio(prev => {
@@ -2790,6 +2795,7 @@ STRICT FORMAT RULES:
           density={resumeDensity}
           showPhoto={showResumePhoto}
           photoSize={resumePhotoSize}
+          isMultiPage={isMultiPageResume}
           t={t}
           lang={lang}
         />
@@ -3847,8 +3853,8 @@ STRICT FORMAT RULES:
                       </div>
                     </div>
 
-                    {/* Secondary Controls: Color Palette, Page Density, Photo Toggle & Photo Size */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+                    {/* Secondary Controls: Color Palette, Page Format (1 page / Multi-page), Density, Photo Toggle & Photo Size */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 pt-2 border-t border-gray-100 dark:border-gray-700">
                       {/* Accent Color Picker (disabled for classic monochrome rendercv) */}
                       <div>
                         <div className="flex items-center gap-1.5 mb-1.5">
@@ -3881,6 +3887,49 @@ STRICT FORMAT RULES:
                               </button>
                             );
                           })}
+                        </div>
+                      </div>
+
+                      {/* Page Format Toggle (1 Page strictly vs Multi-Page) */}
+                      <div>
+                        <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <Files size={14} className="text-gray-500 dark:text-gray-400" />
+                            <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                              {t.pageFormatTitle || 'Format (A4)'}
+                            </label>
+                          </div>
+                          {!isMultiPageResume && (
+                            <span className="text-[9.5px] px-1.5 py-0.2 font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60" title="Anti-blank page active">
+                              1p
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-1.5 min-h-[36px] items-center">
+                          <button
+                            type="button"
+                            title={t.singlePageTip || 'Strictement 1 page A4 (évite toute 2ème page blanche)'}
+                            onClick={() => setIsMultiPageResume(false)}
+                            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                              !isMultiPageResume
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                            }`}
+                          >
+                            {t.singlePageBadge || '1 Page'}
+                          </button>
+                          <button
+                            type="button"
+                            title={t.multiPageTip || 'Autorise le CV à s’étendre sur plusieurs pages'}
+                            onClick={() => setIsMultiPageResume(true)}
+                            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                              isMultiPageResume
+                                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                            }`}
+                          >
+                            {t.multiPageBadge || 'Multi-pages'}
+                          </button>
                         </div>
                       </div>
 
@@ -4022,17 +4071,19 @@ STRICT FORMAT RULES:
                     `}} />
                     <div 
                       id="cv-render" 
-                      className="bg-white border border-gray-300 p-6 sm:p-10 md:p-12 w-full max-w-[210mm] min-h-[297mm] box-border shadow-md text-gray-800 font-sans select-text print:border-none print:shadow-none print:p-12 print:m-0 print:w-[210mm] print:absolute print:inset-0 text-xs sm:text-[13px] leading-relaxed relative flex flex-col"
+                      className="single-page-cv bg-white border border-gray-300 p-6 sm:p-10 md:p-12 pb-8 sm:pb-12 md:pb-14 w-full max-w-[210mm] min-h-[297mm] box-border shadow-md text-gray-800 font-sans select-text print:border-none print:shadow-none print:p-10 print:m-0 text-xs sm:text-[13px] leading-relaxed relative flex flex-col"
                       style={{ 
                         userSelect: 'text', 
                         WebkitUserSelect: 'text', 
+                        minHeight: '297mm',
+                        boxSizing: 'border-box',
                         pageBreakAfter: 'avoid', 
                         breakAfter: 'avoid',
                         pageBreakInside: 'avoid',
                         breakInside: 'avoid'
                       }}
                     >
-                      <div className="mb-6 sm:mb-10 flex justify-between items-start flex-wrap gap-4">
+                      <div className="mb-6 sm:mb-10 flex justify-between items-start flex-wrap gap-4 cv-section">
                         <div>
                           <p className="font-bold text-sm sm:text-base text-black">{profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat')}</p>
                           <p>{profile.location}</p>
@@ -4043,7 +4094,7 @@ STRICT FORMAT RULES:
                           <p>{profile.location?.split(',')[0] || (lang === 'en' ? 'City' : 'Paris')}, {lang === 'en' ? 'Date:' : 'le'} {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')}</p>
                         </div>
                       </div>
-                      <div className="space-y-4 text-justify whitespace-pre-line flex-1">
+                      <div className="space-y-4 text-justify whitespace-pre-line flex-1 cv-section">
                         {aiResult.coverLetter}
                       </div>
                     </div>
@@ -4066,6 +4117,8 @@ STRICT FORMAT RULES:
               setShowPhoto={setShowResumePhoto}
               photoSize={resumePhotoSize}
               setPhotoSize={setResumePhotoSize}
+              isMultiPage={isMultiPageResume}
+              setIsMultiPage={setIsMultiPageResume}
               simulatedMonth={simulatedMonth}
               setSimulatedMonth={setSimulatedMonth}
               t={t}

@@ -12,6 +12,7 @@ import {
   GraduationCap, 
   Code, 
   FileText, 
+  Files,
   Check, 
   Eye, 
   Copy, 
@@ -145,11 +146,19 @@ export function DevResumeLab({
   setShowPhoto,
   photoSize = 'md',
   setPhotoSize,
+  isMultiPage = false,
+  setIsMultiPage,
   simulatedMonth = null,
   setSimulatedMonth,
   t,
   lang = 'fr'
 }) {
+  const [internalMultiPage, setInternalMultiPage] = useState(false);
+  const currentMultiPage = setIsMultiPage ? isMultiPage : internalMultiPage;
+  const toggleMultiPage = (val) => {
+    if (setIsMultiPage) setIsMultiPage(val);
+    else setInternalMultiPage(val);
+  };
   const [activePreset, setActivePreset] = useState('tech'); // 'tech', 'product', 'my_profile'
   const [testCV, setTestCV] = useState(SAMPLE_TECH_CV);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -375,8 +384,8 @@ export function DevResumeLab({
           </div>
         </div>
 
-        {/* 2. Style & Rendering Options: Colors, Density, Photo Toggle & Photo Size */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-3 border-t border-gray-100 dark:border-gray-700">
+        {/* 2. Style & Rendering Options: Colors, Page Format (1p / multi-page), Density, Photo Toggle & Photo Size */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 pt-3 border-t border-gray-100 dark:border-gray-700">
           {/* Accent Color */}
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -409,6 +418,49 @@ export function DevResumeLab({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Page Format Toggle (1 Page strictly vs Multi-Page) */}
+          <div>
+            <div className="flex items-center justify-between gap-1.5 mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Files size={14} className="text-gray-500 dark:text-gray-400" />
+                <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  {t.pageFormatTitle || 'Format (A4)'}
+                </label>
+              </div>
+              {!currentMultiPage && (
+                <span className="text-[9.5px] px-1.5 py-0.2 font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60" title="Anti-blank page active">
+                  1p
+                </span>
+              )}
+            </div>
+            <div className="flex gap-1.5 min-h-[36px] items-center">
+              <button
+                type="button"
+                title={t.singlePageTip || 'Strictement 1 page A4 (évite toute 2ème page blanche)'}
+                onClick={() => toggleMultiPage(false)}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                  !currentMultiPage
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                }`}
+              >
+                {t.singlePageBadge || '1 Page'}
+              </button>
+              <button
+                type="button"
+                title={t.multiPageTip || 'Autorise le CV à s’étendre sur plusieurs pages'}
+                onClick={() => toggleMultiPage(true)}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                  currentMultiPage
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                }`}
+              >
+                {t.multiPageBadge || 'Multi-pages'}
+              </button>
             </div>
           </div>
 
@@ -711,6 +763,8 @@ export function DevResumeLab({
             <span>•</span>
             <span className="capitalize">{resumeDensity}</span>
             <span>•</span>
+            <span className="font-semibold text-blue-600 dark:text-blue-400">{currentMultiPage ? (t.multiPageBadge || 'Multi-pages') : (t.singlePageBadge || '1 Page')}</span>
+            <span>•</span>
             <span>{showPhoto ? (lang === 'en' ? `Photo (${photoSize.toUpperCase()})` : `Photo (${photoSize === 'sm' ? 'Petite' : photoSize === 'lg' ? 'Grande' : 'Moyenne'})`) : 'Sans photo'}</span>
           </div>
         </div>
@@ -736,6 +790,7 @@ export function DevResumeLab({
             density={resumeDensity}
             showPhoto={showPhoto}
             photoSize={photoSize}
+            isMultiPage={currentMultiPage}
             t={t}
             lang={lang}
           />
