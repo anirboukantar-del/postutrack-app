@@ -57,7 +57,9 @@ import {
   LayoutTemplate,
   SlidersHorizontal,
   Code,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Compass,
+  Award
 } from 'lucide-react';
 import { translations } from './i18n';
 import HiringWeatherSection from './HiringWeather';
@@ -66,6 +68,8 @@ import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplat
 import { ProfilePhotoUploader } from './ProfilePhotoUploader';
 import { DevResumeLab } from './DevResumeLab';
 import { downloadElementAsPDF } from './pdfExport';
+import { JobScraperView } from './JobScraper';
+import { CreditsView } from './CreditsView';
 
 export const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
 export const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
@@ -2871,10 +2875,12 @@ STRICT FORMAT RULES:
     switch (activeTab) {
       case 'onboarding': return t.onboarding;
       case 'dashboard': return t.dashboard;
+      case 'scraper': return t.scraper || "Scraper d'offres";
       case 'applications': return t.applications;
       case 'tailor': return t.tailor;
       case 'dev': return t.devLabTitle || 'Dev Studio — Laboratoire CV (0 Token)';
       case 'profile': return t.profile;
+      case 'credits': return t.credits || 'Crédits & Liens';
       default: return activeTab;
     }
   };
@@ -2896,6 +2902,10 @@ STRICT FORMAT RULES:
         <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <LayoutDashboard size={20} className="shrink-0" /> 
           <span className="truncate">{t.dashboard}</span>
+        </button>
+        <button onClick={() => setActiveTab('scraper')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <Compass size={20} className="shrink-0" />
+          <span className="truncate">{t.scraper || "Scraper d'offres"}</span>
         </button>
         <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <ListTodo size={20} className="shrink-0" /> 
@@ -2919,6 +2929,10 @@ STRICT FORMAT RULES:
         <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <UserCheck size={20} className="text-emerald-500 shrink-0" /> 
           <span className="truncate">{t.profile}</span>
+        </button>
+        <button onClick={() => setActiveTab('credits')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <Award size={20} className="text-purple-500 shrink-0" /> 
+          <span className="truncate">{t.credits || (lang === 'en' ? 'Credits' : 'Crédits')}</span>
         </button>
       </nav>
 
@@ -2973,12 +2987,11 @@ STRICT FORMAT RULES:
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => openExternalLink("https://github.com/anirboukantar-del/postutrack-app", e)}
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 2xl:py-2 text-xs 2xl:text-sm font-semibold rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all cursor-pointer shadow-xs shrink-0"
-              title={t.viewOnGithub}
-              aria-label={t.viewOnGithub}
+              className="p-1.5 sm:p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all flex items-center justify-center cursor-pointer shadow-xs shrink-0"
+              title={t.viewOnGithub || "GitHub"}
+              aria-label={t.viewOnGithub || "GitHub"}
             >
-              <Github size={15} className="text-gray-800 dark:text-gray-200 shrink-0" />
-              <span className="hidden sm:inline">GitHub</span>
+              <Github size={18} className="text-gray-800 dark:text-gray-200 shrink-0" />
             </a>
 
             {/* BOUTON DE CHANGEMENT DE LANGUE (FR / EN) */}
@@ -3035,6 +3048,10 @@ STRICT FORMAT RULES:
             <LayoutDashboard size={14} className="shrink-0" />
             <span>{t.dashboard}</span>
           </button>
+          <button onClick={() => setActiveTab('scraper')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'scraper' ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <Compass size={14} className="text-indigo-500 shrink-0" />
+            <span>{t.scraper || "Scraper"}</span>
+          </button>
           <button onClick={() => setActiveTab('applications')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <ListTodo size={14} className="shrink-0" />
             <span>{t.applications}</span>
@@ -3052,6 +3069,10 @@ STRICT FORMAT RULES:
           <button onClick={() => setActiveTab('profile')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <UserCheck size={14} className="text-emerald-500 shrink-0" />
             <span>{t.profile}</span>
+          </button>
+          <button onClick={() => setActiveTab('credits')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <Award size={14} className="text-purple-500 shrink-0" />
+            <span>{t.credits || (lang === 'en' ? 'Credits' : 'Crédits')}</span>
           </button>
         </div>
 
@@ -3410,6 +3431,25 @@ STRICT FORMAT RULES:
                 </div>
               </div>
             </div>
+          )}
+
+          {activeTab === 'scraper' && (
+            <JobScraperView
+              t={t}
+              lang={lang}
+              applications={applications}
+              candidateProfile={profile}
+              onTransferApplication={(newApp) => {
+                setApplications(prev => {
+                  const nextList = [newApp, ...prev];
+                  return autoApplyGhostStatus(nextList).updated;
+                });
+              }}
+              onGoToTailor={(desc) => {
+                if (desc) setJobDescription(desc);
+                setActiveTab('tailor');
+              }}
+            />
           )}
 
           {activeTab === 'applications' && (
@@ -4400,6 +4440,10 @@ STRICT FORMAT RULES:
                 </div>
               </form>
             </div>
+          )}
+
+          {activeTab === 'credits' && (
+            <CreditsView t={t} lang={lang} />
           )}
         </div>
       </main>

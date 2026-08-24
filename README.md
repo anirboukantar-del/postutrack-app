@@ -56,4 +56,5 @@ If you just want to use the application without setting up a development environ
 ## Credits
 - [RenderCV](https://github.com/rendercv/rendercv.git)
 - [Jina AI](https://github.com/jina-ai)
-- [Reactive Resuma](https://github.com/amruthpillai/reactive-resume.git)
+- [Reactive Resume](https://github.com/amruthpillai/reactive-resume.git)
+- [JobSpy](https://github.com/speedyapply/JobSpy.git)
