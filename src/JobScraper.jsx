@@ -40,6 +40,13 @@ export const SUPPORTED_JOB_BOARDS = [
     tag: 'Indeed France'
   },
   {
+    id: 'wttj',
+    name: 'Welcome to the Jungle',
+    color: 'bg-yellow-50 text-yellow-800 border-yellow-300 dark:bg-yellow-950/40 dark:text-yellow-300 dark:border-yellow-700',
+    dotColor: 'bg-[#FFCC00]',
+    tag: 'WTTJ'
+  },
+  {
     id: 'glassdoor',
     name: 'Glassdoor',
     color: 'bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800',
@@ -100,7 +107,7 @@ export function JobScraperView({
   const [contractType, setContractType] = useState('all');
   const [workplace, setWorkplace] = useState('all');
   const [freshness, setFreshness] = useState('all');
-  const [selectedPlatforms, setSelectedPlatforms] = useState(['linkedin', 'indeed', 'glassdoor']);
+  const [selectedPlatforms, setSelectedPlatforms] = useState(['linkedin', 'indeed', 'wttj', 'glassdoor']);
   const [jobLimit, setJobLimit] = useState(15);
 
   // Helper to add a keyword
@@ -338,7 +345,7 @@ export function JobScraperView({
       // Format into UI models
       let formatted = rawJobs.map((j, i) => {
         const platformKey = (j.site || 'LinkedIn').toLowerCase().replace(' ', '_');
-        const board = SUPPORTED_JOB_BOARDS.find(b => b.id === platformKey) || {
+        const board = SUPPORTED_JOB_BOARDS.find(b => b.id === platformKey || (platformKey.includes('wttj') && b.id === 'wttj') || (platformKey.includes('jungle') && b.id === 'wttj')) || {
           id: platformKey,
           name: j.site || 'Web',
           color: 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-200',
@@ -350,6 +357,7 @@ export function JobScraperView({
         const companyColor = colors[Math.abs(hashString(j.company || '')) % colors.length];
 
         const detectedContract = j.contract || detectContractType(j, contractType !== 'all' ? contractType : 'CDI');
+        const relevance = j.relevance_score || j.relevanceScore || 80;
 
         return {
           id: j.id || `job_${i}_${Date.now()}`,
@@ -366,6 +374,7 @@ export function JobScraperView({
           description: j.description || '',
           salary: j.salary || 'Non spécifié',
           contract: detectedContract,
+          relevanceScore: relevance,
           matchedKeyword: j.matched_keyword || (keywordsToSearch.length === 1 ? keywordsToSearch[0] : ''),
           workplaceLabel: j.is_remote ? '100% Télétravail' : 'Sur site / Hybride',
           posted: j.date_posted || 'Récent',
@@ -387,23 +396,25 @@ export function JobScraperView({
         });
       }
 
-      // STRICT REMOTE FILTERING: if remote is selected, ensure remote mode
-      if (workplace === 'remote') {
-        formatted = formatted.filter(job => job.raw?.is_remote || job.workplaceLabel === '100% Télétravail');
-      }
+      // Sort by relevance score descending
+      formatted.sort((a, b) => (b.relevanceScore || 50) - (a.relevanceScore || 50));
 
-      setScrapedJobs(formatted);
+      // Limit results to the user-requested job limit
+      const finalJobs = formatted.slice(0, jobLimit);
+
+      setScrapedJobs(finalJobs);
+      const totalPoolCount = data.total_candidates || rawJobs.length || finalJobs.length;
       triggerToast(
         lang === 'en'
-          ? `⚡ Scraped ${formatted.length} real jobs across ${keywordsToSearch.length} keyword(s) via JobSpy!`
-          : `⚡ ${formatted.length} offres réelles récupérées via ${keywordsToSearch.length} recherche(s) individuelle(s) !`
+          ? `⚡ Scraped and ranked top ${finalJobs.length} offers (from ${totalPoolCount} candidate offers) by relevance!`
+          : `⚡ ${finalJobs.length} meilleures offres sélectionnées et classées par pertinence (sur ${totalPoolCount} offres analysées) !`
       );
 
-      if (formatted.length === 0) {
+      if (finalJobs.length === 0) {
         setErrorMessage(
           lang === 'en'
-            ? `No jobs found for ${kwSummary} with strict contract "${contractType !== 'all' ? contractType : 'All'}". Try broadening keywords or location.`
-            : `Aucune offre trouvée pour ${kwSummary} avec le filtre strict de contrat "${contractType !== 'all' ? contractType : 'Tous'}". Essayez d'élargir les mots-clés ou le lieu.`
+            ? `No jobs found for ${kwSummary} with contract "${contractType !== 'all' ? contractType : 'All'}". Try broadening keywords or location.`
+            : `Aucune offre trouvée pour ${kwSummary} avec le contrat "${contractType !== 'all' ? contractType : 'Tous'}". Essayez d'élargir les mots-clés ou le lieu.`
         );
       }
     } catch (err) {
@@ -1122,6 +1133,7 @@ export function JobScraperView({
                   </th>
                   <th className="p-3 sm:p-4">{lang === 'en' ? 'Job Title & Role' : 'Intitulé du Poste'}</th>
                   <th className="p-3 sm:p-4">{lang === 'en' ? 'Company' : 'Entreprise'}</th>
+                  <th className="p-3 sm:p-4">{lang === 'en' ? 'Relevance' : 'Pertinence'}</th>
                   <th className="p-3 sm:p-4">{lang === 'en' ? 'Platform / Source' : 'Plateforme / Source'}</th>
                   <th className="p-3 sm:p-4">{lang === 'en' ? 'Location & Mode' : 'Lieu & Mode'}</th>
                   <th className="p-3 sm:p-4">{lang === 'en' ? 'Contract' : 'Contrat'}</th>
@@ -1134,6 +1146,7 @@ export function JobScraperView({
                   const jobKey = `${job.company.toLowerCase().trim()}___${job.title.toLowerCase().trim()}`;
                   const isTransferred = transferredJobKeys.has(jobKey);
                   const isSelected = selectedJobIds.has(job.id);
+                  const relScore = job.relevanceScore || 75;
 
                   return (
                     <tr
@@ -1186,6 +1199,35 @@ export function JobScraperView({
                           <div className="font-semibold text-gray-900 dark:text-gray-100">
                             {job.company}
                           </div>
+                        </div>
+                      </td>
+
+                      {/* Relevance Score */}
+                      <td className="p-3 sm:p-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-14 bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden shrink-0">
+                            <div
+                              className={`h-full ${
+                                relScore >= 80
+                                  ? 'bg-emerald-500'
+                                  : relScore >= 65
+                                  ? 'bg-blue-500'
+                                  : 'bg-amber-500'
+                              }`}
+                              style={{ width: `${relScore}%` }}
+                            />
+                          </div>
+                          <span
+                            className={`text-xs font-black px-1.5 py-0.5 rounded ${
+                              relScore >= 80
+                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                : relScore >= 65
+                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                            }`}
+                          >
+                            {relScore}%
+                          </span>
                         </div>
                       </td>
 
@@ -1332,7 +1374,14 @@ export function JobScraperView({
             {/* Modal Body */}
             <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
               {/* Badges Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+                <div>
+                  <div className="text-[10px] font-bold uppercase text-gray-400">Pertinence</div>
+                  <div className="font-black text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1">
+                    <Sparkles size={12} />
+                    <span>{viewingJob.relevanceScore || 75}%</span>
+                  </div>
+                </div>
                 <div>
                   <div className="text-[10px] font-bold uppercase text-gray-400">Plateforme</div>
                   <div className="font-bold text-gray-900 dark:text-white mt-0.5">{viewingJob.platformName}</div>

@@ -1,10 +1,11 @@
 /**
  * Job Scraping Service for PostuTrack
  * 
- * Supports both:
- * 1. Local Python JobSpy backend (/api/scrape-jobs on current host or http://localhost:3000)
- * 2. Standalone Client-side / Tauri Fallback Engine (queries live job platforms and Jina search)
- *    so scraping works in compiled .exe / .msi desktop apps with zero crashes.
+ * Supports:
+ * 1. Local Python JobSpy backend (/api/scrape-jobs)
+ * 2. Standalone Client-side / Tauri Fallback Engine (queries live job platforms, Welcome to the Jungle, and Jina search)
+ * 3. Smart Relevance Scoring Engine (ranks 50 candidate offers by keyword, contract, location and remote fit,
+ *    then returns the top user-requested count).
  */
 
 import { detectContractType } from './urlJobExtractor';
@@ -35,34 +36,117 @@ async function safeFetchJson(url, options = {}) {
 }
 
 /**
- * Fallback Web Scraper: Runs directly from browser/Tauri without needing a Python or Node backend.
- * Queries Jina Search for LinkedIn / Indeed / WTTJ real postings + public job APIs.
+ * Calculates a match relevance score (50-99%) based on how well a job fits the user's requirements.
+ */
+export function calculateJobRelevance(job, {
+  keywords = [],
+  location = '',
+  contractType = 'all',
+  workplace = 'all',
+  isRemote = false
+}) {
+  let score = 55;
+  const title = (job.title || '').toLowerCase();
+  const desc = (job.description || '').toLowerCase();
+  const jobLoc = (job.location || '').toLowerCase();
+  const jobContract = (job.contract || '').toLowerCase();
+
+  // 1. Keyword fit (Title match has highest weight)
+  const kwList = Array.isArray(keywords) && keywords.length > 0 ? keywords : ['developer'];
+  kwList.forEach(kw => {
+    const cleanKw = kw.toLowerCase().trim();
+    if (!cleanKw) return;
+
+    if (title.includes(cleanKw)) {
+      score += 24;
+    } else {
+      const tokens = cleanKw.split(/[\s/+-]+/).filter(t => t.length > 2);
+      const matchedTokens = tokens.filter(t => title.includes(t));
+      if (matchedTokens.length > 0) {
+        score += Math.round((matchedTokens.length / tokens.length) * 16);
+      }
+    }
+
+    if (desc.includes(cleanKw)) {
+      score += 6;
+    }
+  });
+
+  // 2. Location fit (Lenient: reward city/country match, don't brutally eliminate)
+  const reqLoc = (location || '').toLowerCase().trim();
+  if (reqLoc) {
+    const locTokens = reqLoc.split(/[,/ -]+/).filter(t => t.length > 2);
+    if (locTokens.some(t => jobLoc.includes(t))) {
+      score += 15;
+    } else if (jobLoc.includes('france') || jobLoc.includes('paris') || jobLoc.includes('remote') || jobLoc.includes('télétravail')) {
+      score += 8;
+    }
+  } else {
+    score += 10;
+  }
+
+  // 3. Contract fit
+  if (contractType && contractType !== 'all') {
+    const target = contractType.toLowerCase();
+    if (jobContract === target) {
+      score += 20;
+    }
+  } else {
+    score += 10;
+  }
+
+  // 4. Remote / Workplace fit
+  if (isRemote || workplace === 'remote') {
+    if (job.is_remote || /télétravail|remote|full[- ]remote|100%/i.test(`${title} ${desc} ${jobLoc}`)) {
+      score += 15;
+    }
+  } else {
+    score += 5;
+  }
+
+  // 5. Listing quality (salary, description length)
+  if (job.salary && job.salary !== 'Non spécifié') {
+    score += 4;
+  }
+  if (desc.length > 250) {
+    score += 4;
+  }
+
+  return Math.min(99, Math.max(50, Math.round(score)));
+}
+
+/**
+ * Fallback Web Scraper: Queries live job platforms (LinkedIn, Indeed, Glassdoor, Welcome to the Jungle, Jina)
+ * Gathers a candidate pool of 50 offers, ranks by relevance, and prepares the results.
  */
 async function scrapeDirectFromWeb({
   keywords = [],
   location = 'Paris, France',
-  sites = ['linkedin', 'indeed'],
+  sites = ['linkedin', 'indeed', 'glassdoor', 'wttj'],
   contractType = 'all',
   jobLimit = 15,
   isRemote = false,
   onProgress = () => {}
 }) {
-  const jobs = [];
+  const candidatePool = [];
   const seenUrls = new Set();
   const kwList = Array.isArray(keywords) && keywords.length > 0 ? keywords : ['Developer'];
 
-  onProgress('Recherche en direct sur le web (moteur autonome)...');
+  onProgress('Recherche en direct sur le web (moteur autonome étendu)...');
+
+  // Build platform domain queries
+  const hasWttj = sites.some(s => s === 'wttj' || s === 'welcometothejungle');
+  const siteFilters = sites.map(s => {
+    if (s === 'linkedin') return 'site:linkedin.com/jobs/view';
+    if (s === 'indeed') return 'site:indeed.com OR site:fr.indeed.com';
+    if (s === 'glassdoor') return 'site:glassdoor.com/job-listing';
+    if (s === 'wttj' || s === 'welcometothejungle') return 'site:welcometothejungle.com/fr/companies/*/jobs OR site:welcometothejungle.com/en/companies/*/jobs OR site:welcometothejungle.com/fr/jobs';
+    return '';
+  }).filter(Boolean).join(' OR ');
 
   // 1. Fetch from Jina Search with targeted job board queries
-  for (const kw of kwList.slice(0, 3)) {
+  for (const kw of kwList.slice(0, 4)) {
     try {
-      const siteFilters = sites.map(s => {
-        if (s === 'linkedin') return 'site:linkedin.com/jobs/view';
-        if (s === 'indeed') return 'site:indeed.com OR site:fr.indeed.com';
-        if (s === 'glassdoor') return 'site:glassdoor.com/job-listing';
-        return '';
-      }).filter(Boolean).join(' OR ');
-
       const queryStr = `${kw} ${location} ${siteFilters ? `(${siteFilters})` : ''} ${isRemote ? 'remote' : ''} ${contractType !== 'all' ? contractType : ''}`.trim();
       const jinaUrl = `https://s.jina.ai/${encodeURIComponent(queryStr)}`;
 
@@ -76,7 +160,7 @@ async function scrapeDirectFromWeb({
         extracted.forEach(job => {
           if (job.job_url && !seenUrls.has(job.job_url)) {
             seenUrls.add(job.job_url);
-            jobs.push(job);
+            candidatePool.push(job);
           }
         });
       }
@@ -85,99 +169,155 @@ async function scrapeDirectFromWeb({
     }
   }
 
-  // 2. Fetch from Arbeitnow Public Job API (free, reliable, global & remote jobs)
-  try {
-    onProgress('Consultation des flux d\'offres publiques...');
-    const arbeitRes = await fetch('https://www.arbeitnow.com/api/job-board-api');
-    if (arbeitRes.ok) {
-      const data = await arbeitRes.json();
-      if (Array.isArray(data.data)) {
-        const searchTerms = kwList.map(k => k.toLowerCase());
-        const locLower = (location || '').toLowerCase();
-
-        data.data.forEach(item => {
-          const title = item.title || '';
-          const desc = item.description || '';
-          const itemLoc = item.location || '';
-          const fullText = `${title} ${desc} ${itemLoc}`.toLowerCase();
-
-          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => fullText.includes(st));
-          const matchesLoc = !locLower || locLower.includes('remote') || locLower.includes('france') || fullText.includes('remote') || fullText.includes('paris') || fullText.includes('france') || item.remote;
-
-          if (matchesKw && (matchesLoc || item.remote)) {
-            const jobUrl = item.url || `https://www.arbeitnow.com/jobs/${item.slug}`;
-            if (!seenUrls.has(jobUrl)) {
-              seenUrls.add(jobUrl);
-              jobs.push({
-                id: `arbeit_${item.slug || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-                title: item.title,
-                company: item.company_name || 'Entreprise',
-                location: item.location || (item.remote ? '100% Télétravail' : location),
-                site: 'Arbeitnow',
-                job_url: jobUrl,
-                description: item.description?.replace(/<[^>]+>/g, ' ').slice(0, 2000) || '',
-                salary: 'Non spécifié',
-                date_posted: new Date(item.created_at * 1000).toISOString().split('T')[0] || 'Récent',
-                is_remote: Boolean(item.remote),
-                contract: item.job_types?.[0] || 'CDI',
-                matched_keyword: kwList[0]
-              });
-            }
+  // 2. If WTTJ is selected, perform dedicated Welcome to the Jungle search query
+  if (hasWttj && candidatePool.length < 50) {
+    try {
+      onProgress('Extraction des offres Welcome to the Jungle...');
+      const wttjKw = kwList[0] || 'Tech';
+      const wttjQuery = `${wttjKw} ${location} site:welcometothejungle.com/fr/companies/ ${contractType !== 'all' ? contractType : ''}`;
+      const wttjJinaUrl = `https://s.jina.ai/${encodeURIComponent(wttjQuery)}`;
+      const wttjRes = await fetch(wttjJinaUrl, { headers: { 'Accept': 'text/plain' } });
+      if (wttjRes.ok) {
+        const wttjText = await wttjRes.text();
+        const extractedWttj = parseJinaSearchResults(wttjText, wttjKw, location, 'Welcome to the Jungle');
+        extractedWttj.forEach(job => {
+          if (job.job_url && !seenUrls.has(job.job_url)) {
+            seenUrls.add(job.job_url);
+            candidatePool.push(job);
           }
         });
       }
+    } catch (wttjErr) {
+      console.warn('WTTJ dedicated search step:', wttjErr);
     }
-  } catch (apiErr) {
-    console.warn('Arbeitnow API step skipped:', apiErr);
   }
 
-  // 3. Fetch from Jobicy Public Job API (free global tech & business jobs)
-  try {
-    const jobicyRes = await fetch('https://jobicy.com/api/v2/remote-jobs?count=20');
-    if (jobicyRes.ok) {
-      const data = await jobicyRes.json();
-      if (Array.isArray(data.jobs)) {
-        const searchTerms = kwList.map(k => k.toLowerCase());
-        data.jobs.forEach(item => {
-          const title = item.jobTitle || '';
-          const desc = item.jobDescription || '';
-          const fullText = `${title} ${desc}`.toLowerCase();
+  // 3. Fetch from Arbeitnow Public Job API
+  if (candidatePool.length < 50) {
+    try {
+      onProgress('Consultation des flux d\'offres publiques...');
+      const arbeitRes = await fetch('https://www.arbeitnow.com/api/job-board-api');
+      if (arbeitRes.ok) {
+        const data = await arbeitRes.json();
+        if (Array.isArray(data.data)) {
+          const searchTerms = kwList.map(k => k.toLowerCase());
+          const locLower = (location || '').toLowerCase();
 
-          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => fullText.includes(st));
-          if (matchesKw) {
-            const jobUrl = item.url || '';
-            if (jobUrl && !seenUrls.has(jobUrl)) {
-              seenUrls.add(jobUrl);
-              jobs.push({
-                id: `jobicy_${item.id || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-                title: item.jobTitle,
-                company: item.companyName || 'Entreprise',
-                location: item.jobGeo || 'Remote / Worldwide',
-                site: 'Jobicy',
-                job_url: jobUrl,
-                description: item.jobDescription?.replace(/<[^>]+>/g, ' ').slice(0, 2000) || '',
-                salary: item.annualSalaryMin ? `${item.annualSalaryMin} - ${item.annualSalaryMax || ''} ${item.salaryCurrency || 'USD'}` : 'Non spécifié',
-                date_posted: item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : 'Récent',
-                is_remote: true,
-                contract: item.jobType?.[0] || 'CDI',
-                matched_keyword: kwList[0]
-              });
+          data.data.forEach(item => {
+            const title = item.title || '';
+            const desc = item.description || '';
+            const itemLoc = item.location || '';
+            const fullText = `${title} ${desc} ${itemLoc}`.toLowerCase();
+
+            const matchesKw = searchTerms.length === 0 || searchTerms.some(st => fullText.includes(st) || st.split(' ').some(w => w.length > 3 && fullText.includes(w)));
+            const matchesLoc = !locLower || locLower.includes('remote') || locLower.includes('france') || fullText.includes('remote') || fullText.includes('paris') || fullText.includes('france') || item.remote;
+
+            if (matchesKw && (matchesLoc || item.remote)) {
+              const jobUrl = item.url || `https://www.arbeitnow.com/jobs/${item.slug}`;
+              if (!seenUrls.has(jobUrl)) {
+                seenUrls.add(jobUrl);
+                candidatePool.push({
+                  id: `arbeit_${item.slug || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                  title: item.title,
+                  company: item.company_name || 'Entreprise',
+                  location: item.location || (item.remote ? '100% Télétravail' : location),
+                  site: 'Arbeitnow',
+                  job_url: jobUrl,
+                  description: item.description?.replace(/<[^>]+>/g, ' ').slice(0, 2000) || '',
+                  salary: 'Non spécifié',
+                  date_posted: new Date(item.created_at * 1000).toISOString().split('T')[0] || 'Récent',
+                  is_remote: Boolean(item.remote),
+                  contract: item.job_types?.[0] || 'CDI',
+                  matched_keyword: kwList[0]
+                });
+              }
             }
-          }
-        });
+          });
+        }
       }
+    } catch (apiErr) {
+      console.warn('Arbeitnow API step skipped:', apiErr);
     }
-  } catch (jobicyErr) {
-    console.warn('Jobicy API step skipped:', jobicyErr);
   }
 
-  return jobs.slice(0, jobLimit);
+  // 4. Fetch from Jobicy Public Job API
+  if (candidatePool.length < 50) {
+    try {
+      const jobicyRes = await fetch('https://jobicy.com/api/v2/remote-jobs?count=30');
+      if (jobicyRes.ok) {
+        const data = await jobicyRes.json();
+        if (Array.isArray(data.jobs)) {
+          const searchTerms = kwList.map(k => k.toLowerCase());
+          data.jobs.forEach(item => {
+            const title = item.jobTitle || '';
+            const desc = item.jobDescription || '';
+            const fullText = `${title} ${desc}`.toLowerCase();
+
+            const matchesKw = searchTerms.length === 0 || searchTerms.some(st => fullText.includes(st) || st.split(' ').some(w => w.length > 3 && fullText.includes(w)));
+            if (matchesKw) {
+              const jobUrl = item.url || '';
+              if (jobUrl && !seenUrls.has(jobUrl)) {
+                seenUrls.add(jobUrl);
+                candidatePool.push({
+                  id: `jobicy_${item.id || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                  title: item.jobTitle,
+                  company: item.companyName || 'Entreprise',
+                  location: item.jobGeo || 'Remote / Worldwide',
+                  site: 'Jobicy',
+                  job_url: jobUrl,
+                  description: item.jobDescription?.replace(/<[^>]+>/g, ' ').slice(0, 2000) || '',
+                  salary: item.annualSalaryMin ? `${item.annualSalaryMin} - ${item.annualSalaryMax || ''} ${item.salaryCurrency || 'USD'}` : 'Non spécifié',
+                  date_posted: item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : 'Récent',
+                  is_remote: true,
+                  contract: item.jobType?.[0] || 'CDI',
+                  matched_keyword: kwList[0]
+                });
+              }
+            }
+          });
+        }
+      }
+    } catch (jobicyErr) {
+      console.warn('Jobicy API step skipped:', jobicyErr);
+    }
+  }
+
+  // 5. Score all candidates by relevance
+  candidatePool.forEach(job => {
+    job.relevance_score = calculateJobRelevance(job, {
+      keywords: kwList,
+      location,
+      contractType,
+      isRemote
+    });
+  });
+
+  // Strict Contract Filter: if user specified a contract type (CDI, CDD, Stage, Alternance, Freelance), keep only matching
+  let filtered = candidatePool;
+  if (contractType && contractType !== 'all') {
+    const target = contractType.toLowerCase();
+    filtered = filtered.filter(job => {
+      const c = (job.contract || '').toLowerCase();
+      if (target === 'cdi') return c === 'cdi';
+      if (target === 'cdd') return c === 'cdd';
+      if (target === 'stage') return c === 'stage';
+      if (target === 'alternance') return c === 'alternance';
+      if (target === 'freelance') return c === 'freelance';
+      return c === target;
+    });
+  }
+
+  // Sort by relevance score descending
+  filtered.sort((a, b) => (b.relevance_score || 50) - (a.relevance_score || 50));
+
+  // Return the user-requested limit
+  return filtered.slice(0, jobLimit);
 }
 
 /**
  * Parses markdown output from Jina search into structured job listing objects.
  */
-function parseJinaSearchResults(markdownText, keyword, defaultLocation) {
+function parseJinaSearchResults(markdownText, keyword, defaultLocation, defaultSite = null) {
   const results = [];
   if (!markdownText || typeof markdownText !== 'string') return results;
 
@@ -195,7 +335,7 @@ function parseJinaSearchResults(markdownText, keyword, defaultLocation) {
       const rawTitle = titleMatch ? titleMatch[1].trim() : 'Offre d\'emploi';
 
       // Clean site suffix from title
-      let title = rawTitle.replace(/\s*[-|–—]\s*(LinkedIn|Indeed|Glassdoor|Welcome to the Jungle|Jobteaser).*$/i, '').trim();
+      let title = rawTitle.replace(/\s*[-|–—]\s*(LinkedIn|Indeed|Glassdoor|Welcome to the Jungle|Jobteaser|WTTJ).*$/i, '').trim();
       title = title.replace(/^Title:\s*/i, '').trim();
 
       // Extract company
@@ -213,7 +353,7 @@ function parseJinaSearchResults(markdownText, keyword, defaultLocation) {
       }
 
       // Determine platform from URL
-      let site = 'Web';
+      let site = defaultSite || 'Web';
       const lowerUrl = url.toLowerCase();
       if (lowerUrl.includes('linkedin.com')) site = 'LinkedIn';
       else if (lowerUrl.includes('indeed.')) site = 'Indeed';
@@ -226,7 +366,7 @@ function parseJinaSearchResults(markdownText, keyword, defaultLocation) {
       description = description.slice(0, 1800);
 
       results.push({
-        id: `jina_scraped_${idx}_${Date.now()}`,
+        id: `jina_scraped_${idx}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         title: title || 'Poste',
         company: company || 'Entreprise',
         location: defaultLocation || 'France',
@@ -249,16 +389,16 @@ function parseJinaSearchResults(markdownText, keyword, defaultLocation) {
 
 /**
  * Unified Scraper Executor:
- * 1. Tries primary backend (/api/scrape-jobs)
- * 2. Tries fallback local backend (http://localhost:3000/api/scrape-jobs)
- * 3. Tries standalone client-side live scraper (Jina Search + Public Feeds)
+ * 1. Collects a pool of 50 candidate offers
+ * 2. Ranks them by relevance to the user's requirements
+ * 3. Shows only the number of offers asked by the user (jobLimit)
  */
 export async function executeJobScrape({
   keywords = [],
   searchTerm = '',
   location = 'Paris, France',
   jobLimit = 15,
-  sites = ['linkedin', 'indeed', 'glassdoor'],
+  sites = ['linkedin', 'indeed', 'glassdoor', 'wttj'],
   contractType = 'all',
   jobType = null,
   isRemote = false,
@@ -269,11 +409,12 @@ export async function executeJobScrape({
     ? keywords
     : [searchTerm || 'Software Engineer'];
 
+  // Behind the scenes, always request a rich pool of at least 50 candidates
   const payload = {
     keywords: keywordsList,
     search_term: keywordsList[0],
     location: location.trim() || 'Paris, France',
-    results_wanted: jobLimit,
+    results_wanted: 50,
     sites,
     contract_type: contractType,
     job_type: jobType,
@@ -289,15 +430,29 @@ export async function executeJobScrape({
   });
 
   if (primaryResult.ok && primaryResult.data?.success && Array.isArray(primaryResult.data.jobs) && primaryResult.data.jobs.length > 0) {
+    let ranked = primaryResult.data.jobs.map(j => ({
+      ...j,
+      relevance_score: j.relevance_score || calculateJobRelevance(j, { keywords: keywordsList, location, contractType, isRemote })
+    }));
+
+    // Strict contract filtering
+    if (contractType && contractType !== 'all') {
+      const target = contractType.toLowerCase();
+      ranked = ranked.filter(j => (j.contract || j.job_type || '').toLowerCase() === target);
+    }
+
+    ranked.sort((a, b) => (b.relevance_score || 50) - (a.relevance_score || 50));
+
     return {
       success: true,
       source: 'jobspy_local',
-      jobs: primaryResult.data.jobs,
+      jobs: ranked.slice(0, jobLimit),
+      total_candidates: ranked.length,
       searched_keywords: primaryResult.data.searched_keywords || keywordsList
     };
   }
 
-  // Step 2: If primary returned HTML or network error, try http://localhost:3000/api/scrape-jobs (common in Tauri dev)
+  // Step 2: If primary returned HTML or network error, try http://localhost:3000/api/scrape-jobs
   if (window.location.port !== '3000' && (primaryResult.isHtml || primaryResult.isNetworkError)) {
     const localPortResult = await safeFetchJson('http://localhost:3000/api/scrape-jobs', {
       method: 'POST',
@@ -306,17 +461,30 @@ export async function executeJobScrape({
     });
 
     if (localPortResult.ok && localPortResult.data?.success && Array.isArray(localPortResult.data.jobs) && localPortResult.data.jobs.length > 0) {
+      let ranked = localPortResult.data.jobs.map(j => ({
+        ...j,
+        relevance_score: j.relevance_score || calculateJobRelevance(j, { keywords: keywordsList, location, contractType, isRemote })
+      }));
+
+      if (contractType && contractType !== 'all') {
+        const target = contractType.toLowerCase();
+        ranked = ranked.filter(j => (j.contract || j.job_type || '').toLowerCase() === target);
+      }
+
+      ranked.sort((a, b) => (b.relevance_score || 50) - (a.relevance_score || 50));
+
       return {
         success: true,
         source: 'jobspy_localhost_3000',
-        jobs: localPortResult.data.jobs,
+        jobs: ranked.slice(0, jobLimit),
+        total_candidates: ranked.length,
         searched_keywords: localPortResult.data.searched_keywords || keywordsList
       };
     }
   }
 
-  // Step 3: Standalone Client-side live web scraper fallback
-  onProgress('Lancement du moteur de recherche autonome en direct...');
+  // Step 3: Standalone Client-side live web scraper fallback (queries 50 candidates, ranks & slices to jobLimit)
+  onProgress('Lancement du moteur de recherche autonome en direct (50 offres candidates)...');
   const fallbackJobs = await scrapeDirectFromWeb({
     keywords: keywordsList,
     location,
@@ -332,6 +500,7 @@ export async function executeJobScrape({
       success: true,
       source: 'web_direct',
       jobs: fallbackJobs,
+      total_candidates: fallbackJobs.length,
       searched_keywords: keywordsList
     };
   }

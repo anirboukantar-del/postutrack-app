@@ -102,18 +102,23 @@ def run_scraper():
         keywords_list = ["Software Engineer"]
 
     location = params.get("location") or "Paris, France"
-    results_wanted = int(params.get("results_wanted") or 15)
-    results_wanted = max(1, min(results_wanted, 50))
+    user_requested_limit = int(params.get("results_wanted") or 15)
+    # Always fetch candidate pool of at least 50 offers
+    results_wanted = max(50, user_requested_limit)
     
-    # Supported JobSpy sites: linkedin, indeed, glassdoor, zip_recruiter, google
-    requested_sites = params.get("sites") or ["linkedin", "indeed", "glassdoor"]
-    valid_sites = ["linkedin", "indeed", "glassdoor", "zip_recruiter", "google"]
+    # Supported JobSpy sites: linkedin, indeed, glassdoor, zip_recruiter, google, wttj
+    requested_sites = params.get("sites") or ["linkedin", "indeed", "glassdoor", "wttj"]
+    valid_sites = ["linkedin", "indeed", "glassdoor", "zip_recruiter", "google", "wttj", "welcometothejungle"]
     
     site_names = []
+    has_wttj = False
     for s in requested_sites:
         s_norm = s.lower().strip().replace(" ", "_")
         if s_norm == "ziprecruiter":
             s_norm = "zip_recruiter"
+        if s_norm in ["wttj", "welcometothejungle"]:
+            has_wttj = True
+            continue
         if s_norm in valid_sites and s_norm not in site_names:
             site_names.append(s_norm)
 
@@ -250,6 +255,28 @@ def run_scraper():
                 if date_posted and len(date_posted) > 10:
                     date_posted = date_posted[:10]
 
+                relevance_score = 60
+                # Keyword match bonus
+                for kw_item in keywords_list:
+                    kw_clean = str(kw_item).lower().strip()
+                    if kw_clean and kw_clean in str(title).lower():
+                        relevance_score += 20
+                    elif kw_clean and any(w in str(title).lower() for w in kw_clean.split() if len(w) > 2):
+                        relevance_score += 10
+                    if kw_clean and kw_clean in str(desc).lower():
+                        relevance_score += 6
+
+                # Location match bonus
+                if location and location.lower() in str(loc).lower():
+                    relevance_score += 15
+                elif any(c in str(loc).lower() for c in ["paris", "france", "lyon", "bordeaux", "nantes", "toulouse", "remote"]):
+                    relevance_score += 8
+
+                if is_remote and (job_is_remote or "remote" in str(loc).lower()):
+                    relevance_score += 10
+
+                final_rel = min(99, max(50, relevance_score))
+
                 records.append({
                     "id": f"jobspy-{str(site).lower()}-{idx}-{abs(hash(str(job_url) + str(title)))}",
                     "title": str(title),
@@ -266,8 +293,12 @@ def run_scraper():
                     "matched_keyword": kw,
                     "company_url": clean_val(row.get("company_url")),
                     "logo_photo_url": clean_val(row.get("logo_photo_url")),
-                    "emails": clean_val(row.get("emails"))
+                    "emails": clean_val(row.get("emails")),
+                    "relevance_score": final_rel
                 })
+
+        # Sort all records by relevance_score descending
+        records.sort(key=lambda x: x.get("relevance_score", 50), reverse=True)
 
         print(json.dumps({
             "success": True,
