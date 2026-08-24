@@ -44,19 +44,73 @@ def normalize_text(text):
     )
     for src, target in replacements:
         text = text.replace(src, target)
-    return re.sub(r'[^a-z0-9\s]', ' ', text).strip()
+
+    # Clean gender tags like (H/F), (F/H), (H/F/X), (F/H/X), (M/F), etc.
+    text = re.sub(r'\b[hfmx]/[hfmx](/[xdf])?\b', ' ', text)
+    text = re.sub(r'\([hfmx]/[hfmx](/[xdf])?\)', ' ', text)
+
+    # Expand inclusive writing patterns: Assistant(e), Développeur(se), Chef(fe), Directeur(trice), etc.
+    def expand_inclusive(m):
+        base, suffix = m.group(1), m.group(2)
+        if suffix in ('e', 's', 'es'):
+            return f' {base} {base}{suffix} '
+        elif suffix == 'se' and base.endswith('eur'):
+            return f' {base} {base[:-1]}se ' # developpeur -> developpeuse
+        elif suffix == 'fe' and base.endswith('f'):
+            return f' {base} {base}fe ' # chef -> cheffe
+        elif suffix in ('ne', 'te', 've', 'lle'):
+            return f' {base} {base}{suffix} '
+        elif suffix in ('ere', 'ère') and base.endswith('er'):
+            return f' {base} {base}e ' # conseiller -> conseillere
+        elif suffix in ('trice', 'rice') and base.endswith('teur'):
+            return f' {base} {base[:-4]}trice ' # directeur -> directrice
+        elif suffix in ('trice', 'rice') and base.endswith('eur'):
+            return f' {base} {base[:-3]}trice '
+        return f' {base} {base}{suffix} '
+
+    # Handle parentheses/brackets: e.g. Assistant(e), Développeur(se)
+    text = re.sub(r'([a-z]+)\(([a-z]{1,5})\)', expand_inclusive, text)
+
+    # Handle middle dot / dot / hyphen / slash: e.g. Assistant·e, Développeur·se, Chef-fe, Ingénieur.e
+    text = re.sub(r'([a-z]+)[·\.\-\/](e|se|fe|ne|ere|trice|rice|te|ve|s|es)\b', expand_inclusive, text)
+
+    clean = re.sub(r'[^a-z0-9\s]', ' ', text)
+    return ' '.join(clean.split())
 
 KEYWORD_SYNONYMS = {
-    "dev": ["developer", "developpeur", "software", "ingenieur", "engineer", "frontend", "backend", "fullstack", "web"],
-    "developpeur": ["developer", "software", "ingenieur", "engineer", "codeur", "programmeur", "dev"],
-    "developer": ["developpeur", "software", "ingenieur", "engineer", "programmer", "dev"],
+    "dev": ["developer", "developpeur", "developpeuse", "software", "ingenieur", "ingenieure", "engineer", "frontend", "backend", "fullstack", "web"],
+    "developpeur": ["developer", "developpeuse", "software", "ingenieur", "ingenieure", "engineer", "codeur", "programmeur", "programmeuse", "dev"],
+    "developpeuse": ["developer", "developpeur", "software", "ingenieur", "ingenieure", "engineer", "codeur", "programmeur", "programmeuse", "dev"],
+    "developer": ["developpeur", "developpeuse", "software", "ingenieur", "ingenieure", "engineer", "programmer", "dev"],
     "frontend": ["front-end", "react", "vue", "angular", "javascript", "typescript", "ui", "web"],
     "backend": ["back-end", "node", "python", "java", "golang", "php", "ruby", "c#", "api"],
-    "fullstack": ["full-stack", "full stack", "developer", "developpeur", "react", "node"],
+    "fullstack": ["full-stack", "full stack", "developer", "developpeur", "developpeuse", "react", "node"],
+    "assistant": ["assistante", "adjoint", "adjointe", "secretaire", "aide", "support", "office manager"],
+    "assistante": ["assistant", "adjoint", "adjointe", "secretaire", "aide", "support", "office manager"],
+    "ingenieur": ["ingenieure", "engineer", "software", "developer", "developpeur", "technique", "lead"],
+    "ingenieure": ["ingenieur", "engineer", "software", "developer", "developpeuse", "technique", "lead"],
+    "consultant": ["consultante", "adviser", "advisor", "conseil", "expert", "specialist"],
+    "consultante": ["consultant", "adviser", "advisor", "conseil", "expert", "specialist"],
+    "chef": ["cheffe", "lead", "manager", "directeur", "directrice", "responsable", "head"],
+    "cheffe": ["chef", "lead", "manager", "directeur", "directrice", "responsable", "head"],
+    "conseiller": ["conseillere", "advisor", "consultant", "consultante", "charge", "chargee"],
+    "conseillere": ["conseiller", "advisor", "consultant", "consultante", "charge", "chargee"],
+    "charge": ["chargee", "responsable", "coordinateur", "coordinatrice", "manager"],
+    "chargee": ["charge", "responsable", "coordinateur", "coordinatrice", "manager"],
+    "directeur": ["directrice", "head", "lead", "vp", "manager", "responsable"],
+    "directrice": ["directeur", "head", "lead", "vp", "manager", "responsable"],
+    "technicien": ["technicienne", "technician", "support", "maintenance"],
+    "technicienne": ["technicien", "technician", "support", "maintenance"],
+    "commercial": ["commerciale", "sales", "business developer", "account manager", "bizdev", "prospection", "vente"],
+    "commerciale": ["commercial", "sales", "business developer", "account manager", "bizdev", "prospection", "vente"],
     "data": ["data scientist", "data analyst", "data engineer", "machine learning", "ia", "ai", "analytics", "bi", "python", "sql"],
     "stage": ["internship", "intern", "stagiaire", "pfe", "fin d'etudes"],
-    "alternance": ["apprentissage", "apprenti", "contrat pro", "work-study"],
-    "commercial": ["sales", "business developer", "account manager", "bizdev", "prospection", "vente"],
+    "stagiaire": ["stage", "internship", "intern", "pfe"],
+    "alternance": ["apprentissage", "apprenti", "apprentie", "alternant", "alternante", "contrat pro", "work-study"],
+    "alternant": ["alternante", "alternance", "apprentissage", "apprenti", "apprentie", "contrat pro"],
+    "alternante": ["alternant", "alternance", "apprentissage", "apprenti", "apprentie", "contrat pro"],
+    "apprenti": ["apprentie", "alternance", "apprentissage", "alternant", "alternante"],
+    "apprentie": ["apprenti", "alternance", "apprentissage", "alternant", "alternante"],
     "marketing": ["growth", "communication", "product marketing", "content", "seo", "sem", "acquisition"],
     "design": ["ui", "ux", "product designer", "graphiste", "webdesign"],
     "product": ["product manager", "product owner", "chef de produit", "pm", "po"]
@@ -73,15 +127,15 @@ def classify_contract(title, desc, raw_job_type=""):
     raw_jt = str(raw_job_type or "").lower()
 
     # Alternance / Apprentissage
-    if re.search(r'\b(alternan[ts]?|alternance|apprentissage|apprenti[es]?|contrat de pro(fessionnalisation)?|contrat pro)\b', full_text, re.I):
+    if re.search(r'\b(alternan[ts]?|alternance|alternante?|alternant\(e\)|alternant·e|alternant-e|apprentissage|apprenti[es]?|apprenti\(e\)|apprenti·e|contrat de pro(fessionnalisation)?|contrat pro|work-study)\b', full_text, re.I):
         return "Alternance"
 
     # Stage / Internship
-    if re.search(r'\b(stage|stagiaire[s]?|intern|internship[s]?|trainee[s]?|pfe|fin d[\'’]études?|fin d\'etudes)\b', full_text, re.I) or "intern" in raw_jt:
+    if re.search(r'\b(stage|stagiaire[s]?|stagiaire\(s\)|stagiaire·s|intern|internship[s]?|trainee[s]?|pfe|fin d[\'’]études?|fin d\'etudes)\b', full_text, re.I) or "intern" in raw_jt:
         return "Stage"
 
     # Freelance / Indépendant
-    if re.search(r'\b(freelance|indépendant[s]?|independant[s]?|contractor[s]?|portage salarial|b2b)\b', full_text, re.I):
+    if re.search(r'\b(freelance|indépendant[es]?|independant[es]?|indépendant\(e\)|independant\(e\)|contractor[s]?|portage salarial|b2b)\b', full_text, re.I):
         return "Freelance"
 
     # CDD / Fixed-term / Intérim

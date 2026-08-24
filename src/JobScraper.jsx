@@ -21,7 +21,7 @@ import {
   Tag,
   Trash2
 } from 'lucide-react';
-import { executeJobScrape } from './jobScraperService';
+import { executeJobScrape, normalizeText } from './jobScraperService';
 import { openExternalLink } from './App';
 
 export const SUPPORTED_JOB_BOARDS = [
@@ -368,10 +368,10 @@ export function JobScraperView({
         };
       });
 
-      // STRICT CONTRACT FILTERING: if the user searched for a specific contract type, do NOT keep any other contract
+      // Prioritize and filter by requested contract type
       if (contractType && contractType !== 'all') {
         const target = contractType.toLowerCase();
-        formatted = formatted.filter(job => {
+        const exactMatches = formatted.filter(job => {
           const c = (job.contract || '').toLowerCase();
           if (target === 'cdi') return c === 'cdi';
           if (target === 'cdd') return c === 'cdd';
@@ -380,6 +380,10 @@ export function JobScraperView({
           if (target === 'freelance') return c === 'freelance';
           return c === target;
         });
+
+        if (exactMatches.length > 0) {
+          formatted = exactMatches;
+        }
       }
 
       // Sort by relevance score descending
@@ -560,11 +564,18 @@ export function JobScraperView({
 
   // Filtered jobs in the table
   const filteredJobs = useMemo(() => {
+    const cleanSearch = normalizeText(tableSearch);
     return scrapedJobs.filter(job => {
-      const matchesSearch = tableSearch === '' || 
-        job.title.toLowerCase().includes(tableSearch.toLowerCase()) ||
-        job.company.toLowerCase().includes(tableSearch.toLowerCase()) ||
-        job.location.toLowerCase().includes(tableSearch.toLowerCase());
+      let matchesSearch = true;
+      if (cleanSearch) {
+        const normTitle = normalizeText(job.title || '');
+        const normCompany = normalizeText(job.company || '');
+        const normLoc = normalizeText(job.location || '');
+        matchesSearch = normTitle.includes(cleanSearch) ||
+          normCompany.includes(cleanSearch) ||
+          normLoc.includes(cleanSearch) ||
+          cleanSearch.split(' ').some(token => token.length > 2 && (normTitle.includes(token) || normCompany.includes(token)));
+      }
       
       const matchesPlatform = tablePlatformFilter === 'all' || job.platformId === tablePlatformFilter;
       const matchesContract = tableContractFilter === 'all' || (job.contract && job.contract.toLowerCase() === tableContractFilter.toLowerCase());

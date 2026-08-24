@@ -343,38 +343,34 @@ export function detectSourceFromUrl(url) {
 }
 
 /**
- * Heuristically extracts contract type (CDI, CDD, Stage, Alternance, Freelance, Intérim) from text or URL.
+ * Heuristically extracts contract type (CDI, CDD, Stage, Alternance, Freelance, Intérim) from text or URL,
+ * including gender-inclusive spellings like Alternant(e), Apprenti(e), Stagiaire(s).
  */
 export function detectContractType(text) {
   if (!text) return 'CDI';
   const lower = text.toLowerCase();
 
-  // 1. Stage / Internship
-  if (/\b(stage|stagiaire|intern|internship|internships|pfe|stage de fin d'études|stagiaires)\b/i.test(lower)) {
+  // 1. Stage / Internship (including stagiaire(s), stagiaire·s, stagiaire.s)
+  if (/\b(stage|stagiaire[s]?|intern|internship[s]?|trainee[s]?|pfe|stage de fin d['’]études|stagiaire\(s\))\b/i.test(lower)) {
     return 'Stage';
   }
 
-  // 2. Alternance / Apprenticeship
-  if (/\b(alternan|alternance|alternant|alternante|apprenti|apprentie|apprentissage|contrat pro|contrat de professionnalisation|work-study)\b/i.test(lower)) {
+  // 2. Alternance / Apprenticeship (including alternant(e), apprenti(e), alternant·e, etc.)
+  if (/\b(alternan[ts]?|alternance|alternante?|alternant\(e\)|alternant·e|alternant-e|apprenti[es]?|apprenti\(e\)|apprenti·e|apprentissage|contrat pro|contrat de professionnalisation|work-study)\b/i.test(lower)) {
     return 'Alternance';
   }
 
-  // 3. Freelance / Contractor
-  if (/\b(freelance|freelancing|contractor|prestation|indépendant|indépendante|independant|independante|b2b contract)\b/i.test(lower)) {
+  // 3. Freelance / Contractor (including indépendant(e), freelance, contractor)
+  if (/\b(freelance|freelancing|contractor|prestation|indépendant[es]?|independante?|indépendant\(e\)|independant\(e\)|portage salarial|b2b contract)\b/i.test(lower)) {
     return 'Freelance';
   }
 
   // 4. CDD / Fixed-Term
-  if (/\b(cdd|fixed[- ]term|contrat à durée déterminée|contrat a duree determinee)\b/i.test(lower)) {
+  if (/\b(cdd|fixed[- ]term|contrat à durée déterminée|contrat a duree determinee|intérim|interim|mission temporaire|travail temporaire)\b/i.test(lower)) {
     return 'CDD';
   }
 
-  // 5. Intérim / Temporary
-  if (/\b(intérim|interim|mission temporaire|travail temporaire|temporary)\b/i.test(lower)) {
-    return 'Intérim';
-  }
-
-  // 6. CDI / Permanent
+  // 5. CDI / Permanent
   if (/\b(cdi|contrat à durée indéterminée|contrat a duree indeterminee|permanent contract|full[- ]time|temps plein)\b/i.test(lower)) {
     return 'CDI';
   }
