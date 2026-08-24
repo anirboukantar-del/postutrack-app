@@ -36,7 +36,7 @@ async function startServer() {
       keywords: keywords || search_terms || (query ? [query] : null),
       search_term: search_term || query || "Software Engineer",
       location: location || "Paris, France",
-      results_wanted: Math.min(Math.max(parseInt(String(results_wanted)) || 10, 1), 50),
+      results_wanted: Math.min(Math.max(parseInt(String(results_wanted)) || 10, 1), 500),
       sites: Array.isArray(sites) && sites.length > 0 ? sites : ["linkedin", "indeed"],
       contract_type: contract_type || null,
       job_type: job_type || null,
@@ -87,8 +87,9 @@ async function startServer() {
         }
 
         if (code !== 0) {
-          return res.status(500).json({
+          return res.json({
             success: false,
+            fallback: true,
             error: `Erreur du scraper (code ${code}): ${stderrData.slice(0, 300) || "Erreur interne"}`,
             jobs: []
           });
@@ -96,12 +97,14 @@ async function startServer() {
 
         return res.json({
           success: false,
+          fallback: true,
           error: "Format de réponse inattendu du scraper JobSpy.",
           jobs: []
         });
       } catch (err: any) {
-        return res.status(500).json({
+        return res.json({
           success: false,
+          fallback: true,
           error: `Échec d'analyse de la réponse: ${err?.message || err}`,
           raw: stdoutData.slice(0, 400),
           jobs: []
@@ -112,8 +115,9 @@ async function startServer() {
     pythonProcess.on("error", (err) => {
       clearTimeout(timeout);
       if (!res.headersSent) {
-        res.status(500).json({
+        res.json({
           success: false,
+          fallback: true,
           error: `Impossible de lancer le script Python: ${err.message}`,
           jobs: []
         });

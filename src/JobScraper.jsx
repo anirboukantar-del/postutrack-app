@@ -52,20 +52,6 @@ export const SUPPORTED_JOB_BOARDS = [
     color: 'bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800',
     dotColor: 'bg-[#0caa41]',
     tag: 'Glassdoor'
-  },
-  {
-    id: 'zip_recruiter',
-    name: 'ZipRecruiter',
-    color: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
-    dotColor: 'bg-[#00A862]',
-    tag: 'ZipRecruiter'
-  },
-  {
-    id: 'google',
-    name: 'Google Jobs',
-    color: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
-    dotColor: 'bg-[#EA4335]',
-    tag: 'Google Jobs'
   }
 ];
 
@@ -611,8 +597,8 @@ export function JobScraperView({
             </h2>
             <p className="text-xs sm:text-sm text-blue-100 max-w-2xl leading-relaxed">
               {lang === 'en'
-                ? 'Search and scrape real job listings from LinkedIn, Indeed, Glassdoor, ZipRecruiter & Google Jobs in real time, and transfer them with 1-click into your tracker.'
-                : 'Scrappez en direct les offres réelles sur LinkedIn, Indeed, Glassdoor, ZipRecruiter et Google Jobs selon vos critères, et transférez-les en 1 clic dans vos candidatures.'}
+                ? 'Search and scrape real job listings from LinkedIn, Indeed, Glassdoor & Welcome to the Jungle in real time, and transfer them with 1-click into your tracker.'
+                : 'Scrappez en direct les offres réelles sur LinkedIn, Indeed, Glassdoor et Welcome to the Jungle selon vos critères, et transférez-les en 1 clic dans vos candidatures.'}
             </p>
           </div>
         </div>
@@ -838,7 +824,7 @@ export function JobScraperView({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {SUPPORTED_JOB_BOARDS.map((board) => {
                 const isSelected = selectedPlatforms.includes(board.id);
                 return (

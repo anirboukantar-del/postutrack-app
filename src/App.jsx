@@ -2888,8 +2888,11 @@ STRICT FORMAT RULES:
   const renderSidebar = () => (
     <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 no-print print:hidden transition-colors duration-200 shrink-0">
       <div className="p-5 xl:p-6 2xl:p-8">
-        <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2 tracking-tight">
-          PostuTrack
+        <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
+          <span>PostuTrack</span>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
+            v0.3.2
+          </span>
         </h1>
       </div>
       <nav className="flex-1 px-3 xl:px-4 space-y-1.5 xl:space-y-2">
@@ -2974,7 +2977,12 @@ STRICT FORMAT RULES:
         <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 sm:py-4 2xl:py-5 flex justify-between items-center no-print print:hidden transition-colors duration-200">
           <div className="flex items-center gap-3">
             {/* Mobile Title Icon */}
-            <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight">PostuTrack</div>
+            <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
+              <span>PostuTrack</span>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
+                v0.3.2
+              </span>
+            </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
               {getTabHeading()}
             </h2>
