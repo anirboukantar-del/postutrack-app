@@ -320,7 +320,7 @@ export const formatExternalUrl = (url) => {
   return `https://${trimmed}`;
 };
 
-const openExternalLink = async (url, e) => {
+export const openExternalLink = async (url, e) => {
   if (e) {
     if (typeof e.preventDefault === 'function') e.preventDefault();
     if (typeof e.stopPropagation === 'function') e.stopPropagation();

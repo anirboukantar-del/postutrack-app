@@ -21,6 +21,8 @@ import {
   Tag,
   Trash2
 } from 'lucide-react';
+import { executeJobScrape } from './jobScraperService';
+import { openExternalLink } from './App';
 
 export const SUPPORTED_JOB_BOARDS = [
   {
@@ -309,32 +311,22 @@ export function JobScraperView({
       else if (contractType === 'CDD' || contractType === 'Freelance') jobTypeVal = 'contract';
       else if (contractType === 'Stage' || contractType === 'Alternance') jobTypeVal = 'internship';
 
-      const res = await fetch('/api/scrape-jobs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          keywords: keywordsToSearch,
-          search_term: keywordsToSearch[0],
-          location: location.trim() || 'Paris, France',
-          results_wanted: jobLimit,
-          sites: selectedPlatforms,
-          contract_type: contractType,
-          job_type: jobTypeVal,
-          is_remote: workplace === 'remote',
-          hours_old: hoursOldVal
-        })
+      const data = await executeJobScrape({
+        keywords: keywordsToSearch,
+        searchTerm: keywordsToSearch[0],
+        location: location.trim() || 'Paris, France',
+        jobLimit: jobLimit,
+        sites: selectedPlatforms,
+        contractType: contractType,
+        jobType: jobTypeVal,
+        isRemote: workplace === 'remote',
+        hoursOld: hoursOldVal,
+        onProgress: (msg) => setScrapingStep(msg)
       });
 
       clearInterval(stepInterval);
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Erreur serveur HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-
-      if (!data.success && data.error) {
+      if (!data.success && data.error && (!data.jobs || data.jobs.length === 0)) {
         throw new Error(data.error);
       }
 
@@ -1246,6 +1238,7 @@ export function JobScraperView({
                               href={job.url}
                               target="_blank"
                               rel="noreferrer"
+                              onClick={(e) => openExternalLink(job.url, e)}
                               className="p-1.5 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
                               title={lang === 'en' ? 'Open on Source Website' : 'Ouvrir sur le site d\'origine'}
                             >
@@ -1376,7 +1369,8 @@ export function JobScraperView({
                   href={viewingJob.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                  onClick={(e) => openExternalLink(viewingJob.url, e)}
+                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>{lang === 'en' ? 'View on Source Website' : 'Voir sur le site officiel'}</span>
                   <ExternalLink size={14} />

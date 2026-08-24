@@ -11,17 +11,9 @@ import {
   Compass,
   UserCheck
 } from 'lucide-react';
+import { openExternalLink } from './App';
 
 export function CreditsView({ t, lang }) {
-  const openUrl = (url, e) => {
-    e.preventDefault();
-    if (window.__TAURI__?.shell) {
-      window.__TAURI__.shell.open(url);
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
-
   const contacts = [
     {
       id: 'x',
@@ -166,7 +158,7 @@ export function CreditsView({ t, lang }) {
                   href={contact.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => openUrl(contact.url, e)}
+                  onClick={(e) => openExternalLink(contact.url, e)}
                   className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer"
                 >
                   <ExternalLink size={14} />
@@ -229,7 +221,7 @@ export function CreditsView({ t, lang }) {
                   href={item.webUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={(e) => openUrl(item.webUrl, e)}
+                  onClick={(e) => openExternalLink(item.webUrl, e)}
                   className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer"
                 >
                   <Github size={14} />

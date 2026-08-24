@@ -44,7 +44,8 @@ async function startServer() {
       hours_old: hours_old ? parseInt(String(hours_old)) : null
     });
 
-    const pythonProcess = spawn("python3", ["scraper_backend.py", payload], {
+    const pythonCmd = process.platform === "win32" ? "python" : "python3";
+    const pythonProcess = spawn(pythonCmd, ["scraper_backend.py", payload], {
       cwd: process.cwd(),
       env: { ...process.env, PYTHONUNBUFFERED: "1" }
     });
