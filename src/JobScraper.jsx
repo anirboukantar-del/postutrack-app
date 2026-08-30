@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { executeJobScrape, normalizeText } from './jobScraperService';
 import { openExternalLink } from './App';
+import { notifyDownloadSuccess } from './DownloadToast';
 
 export const SUPPORTED_JOB_BOARDS = [
   {
@@ -556,10 +557,15 @@ export function JobScraperView({
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     const queryFilename = (fullSearchQuery || 'jobs').replace(/[^a-zA-Z0-9_-]/g, '_');
-    link.setAttribute('download', `jobspy_scraped_${queryFilename}_${Date.now()}.csv`);
+    const filename = `jobspy_scraped_${queryFilename}_${Date.now()}.csv`;
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    notifyDownloadSuccess({
+      filename,
+      fileType: 'csv'
+    });
   };
 
   // Filtered jobs in the table

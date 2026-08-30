@@ -31,6 +31,7 @@ import {
 import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplates';
 import { HIRING_WEATHER_MONTHS } from './HiringWeather';
 import { downloadElementAsPDF } from './pdfExport';
+import { notifyDownloadSuccess } from './DownloadToast';
 
 // Preset sample resumes for instant 0-token testing
 const SAMPLE_TECH_CV = {
@@ -234,10 +235,15 @@ export function DevResumeLab({
     const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const filename = `resume_test_data_${selectedResumeTemplate}.json`;
     a.href = url;
-    a.download = `resume_test_data_${selectedResumeTemplate}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    notifyDownloadSuccess({
+      filename,
+      fileType: 'json'
+    });
   };
 
   // Export YAML (for RenderCV)
@@ -246,10 +252,15 @@ export function DevResumeLab({
     const blob = new Blob([yaml], { type: 'text/yaml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const filename = `CV_rendercv_test.yaml`;
     a.href = url;
-    a.download = `CV_rendercv_test.yaml`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    notifyDownloadSuccess({
+      filename,
+      fileType: 'yaml'
+    });
   };
 
   return (

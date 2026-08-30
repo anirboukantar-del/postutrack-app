@@ -59,7 +59,8 @@ import {
   Code,
   Image as ImageIcon,
   Compass,
-  Award
+  Award,
+  Pencil
 } from 'lucide-react';
 import { translations } from './i18n';
 import HiringWeatherSection from './HiringWeather';
@@ -68,6 +69,7 @@ import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplat
 import { ProfilePhotoUploader } from './ProfilePhotoUploader';
 import { DevResumeLab } from './DevResumeLab';
 import { downloadElementAsPDF } from './pdfExport';
+import { DownloadToastContainer, notifyDownloadSuccess } from './DownloadToast';
 import { JobScraperView } from './JobScraper';
 import { CreditsView } from './CreditsView';
 
@@ -347,6 +349,7 @@ function AddApplicationModal({
   isOpen,
   onClose,
   onSave,
+  onDelete,
   editingApp,
   onGoToTailor,
   t,
@@ -355,6 +358,7 @@ function AddApplicationModal({
   openAiKey = '',
   anthropicKey = '',
   selectedAiModel = 'gemini',
+  customApiUrl = '',
   initialUrl = ''
 }) {
   const [formData, setFormData] = useState({
@@ -387,6 +391,7 @@ function AddApplicationModal({
         openAiKey,
         anthropicKey,
         selectedAiModel,
+        customApiUrl,
         t,
         lang
       });
@@ -774,20 +779,40 @@ function AddApplicationModal({
             </div>
           )}
 
-          <div className="pt-3 flex justify-end gap-2.5 border-t dark:border-gray-700">
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium cursor-pointer transition-colors"
-            >
-              {t.cancel}
-            </button>
-            <button 
-              type="submit" 
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-xs transition-colors"
-            >
-              {t.save}
-            </button>
+          <div className="pt-3 flex items-center justify-between gap-2.5 border-t dark:border-gray-700">
+            {editingApp && onDelete ? (
+              <button 
+                type="button" 
+                onClick={() => {
+                  if (window.confirm(t.deleteConfirm || (lang === 'en' ? 'Are you sure you want to delete this application?' : 'Supprimer cette candidature ?'))) {
+                    onDelete(editingApp.id);
+                  }
+                }} 
+                className="px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title={t.deleteApplication || t.delete}
+              >
+                <Trash2 size={15} />
+                <span>{t.deleteApplication || t.delete}</span>
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2.5 ml-auto">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium cursor-pointer transition-colors"
+              >
+                {t.cancel}
+              </button>
+              <button 
+                type="submit" 
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-xs transition-colors"
+              >
+                {t.save}
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -809,6 +834,8 @@ function OnboardingStartingPage({
   setAnthropicKey,
   selectedAiModel,
   setSelectedAiModel,
+  customApiUrl,
+  setCustomApiUrl,
   onComplete,
   onSkip,
   processFile
@@ -891,6 +918,7 @@ function OnboardingStartingPage({
           if (data.openAiKey) setOpenAiKey(data.openAiKey);
           if (data.anthropicKey) setAnthropicKey(data.anthropicKey);
           if (data.selectedAiModel) setSelectedAiModel(data.selectedAiModel);
+          if (data.customApiUrl !== undefined && setCustomApiUrl) setCustomApiUrl(data.customApiUrl);
 
           setImportNotice(t.onboardingImportProfileSuccess);
           setTimeout(() => setImportNotice(''), 4500);
@@ -1560,6 +1588,35 @@ function OnboardingStartingPage({
                 </div>
               </div>
 
+              {/* Custom API URL (Optional) */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between gap-2">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Globe size={13} className="text-indigo-600 dark:text-indigo-400" />
+                    <span>{t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)"}</span>
+                  </label>
+                  {customApiUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomApiUrl && setCustomApiUrl('')}
+                      className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                    >
+                      {t.resetDefaultUrl || 'Réinitialiser'}
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder={t.customApiUrlPlaceholder || "ex: https://api.openai.com/v1, http://localhost:11434/v1..."}
+                  className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  value={customApiUrl || ''}
+                  onChange={(e) => setCustomApiUrl && setCustomApiUrl(e.target.value)}
+                />
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {t.customApiUrlHelp || "Laissez vide pour l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (Ollama, OpenRouter, Groq, local...)."}
+                </p>
+              </div>
+
               {/* Privacy / Security Notice */}
               <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl flex items-start gap-3">
                 <ShieldCheck size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
@@ -1796,6 +1853,7 @@ export default function App() {
       localStorage.removeItem('postutrack_openaikey');
       localStorage.removeItem('postutrack_anthropickey');
       localStorage.removeItem('postutrack_aimodel');
+      localStorage.removeItem('postutrack_custom_api_url');
       localStorage.removeItem('postutrack_onboarding_completed');
       localStorage.removeItem('postutrack_startup_warning_dismissed');
       localStorage.removeItem('postutrack_resume_template');
@@ -1819,6 +1877,7 @@ export default function App() {
     setOpenAiKey('');
     setAnthropicKey('');
     setSelectedAiModel('gemini');
+    setCustomApiUrl('');
     setSelectedResumeTemplate('rendercv');
     setResumeAccentColor('#2563eb');
     setResumeDensity('normal');
@@ -1849,6 +1908,9 @@ export default function App() {
   const [selectedAiModel, setSelectedAiModel] = useState(() => {
     try { return localStorage.getItem('postutrack_aimodel') || 'gemini'; } catch (e) { return 'gemini'; }
   });
+  const [customApiUrl, setCustomApiUrl] = useState(() => {
+    try { return localStorage.getItem('postutrack_custom_api_url') || ''; } catch (e) { return ''; }
+  });
 
   useEffect(() => {
     try {
@@ -1856,10 +1918,11 @@ export default function App() {
       localStorage.setItem('postutrack_openaikey', openAiKey);
       localStorage.setItem('postutrack_anthropickey', anthropicKey);
       localStorage.setItem('postutrack_aimodel', selectedAiModel);
+      localStorage.setItem('postutrack_custom_api_url', customApiUrl);
     } catch (e) {
       console.error(e);
     }
-  }, [apiKey, openAiKey, anthropicKey, selectedAiModel]);
+  }, [apiKey, openAiKey, anthropicKey, selectedAiModel, customApiUrl]);
 
   const [selectedAppId, setSelectedAppId] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -1991,16 +2054,26 @@ export default function App() {
         averageResponseTimeDays: avgTime
       },
       applications: enrichedApplications,
-      profile: profile
+      profile: profile,
+      apiKey: apiKey,
+      openAiKey: openAiKey,
+      anthropicKey: anthropicKey,
+      selectedAiModel: selectedAiModel,
+      customApiUrl: customApiUrl
     };
     
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const filename = `PostuTrack_Backup_${new Date().toISOString().split('T')[0]}.json`;
     a.href = url;
-    a.download = `PostuTrack_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    notifyDownloadSuccess({
+      filename,
+      fileType: 'json'
+    });
   };
 
   const handleExportCSV = () => {
@@ -2052,10 +2125,15 @@ export default function App() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const filename = `PostuTrack_Candidatures_${new Date().toISOString().split('T')[0]}.csv`;
     a.href = url;
-    a.download = `PostuTrack_Candidatures_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    notifyDownloadSuccess({
+      filename,
+      fileType: 'csv'
+    });
   };
 
   const handleImportData = (e) => {
@@ -2070,6 +2148,11 @@ export default function App() {
           setApplications(autoApplyGhostStatus(backup.applications).updated);
         }
         if (backup.profile) setProfile(backup.profile);
+        if (backup.apiKey) setApiKey(backup.apiKey);
+        if (backup.openAiKey) setOpenAiKey(backup.openAiKey);
+        if (backup.anthropicKey) setAnthropicKey(backup.anthropicKey);
+        if (backup.selectedAiModel) setSelectedAiModel(backup.selectedAiModel);
+        if (backup.customApiUrl !== undefined) setCustomApiUrl(backup.customApiUrl);
         
         setSavedNotice(true);
         setTimeout(() => setSavedNotice(false), 3000);
@@ -2694,7 +2777,16 @@ STRICT FORMAT RULES:
         : prompt;
 
       if (selectedAiModel === 'gemini') {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+        let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+        if (customApiUrl && customApiUrl.trim()) {
+          const cleanCustom = customApiUrl.trim().replace(/\/+$/, '');
+          if (cleanCustom.includes(':generateContent')) {
+            endpoint = `${cleanCustom}${cleanCustom.includes('?') ? '&' : '?'}key=${apiKey}`;
+          } else {
+            endpoint = `${cleanCustom}/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+          }
+        }
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2707,7 +2799,18 @@ STRICT FORMAT RULES:
         text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       } else if (selectedAiModel === 'openai') {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        let endpoint = 'https://api.openai.com/v1/chat/completions';
+        if (customApiUrl && customApiUrl.trim()) {
+          const cleanCustom = customApiUrl.trim().replace(/\/+$/, '');
+          if (cleanCustom.endsWith('/chat/completions')) {
+            endpoint = cleanCustom;
+          } else if (cleanCustom.endsWith('/v1')) {
+            endpoint = `${cleanCustom}/chat/completions`;
+          } else {
+            endpoint = `${cleanCustom}/v1/chat/completions`;
+          }
+        }
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json', 
@@ -2725,7 +2828,18 @@ STRICT FORMAT RULES:
         text = result.choices[0].message.content;
 
       } else if (selectedAiModel === 'anthropic') {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        let endpoint = 'https://api.anthropic.com/v1/messages';
+        if (customApiUrl && customApiUrl.trim()) {
+          const cleanCustom = customApiUrl.trim().replace(/\/+$/, '');
+          if (cleanCustom.endsWith('/messages')) {
+            endpoint = cleanCustom;
+          } else if (cleanCustom.endsWith('/v1')) {
+            endpoint = `${cleanCustom}/messages`;
+          } else {
+            endpoint = `${cleanCustom}/v1/messages`;
+          }
+        }
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -2808,10 +2922,15 @@ STRICT FORMAT RULES:
     const blob = new Blob([yaml], { type: 'text/yaml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const filename = `CV_rendercv.yaml`;
     a.href = url;
-    a.download = `CV_rendercv.yaml`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    notifyDownloadSuccess({
+      filename,
+      fileType: 'yaml'
+    });
   };
 
   const renderCVTemplate = () => {
@@ -2891,7 +3010,7 @@ STRICT FORMAT RULES:
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.3.2
+            v0.3.3
           </span>
         </h1>
       </div>
@@ -2980,7 +3099,7 @@ STRICT FORMAT RULES:
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.3.2
+                v0.3.3
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -3154,6 +3273,8 @@ STRICT FORMAT RULES:
               setAnthropicKey={setAnthropicKey}
               selectedAiModel={selectedAiModel}
               setSelectedAiModel={setSelectedAiModel}
+              customApiUrl={customApiUrl}
+              setCustomApiUrl={setCustomApiUrl}
               onComplete={handleCompleteOnboarding}
               onSkip={handleSkipOnboarding}
               processFile={processFile}
@@ -3577,10 +3698,11 @@ STRICT FORMAT RULES:
                       <select
                         value={app.status}
                         onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                        className={`inline-flex items-center whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-semibold cursor-pointer outline-none appearance-none text-center shadow-2xs ${getStatusColor(app.status)}`}
+                        className={`inline-flex items-center justify-center text-center whitespace-nowrap px-3.5 py-1 min-w-[88px] sm:min-w-[96px] rounded-full text-xs font-semibold cursor-pointer outline-none appearance-none shadow-2xs transition-opacity hover:opacity-85 ${getStatusColor(app.status)}`}
+                        style={{ textAlignLast: 'center', textAlign: 'center' }}
                       >
                         {STATUS_KEYS.map(statusKey => (
-                          <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium">
+                          <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium text-center">
                             {getStatusLabel(statusKey, t)}
                           </option>
                         ))}
@@ -3588,16 +3710,13 @@ STRICT FORMAT RULES:
 
                       <div className="flex items-center gap-1.5 shrink-0">
                         <button 
+                          type="button"
                           onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
-                          className="px-2.5 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap"
+                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/40 text-gray-700 dark:text-gray-200 rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center shadow-2xs"
+                          title={t.editApplication || t.edit}
+                          aria-label={t.editApplication || t.edit}
                         >
-                          {t.edit}
-                        </button>
-                        <button 
-                          onClick={() => setApplications(applications.filter(item => item.id !== app.id))} 
-                          className="px-2.5 py-1.5 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg text-xs font-medium cursor-pointer transition-colors whitespace-nowrap"
-                        >
-                          {t.delete}
+                          <Pencil size={15} />
                         </button>
                       </div>
                     </div>
@@ -3619,7 +3738,7 @@ STRICT FORMAT RULES:
                       <th className="px-2 sm:px-3 py-3 font-semibold">{t.contract}</th>
                       <th className="px-2 sm:px-3 py-3 font-semibold whitespace-nowrap">{t.date}</th>
                       <th className="px-2 sm:px-3 py-3 font-semibold">{t.status}</th>
-                      <th className="px-2.5 sm:px-3.5 py-3 text-right font-semibold whitespace-nowrap">{t.actions}</th>
+                      <th className="px-2.5 sm:px-3.5 py-3 text-center font-semibold whitespace-nowrap w-12">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -3669,11 +3788,11 @@ STRICT FORMAT RULES:
                             <select
                               value={app.status}
                               onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                              className={`inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-1 rounded-full text-[11px] sm:text-xs font-semibold cursor-pointer outline-none appearance-none text-center hover:opacity-80 transition-opacity shrink-0 ${getStatusColor(app.status)}`}
-                              style={{ textAlignLast: 'center' }}
+                              className={`inline-flex items-center justify-center text-center whitespace-nowrap px-3.5 py-1 min-w-[88px] sm:min-w-[96px] rounded-full text-[11px] sm:text-xs font-semibold cursor-pointer outline-none appearance-none hover:opacity-85 transition-opacity shrink-0 shadow-2xs ${getStatusColor(app.status)}`}
+                              style={{ textAlignLast: 'center', textAlign: 'center' }}
                             >
                               {STATUS_KEYS.map(statusKey => (
-                                <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium">
+                                <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium text-center">
                                   {getStatusLabel(statusKey, t)}
                                 </option>
                               ))}
@@ -3685,12 +3804,15 @@ STRICT FORMAT RULES:
                             )}
                           </div>
                         </td>
-                        <td className="px-2.5 sm:px-3.5 py-2.5 text-right space-x-1 whitespace-nowrap">
-                          <button onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-xs font-medium cursor-pointer transition-colors">
-                            {t.edit}
-                          </button>
-                          <button onClick={() => setApplications(applications.filter(item => item.id !== app.id))} className="px-2 py-1 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-md text-xs font-medium cursor-pointer transition-colors">
-                            {t.delete}
+                        <td className="px-2.5 sm:px-3.5 py-2.5 text-center whitespace-nowrap">
+                          <button 
+                            type="button"
+                            onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
+                            className="p-1.5 bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 dark:bg-gray-700 dark:hover:bg-blue-900/40 dark:text-gray-300 dark:hover:text-blue-300 rounded-lg text-xs font-medium cursor-pointer transition-colors inline-flex items-center justify-center shadow-2xs"
+                            title={t.editApplication || t.edit}
+                            aria-label={t.editApplication || t.edit}
+                          >
+                            <Pencil size={15} />
                           </button>
                         </td>
                       </tr>
@@ -4368,6 +4490,35 @@ STRICT FORMAT RULES:
                         />
                       </div>
                     )}
+
+                    {/* Section URL d'API Personnalisée */}
+                    <div className="pt-3 border-t border-blue-200/70 dark:border-blue-800/40">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
+                          <Globe size={13} className="text-blue-600 dark:text-blue-400" />
+                          <span>{t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)"}</span>
+                        </label>
+                        {customApiUrl && (
+                          <button 
+                            type="button" 
+                            onClick={() => setCustomApiUrl('')} 
+                            className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                          >
+                            {t.resetDefaultUrl || 'Réinitialiser URL par défaut'}
+                          </button>
+                        )}
+                      </div>
+                      <input 
+                        type="text" 
+                        placeholder={t.customApiUrlPlaceholder || "ex: https://api.openai.com/v1, http://localhost:11434/v1, https://openrouter.ai/api/v1..."} 
+                        className="w-full p-3 border border-blue-200 rounded-lg bg-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
+                        value={customApiUrl} 
+                        onChange={e => setCustomApiUrl(e.target.value)} 
+                      />
+                      <p className="mt-1.5 text-[11px] text-blue-700/80 dark:text-blue-300/70 leading-relaxed">
+                        {t.customApiUrlHelp || "Laissez vide pour utiliser l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (Ollama, OpenRouter, Groq, LM Studio, proxy interne...)."}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -4469,6 +4620,7 @@ STRICT FORMAT RULES:
         openAiKey={openAiKey}
         anthropicKey={anthropicKey}
         selectedAiModel={selectedAiModel}
+        customApiUrl={customApiUrl}
         initialUrl={initialModalUrl}
         onGoToTailor={(appId) => {
           setIsAddModalOpen(false);
@@ -4482,6 +4634,11 @@ STRICT FORMAT RULES:
               : [savedApp, ...prev];
             return autoApplyGhostStatus(nextList).updated;
           });
+        }}
+        onDelete={(appId) => {
+          setApplications(prev => prev.filter(app => app.id !== appId));
+          setIsAddModalOpen(false);
+          setEditingApplication(null);
         }}
       />
 
@@ -4522,6 +4679,9 @@ STRICT FORMAT RULES:
           </div>
         </div>
       )}
+
+      {/* Global Download Success Pop-up Notifications */}
+      <DownloadToastContainer lang={lang} t={t} />
     </div>
   );
 }

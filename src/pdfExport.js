@@ -1,5 +1,6 @@
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
+import { notifyDownloadSuccess } from './DownloadToast';
 
 /**
  * Clean sanitization for filenames across Windows, macOS, Linux, and web
@@ -360,6 +361,10 @@ export async function downloadElementAsPDF({
     }
 
     if (onProgress) onProgress({ status: 'done', message: 'PDF téléchargé !' });
+    notifyDownloadSuccess({
+      filename: cleanFilename,
+      fileType: 'pdf'
+    });
     return true;
   } finally {
     // Always clean up offscreen container

@@ -125,6 +125,68 @@ async function startServer() {
     });
   });
 
+  // Dedicated server-side job page extraction proxy
+  app.post("/api/extract-job-url", async (req, res) => {
+    const { url } = req.body || {};
+    if (!url || typeof url !== "string") {
+      return res.status(400).json({ success: false, error: "Missing job URL parameter" });
+    }
+
+    const cleanUrl = url.trim();
+    let text = "";
+
+    // 1. Try Jina Reader
+    try {
+      const jinaUrl = `https://r.jina.ai/${encodeURIComponent(cleanUrl)}`;
+      const jinaRes = await fetch(jinaUrl, {
+        headers: {
+          "Accept": "text/plain",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+        },
+        signal: AbortSignal.timeout(14000)
+      });
+      if (jinaRes.ok) {
+        text = await jinaRes.text();
+      }
+    } catch (jinaErr) {
+      console.warn("Server Jina Reader fetch warning:", jinaErr);
+    }
+
+    // 2. Direct HTML fetch fallback if Jina failed or returned minimal data
+    if (!text || text.length < 100) {
+      try {
+        const directRes = await fetch(cleanUrl, {
+          headers: {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          },
+          signal: AbortSignal.timeout(12000)
+        });
+        if (directRes.ok) {
+          const rawHtml = await directRes.text();
+          text = rawHtml;
+        }
+      } catch (directErr) {
+        console.warn("Server direct fetch warning:", directErr);
+      }
+    }
+
+    if (!text || text.trim().length === 0) {
+      return res.json({
+        success: false,
+        error: "Impossible d'extraire automatiquement le contenu de cette page. Veuillez copier-coller l'annonce manuellement.",
+        rawText: "",
+        url: cleanUrl
+      });
+    }
+
+    return res.json({
+      success: true,
+      rawText: text,
+      url: cleanUrl
+    });
+  });
+
   // Vite middleware for development vs production
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
