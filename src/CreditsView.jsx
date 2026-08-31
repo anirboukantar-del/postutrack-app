@@ -100,7 +100,7 @@ export function CreditsView({ t, lang }) {
       description: lang === 'en'
         ? '4-in-1 Job Scraping Library aggregation for LinkedIn, Indeed, Glassdoor, and ZipRecruiter with multi-threaded queries.'
         : 'Bibliothèque d’agrégation d’offres d’emploi 4-en-1 (LinkedIn, Indeed, Glassdoor, ZipRecruiter) pour automatiser la veille et le sourcing.',
-      tags: ['Job Scraper', 'LinkedIn', 'Indeed', 'Multi-Search'],
+      tags: ['Job Scraper (WIP)', 'LinkedIn', 'Indeed', 'Multi-Search'],
       icon: <Compass className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
       accentBg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60'
     }

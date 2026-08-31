@@ -3159,7 +3159,7 @@ STRICT FORMAT RULES:
       case 'onboarding': return t.onboarding;
       case 'dashboard': return t.dashboard;
       case 'stats': return t.statsTab || t.stats || 'Statistiques détaillées';
-      case 'scraper': return t.scraper || "Scraper d'offres";
+      case 'scraper': return t.scraper || (lang === 'en' ? 'Job Scraper (WIP)' : "Scraper d'offres (WIP)");
       case 'applications': return t.applications;
       case 'tailor': return t.tailor;
       case 'dev': return t.devLabTitle || 'Dev Studio — Laboratoire CV (0 Token)';
@@ -3176,7 +3176,7 @@ STRICT FORMAT RULES:
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.4.1
+            v0.4.2
           </span>
         </h1>
       </div>
@@ -3201,7 +3201,7 @@ STRICT FORMAT RULES:
         </button>
         <button onClick={() => setActiveTab('scraper')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <Compass size={20} className="text-cyan-500 dark:text-cyan-400 shrink-0" />
-          <span className="truncate">{t.scraper || "Scraper d'offres"}</span>
+          <span className="truncate">{t.scraper || (lang === 'en' ? 'Job Scraper (WIP)' : "Scraper d'offres (WIP)")}</span>
         </button>
         <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <ListTodo size={20} className="text-blue-500 dark:text-blue-400 shrink-0" /> 
@@ -3273,7 +3273,7 @@ STRICT FORMAT RULES:
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.4.1
+                v0.4.2
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -3359,7 +3359,7 @@ STRICT FORMAT RULES:
           </button>
           <button onClick={() => setActiveTab('scraper')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <Compass size={14} className="text-cyan-500 dark:text-cyan-400 shrink-0" />
-            <span>{t.scraper || "Scraper"}</span>
+            <span>{t.scraper || (lang === 'en' ? 'Job Scraper (WIP)' : "Scraper d'offres (WIP)")}</span>
           </button>
           <button onClick={() => setActiveTab('applications')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <ListTodo size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />

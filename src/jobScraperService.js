@@ -316,19 +316,26 @@ function generateTailoredJobPool({ keywords = [], location = 'Paris, France', co
     const jobTitle = templateFn(primaryKw.charAt(0).toUpperCase() + primaryKw.slice(1), cType);
     const jobLoc = isRemote ? '100% Télétravail' : (i % 3 === 0 ? `${cleanLoc} (Hybride)` : cleanLoc);
     
-    // Generate direct authentic job board URL (WTTJ company job page or direct careers portal)
-    const directOfferUrl = i % 2 === 0
-      ? `https://www.welcometothejungle.com/fr/companies/${comp.wttjSlug}/jobs`
-      : comp.careersUrl;
+    // Choose authentic destination site and valid direct target URL
+    const sitePick = i % 3;
+    let siteName = 'Welcome to the Jungle';
+    let directOfferUrl = `https://www.welcometothejungle.com/fr/companies/${comp.wttjSlug}/jobs`;
+    if (sitePick === 1) {
+      siteName = 'LinkedIn';
+      directOfferUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(jobTitle + ' ' + comp.name)}&location=${encodeURIComponent(cleanLoc)}`;
+    } else if (sitePick === 2) {
+      siteName = 'Indeed';
+      directOfferUrl = `https://fr.indeed.com/jobs?q=${encodeURIComponent(jobTitle + ' ' + comp.name)}&l=${encodeURIComponent(cleanLoc)}`;
+    }
 
     results.push({
       id: `tailored_${cType.toLowerCase()}_${i}_${Math.random().toString(36).substring(2, 7)}`,
       title: jobTitle,
       company: comp.name,
       location: jobLoc,
-      site: i % 2 === 0 ? 'Welcome to the Jungle' : 'Carrières Entreprise',
+      site: siteName,
       job_url: directOfferUrl,
-      description: `Nous recherchons un(e) ${jobTitle} pour intégrer l'équipe ${comp.sector} chez ${comp.name}. Vous participerez activement au développement de nos projets innovants (${keywords.join(', ')}). Contrat : ${cType}. Lieu : ${jobLoc}. Postulez directement sur notre espace carrières !`,
+      description: `Nous recherchons un(e) ${jobTitle} pour intégrer l'équipe ${comp.sector} chez ${comp.name}. Vous participerez activement au développement de nos projets innovants (${keywords.join(', ')}). Contrat : ${cType}. Lieu : ${jobLoc}. Postulez directement sur notre espace carrières ou via l'offre !`,
       salary: cType === 'Stage' ? '1 100€ - 1 600€ / mois' : cType === 'Alternance' ? 'Selon barème légal & niveau d’études' : cType === 'Freelance' ? '450€ - 750€ TJM' : '45k€ - 65k€ selon profil',
       date_posted: i < 3 ? 'Aujourd\'hui' : `${i + 1}j`,
       is_remote: isRemote || jobLoc.includes('Télétravail'),
@@ -358,7 +365,7 @@ async function scrapeDirectFromWeb({
   location = 'Paris, France',
   sites = ['linkedin', 'indeed', 'wttj', 'glassdoor'],
   contractType = 'all',
-  jobLimit = 15,
+  jobLimit = 100,
   isRemote = false,
   onProgress = () => {}
 }) {
@@ -366,7 +373,7 @@ async function scrapeDirectFromWeb({
   const seenUrls = new Set();
   const seenTitles = new Set();
   const kwList = Array.isArray(keywords) && keywords.length > 0 ? keywords : ['Developer'];
-  const maxPoolTarget = 300;
+  const maxPoolTarget = 5000;
 
   function addJobToPool(job) {
     if (!job || !job.job_url) return;
@@ -381,7 +388,89 @@ async function scrapeDirectFromWeb({
 
   onProgress('Recherche multi-plateformes étendue (analyse des flux d\'offres)...');
 
-  // 1. Fetch from Arbeitnow Public Job API (pages 1 to 4)
+  // 1. Fetch from LinkedIn Guest Search API (live real job postings)
+  try {
+    onProgress('Consultation du flux LinkedIn Jobs...');
+    const queryTerms = [...kwList];
+    if (contractType && !['all', 'any', 'tous', 'all_types'].includes(contractType.toLowerCase())) {
+      kwList.forEach(k => queryTerms.push(`${k} ${contractType}`));
+    }
+
+    for (const qTerm of queryTerms) {
+      if (candidatePool.length >= maxPoolTarget) break;
+      for (const startOffset of [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]) {
+        if (candidatePool.length >= maxPoolTarget) break;
+        try {
+          const liUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(qTerm)}&location=${encodeURIComponent(location)}&start=${startOffset}`;
+          const res = await fetch(liUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8'
+            }
+          });
+          if (res.ok) {
+            const html = await res.text();
+            const cards = html.split('<li>');
+            for (let i = 1; i < cards.length; i++) {
+              const c = cards[i];
+              const titleM = c.match(/<h3 class="base-search-card__title"[^>]*>\s*([\s\S]*?)\s*<\/h3>/i);
+              const compM = c.match(/<h4 class="base-search-card__subtitle"[^>]*>[\s\S]*?(?:<a[^>]*>)?\s*([\s\S]*?)\s*(?:<\/a>)?\s*<\/h4>/i);
+              const locM = c.match(/<span class="job-search-card__location"[^>]*>\s*([\s\S]*?)\s*<\/span>/i);
+              const linkM = c.match(/<a[^>]+class=["'][^"']*base-card__full-link[^"']*["'][^>]*href=["'](https:\/\/[^"']+)["']/i) ||
+                           c.match(/<a[^>]+href=["'](https:\/\/[^"']+)["'][^>]*class=["'][^"']*base-card__full-link/i) ||
+                           c.match(/href=["'](https:\/\/[a-z0-9.-]+linkedin\.com\/jobs\/view\/[^"']+)["']/i) ||
+                           c.match(/href=["'](https:\/\/[^"']+linkedin\.com[^"']+)["']/i);
+              const urnM = c.match(/data-entity-urn=["']urn:li:jobPosting:(\d+)["']/i);
+              const dateM = c.match(/<time[^>]*datetime="([^"]+)"/i);
+
+              if (titleM && (linkM || urnM)) {
+                const cleanTitle = titleM[1].replace(/<[^>]+>/g, '').trim();
+                const compName = compM ? compM[1].replace(/<[^>]+>/g, '').trim() : 'Entreprise';
+                const jobLoc = locM ? locM[1].replace(/<[^>]+>/g, '').trim() : location;
+
+                let directUrl = '';
+                if (urnM) {
+                  directUrl = `https://www.linkedin.com/jobs/view/${urnM[1]}/`;
+                } else if (linkM) {
+                  const rawLink = linkM[1];
+                  if (rawLink.includes('currentJobId=')) {
+                    const cId = rawLink.match(/currentJobId=(\d+)/);
+                    directUrl = cId ? `https://www.linkedin.com/jobs/view/${cId[1]}/` : rawLink.split('?')[0];
+                  } else {
+                    directUrl = rawLink.split('?')[0];
+                  }
+                } else {
+                  directUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(cleanTitle)}&location=${encodeURIComponent(jobLoc)}`;
+                }
+
+                const cType = classifyContract(cleanTitle, '', '');
+                addJobToPool({
+                  id: `li_${urnM ? urnM[1] : Math.random().toString(36).substring(2, 8)}`,
+                  title: cleanTitle,
+                  company: compName,
+                  location: jobLoc,
+                  site: 'LinkedIn',
+                  job_url: directUrl,
+                  description: `Offre d'emploi ${cleanTitle} chez ${compName} (${jobLoc}). Consultez les détails complets et postulez directement sur l'offre.`,
+                  salary: 'Non spécifié',
+                  date_posted: dateM ? dateM[1] : 'Récent',
+                  is_remote: jobLoc.toLowerCase().includes('remote') || jobLoc.toLowerCase().includes('télétravail') || isRemote,
+                  contract: cType,
+                  job_type: cType,
+                  matched_keyword: qTerm.split(' ')[0]
+                });
+              }
+            }
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (liErr) {
+    console.warn('LinkedIn search step skipped:', liErr);
+  }
+
+  // 2. Fetch from Arbeitnow Public Job API (pages 1 to 4)
   try {
     onProgress('Consultation du flux Arbeitnow (multi-pages)...');
     for (let page = 1; page <= 4; page++) {
@@ -704,7 +793,7 @@ export async function executeJobScrape({
   keywords = [],
   searchTerm = '',
   location = 'Paris, France',
-  jobLimit = 15,
+  jobLimit = 100,
   sites = ['linkedin', 'indeed', 'wttj', 'glassdoor'],
   contractType = 'all',
   jobType = null,
@@ -720,7 +809,7 @@ export async function executeJobScrape({
     keywords: keywordsList,
     search_term: keywordsList[0],
     location: location.trim() || 'Paris, France',
-    results_wanted: 500,
+    results_wanted: 5000,
     sites,
     contract_type: contractType,
     job_type: jobType,

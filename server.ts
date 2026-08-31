@@ -36,7 +36,7 @@ async function startServer() {
       keywords: keywords || search_terms || (query ? [query] : null),
       search_term: search_term || query || "Software Engineer",
       location: location || "Paris, France",
-      results_wanted: Math.min(Math.max(parseInt(String(results_wanted)) || 10, 1), 500),
+      results_wanted: Math.min(Math.max(parseInt(String(results_wanted)) || 5000, 1), 5000),
       sites: Array.isArray(sites) && sites.length > 0 ? sites : ["linkedin", "indeed"],
       contract_type: contract_type || null,
       job_type: job_type || null,

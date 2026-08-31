@@ -15,11 +15,11 @@ import {
   RefreshCw,
   Eye,
   X,
-  Sliders,
   Zap,
   AlertCircle,
   Tag,
-  Trash2
+  Trash2,
+  ChevronDown
 } from 'lucide-react';
 import { executeJobScrape, normalizeText } from './jobScraperService';
 import { openExternalLink, formatExternalUrl } from './App';
@@ -95,7 +95,8 @@ export function JobScraperView({
   const [workplace, setWorkplace] = useState('all');
   const [freshness, setFreshness] = useState('all');
   const [selectedPlatforms, setSelectedPlatforms] = useState(['linkedin', 'indeed', 'wttj', 'glassdoor']);
-  const [jobLimit, setJobLimit] = useState(15);
+  const MAX_SHOWN_JOBS = 100;
+  const [visibleCount, setVisibleCount] = useState(25);
 
   // Helper to add a keyword
   const handleAddKeyword = (kwToAdd) => {
@@ -263,6 +264,7 @@ export function JobScraperView({
     setIsScraping(true);
     setErrorMessage(null);
     setSelectedJobIds(new Set());
+    setVisibleCount(25);
     setHasSearched(true);
     setSearchedKeywordsList(keywordsToSearch);
     setTableKeywordFilter('all');
@@ -273,17 +275,17 @@ export function JobScraperView({
 
     const stepTexts = [
       lang === 'en' 
-        ? `Connecting to JobSpy engine for ${kwSummary}...` 
-        : `Connexion au moteur JobSpy pour ${kwSummary}...`,
+        ? `Connecting to multi-platform job engine for ${kwSummary}...` 
+        : `Connexion au moteur multi-plateformes pour ${kwSummary}...`,
       lang === 'en' 
-        ? `Scraping each keyword separately on ${selectedPlatforms.join(', ')}...` 
-        : `Recherche individuelle par mot-clé sur ${selectedPlatforms.join(', ')}...`,
+        ? `Scanning up to 5,000 offers per platform (${selectedPlatforms.join(', ')})...` 
+        : `Analyse jusqu'à 5 000 offres par plateforme (${selectedPlatforms.join(', ')})...`,
       lang === 'en' 
         ? 'Extracting descriptions, tags and job metadata...' 
         : 'Extraction des descriptions complètes, mots-clés et métadonnées...',
       lang === 'en' 
-        ? 'Deduplicating & formatting combined results...' 
-        : 'Dédoublonnage et finalisation des résultats consolidés...'
+        ? 'Deduplicating & ranking combined results by relevance...' 
+        : 'Dédoublonnage et classement des résultats par pertinence...'
     ];
 
     let stepIndex = 0;
@@ -309,7 +311,7 @@ export function JobScraperView({
         keywords: keywordsToSearch,
         searchTerm: keywordsToSearch[0],
         location: location.trim() || 'Paris, France',
-        jobLimit: jobLimit,
+        jobLimit: MAX_SHOWN_JOBS,
         sites: selectedPlatforms,
         contractType: contractType,
         jobType: jobTypeVal,
@@ -390,15 +392,15 @@ export function JobScraperView({
       // Sort by relevance score descending
       formatted.sort((a, b) => (b.relevanceScore || 50) - (a.relevanceScore || 50));
 
-      // Limit results to the user-requested job limit
-      const finalJobs = formatted.slice(0, jobLimit);
+      // Limit results to maximum 100 offers
+      const finalJobs = formatted.slice(0, MAX_SHOWN_JOBS);
 
       setScrapedJobs(finalJobs);
       const totalPoolCount = data.total_candidates || rawJobs.length || finalJobs.length;
       triggerToast(
         lang === 'en'
-          ? `⚡ Scraped and ranked top ${finalJobs.length} offers (from ${totalPoolCount} candidate offers) by relevance!`
-          : `⚡ ${finalJobs.length} meilleures offres sélectionnées et classées par pertinence (sur ${totalPoolCount} offres analysées) !`
+          ? `⚡ Scraped and ranked top ${finalJobs.length} offers (displaying first 25, max 100) by relevance!`
+          : `⚡ ${finalJobs.length} meilleures offres classées par pertinence (25 premières affichées, max 100) !`
       );
 
       if (finalJobs.length === 0) {
@@ -519,12 +521,40 @@ export function JobScraperView({
     );
   };
 
-  // Select all filtered jobs
+  // Filtered jobs in the table
+  const filteredJobs = useMemo(() => {
+    const cleanSearch = normalizeText(tableSearch);
+    return scrapedJobs.filter(job => {
+      let matchesSearch = true;
+      if (cleanSearch) {
+        const normTitle = normalizeText(job.title || '');
+        const normCompany = normalizeText(job.company || '');
+        const normLoc = normalizeText(job.location || '');
+        matchesSearch = normTitle.includes(cleanSearch) ||
+          normCompany.includes(cleanSearch) ||
+          normLoc.includes(cleanSearch) ||
+          cleanSearch.split(' ').some(token => token.length > 2 && (normTitle.includes(token) || normCompany.includes(token)));
+      }
+      
+      const matchesPlatform = tablePlatformFilter === 'all' || job.platformId === tablePlatformFilter;
+      const matchesContract = tableContractFilter === 'all' || (job.contract && job.contract.toLowerCase() === tableContractFilter.toLowerCase());
+      const matchesKeyword = tableKeywordFilter === 'all' || (job.matchedKeyword && job.matchedKeyword.toLowerCase() === tableKeywordFilter.toLowerCase());
+
+      return matchesSearch && matchesPlatform && matchesContract && matchesKeyword;
+    });
+  }, [scrapedJobs, tableSearch, tablePlatformFilter, tableContractFilter, tableKeywordFilter]);
+
+  // Displayed jobs (starts at first 25, expandable up to 100 max)
+  const displayedJobs = useMemo(() => {
+    return filteredJobs.slice(0, Math.min(visibleCount, MAX_SHOWN_JOBS));
+  }, [filteredJobs, visibleCount, MAX_SHOWN_JOBS]);
+
+  // Select all displayed jobs
   const handleToggleSelectAll = () => {
-    if (selectedJobIds.size === filteredJobs.length && filteredJobs.length > 0) {
+    if (selectedJobIds.size === displayedJobs.length && displayedJobs.length > 0) {
       setSelectedJobIds(new Set());
     } else {
-      setSelectedJobIds(new Set(filteredJobs.map(j => j.id)));
+      setSelectedJobIds(new Set(displayedJobs.map(j => j.id)));
     }
   };
 
@@ -567,29 +597,6 @@ export function JobScraperView({
       fileType: 'csv'
     });
   };
-
-  // Filtered jobs in the table
-  const filteredJobs = useMemo(() => {
-    const cleanSearch = normalizeText(tableSearch);
-    return scrapedJobs.filter(job => {
-      let matchesSearch = true;
-      if (cleanSearch) {
-        const normTitle = normalizeText(job.title || '');
-        const normCompany = normalizeText(job.company || '');
-        const normLoc = normalizeText(job.location || '');
-        matchesSearch = normTitle.includes(cleanSearch) ||
-          normCompany.includes(cleanSearch) ||
-          normLoc.includes(cleanSearch) ||
-          cleanSearch.split(' ').some(token => token.length > 2 && (normTitle.includes(token) || normCompany.includes(token)));
-      }
-      
-      const matchesPlatform = tablePlatformFilter === 'all' || job.platformId === tablePlatformFilter;
-      const matchesContract = tableContractFilter === 'all' || (job.contract && job.contract.toLowerCase() === tableContractFilter.toLowerCase());
-      const matchesKeyword = tableKeywordFilter === 'all' || (job.matchedKeyword && job.matchedKeyword.toLowerCase() === tableKeywordFilter.toLowerCase());
-
-      return matchesSearch && matchesPlatform && matchesContract && matchesKeyword;
-    });
-  }, [scrapedJobs, tableSearch, tablePlatformFilter, tableContractFilter, tableKeywordFilter]);
 
   return (
     <div className="space-y-6 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto pb-12">
@@ -858,53 +865,6 @@ export function JobScraperView({
               })}
             </div>
           </div>
-
-          {/* Number of Jobs Limit Slider (5 to 50 max) */}
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Sliders size={16} className="text-purple-600 dark:text-purple-400 shrink-0" />
-              <div>
-                <span className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-200">
-                  {lang === 'en' ? 'Number of jobs to scrape:' : 'Nombre d\'offres à récupérer :'}
-                </span>
-                <span className="ml-2 text-xs font-black px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300">
-                  {jobLimit} {lang === 'en' ? 'jobs max' : 'offres max'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 flex-1 sm:max-w-xs">
-              <span className="text-[11px] font-bold text-gray-400">5</span>
-              <input
-                type="range"
-                min="5"
-                max="50"
-                step="5"
-                value={jobLimit}
-                onChange={(e) => setJobLimit(parseInt(e.target.value, 10))}
-                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-              />
-              <span className="text-[11px] font-bold text-gray-400">50</span>
-
-              {/* Quick Preset Buttons */}
-              <div className="flex items-center gap-1 shrink-0">
-                {[10, 20, 50].map(v => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setJobLimit(v)}
-                    className={`px-2 py-0.5 text-[10px] font-bold rounded cursor-pointer transition-colors ${
-                      jobLimit === v
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Real-time Scraping Progress Banner */}
@@ -917,12 +877,12 @@ export function JobScraperView({
                   {scrapingStep}
                 </div>
                 <div className="text-[11px] text-indigo-700 dark:text-indigo-400">
-                  {lang === 'en' ? 'Scraping live job portals with JobSpy...' : 'Extraction en direct des offres depuis les portails...'}
+                  {lang === 'en' ? 'Scanning up to 5,000 live offers per job portal...' : 'Analyse jusqu\'à 5 000 offres par plateforme en direct...'}
                 </div>
               </div>
             </div>
             <div className="text-xs font-semibold text-indigo-800 dark:text-indigo-300">
-              {jobLimit} {lang === 'en' ? 'jobs targeted' : 'offres ciblées'}
+              {lang === 'en' ? 'Max 5,000 / site' : 'Max 5 000 / site'}
             </div>
           </div>
         )}
@@ -947,12 +907,12 @@ export function JobScraperView({
         {/* Table Top Header & Actions Toolbar */}
         <div className="p-4 sm:p-5 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
                 {lang === 'en' ? 'Scraped Job Results' : 'Résultats du Scraping'}
               </h3>
-              <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-xs font-bold">
-                {filteredJobs.length} {lang === 'en' ? 'offers' : 'offres'}
+              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-xs font-bold">
+                {displayedJobs.length} / {filteredJobs.length} {lang === 'en' ? 'shown' : 'affichées'} {filteredJobs.length > 100 ? '(max 100)' : ''}
               </span>
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -1108,211 +1068,258 @@ export function JobScraperView({
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-100/60 dark:bg-gray-900/60 text-gray-600 dark:text-gray-400 text-[11px] sm:text-xs font-bold uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
-                  <th className="p-3 sm:p-4 w-10 text-center">
-                    <input
-                      type="checkbox"
-                      checked={selectedJobIds.size === filteredJobs.length && filteredJobs.length > 0}
-                      onChange={handleToggleSelectAll}
-                      className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
-                      title="Tout sélectionner"
-                    />
-                  </th>
-                  <th className="p-3 sm:p-4">{lang === 'en' ? 'Job Title & Role' : 'Intitulé du Poste'}</th>
-                  <th className="p-3 sm:p-4">{lang === 'en' ? 'Company' : 'Entreprise'}</th>
-                  <th className="p-3 sm:p-4">{lang === 'en' ? 'Relevance' : 'Pertinence'}</th>
-                  <th className="p-3 sm:p-4">{lang === 'en' ? 'Platform / Source' : 'Plateforme / Source'}</th>
-                  <th className="p-3 sm:p-4">{lang === 'en' ? 'Location & Mode' : 'Lieu & Mode'}</th>
-                  <th className="p-3 sm:p-4">{lang === 'en' ? 'Contract' : 'Contrat'}</th>
-                  <th className="p-3 sm:p-4">{lang === 'en' ? 'Date' : 'Publication'}</th>
-                  <th className="p-3 sm:p-4 text-right">{lang === 'en' ? 'Actions & Transfer' : 'Actions & Transfert'}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-xs sm:text-sm">
-                {filteredJobs.map((job) => {
-                  const jobKey = `${job.company.toLowerCase().trim()}___${job.title.toLowerCase().trim()}`;
-                  const isTransferred = transferredJobKeys.has(jobKey);
-                  const isSelected = selectedJobIds.has(job.id);
-                  const relScore = job.relevanceScore || 75;
+          <div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-100/60 dark:bg-gray-900/60 text-gray-600 dark:text-gray-400 text-[11px] sm:text-xs font-bold uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                    <th className="p-3 sm:p-4 w-10 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedJobIds.size === displayedJobs.length && displayedJobs.length > 0}
+                        onChange={handleToggleSelectAll}
+                        className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        title="Tout sélectionner"
+                      />
+                    </th>
+                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Job Title & Role' : 'Intitulé du Poste'}</th>
+                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Company' : 'Entreprise'}</th>
+                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Relevance' : 'Pertinence'}</th>
+                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Platform / Source' : 'Plateforme / Source'}</th>
+                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Location & Mode' : 'Lieu & Mode'}</th>
+                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Contract' : 'Contrat'}</th>
+                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Date' : 'Publication'}</th>
+                    <th className="p-3 sm:p-4 text-right">{lang === 'en' ? 'Actions & Transfer' : 'Actions & Transfert'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-xs sm:text-sm">
+                  {displayedJobs.map((job) => {
+                    const jobKey = `${job.company.toLowerCase().trim()}___${job.title.toLowerCase().trim()}`;
+                    const isTransferred = transferredJobKeys.has(jobKey);
+                    const isSelected = selectedJobIds.has(job.id);
+                    const relScore = job.relevanceScore || 75;
 
-                  return (
-                    <tr
-                      key={job.id}
-                      className={`hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors ${
-                        isSelected ? 'bg-blue-50/60 dark:bg-blue-900/20' : ''
-                      }`}
-                    >
-                      {/* Checkbox */}
-                      <td className="p-3 sm:p-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleToggleSelectJob(job.id)}
-                          className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        />
-                      </td>
+                    return (
+                      <tr
+                        key={job.id}
+                        className={`hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors ${
+                          isSelected ? 'bg-blue-50/60 dark:bg-blue-900/20' : ''
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <td className="p-3 sm:p-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleToggleSelectJob(job.id)}
+                            className="rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                        </td>
 
-                      {/* Job Title */}
-                      <td className="p-3 sm:p-4">
-                        <div className="font-bold text-gray-900 dark:text-white">
-                          <span
-                            className="hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
-                            onClick={() => setViewingJob(job)}
-                          >
-                            {job.title}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                          {job.salary && job.salary !== 'Non spécifié' && (
-                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
-                              {job.salary}
-                            </span>
-                          )}
-                          {job.matchedKeyword && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-bold text-[10px] border border-blue-200 dark:border-blue-800/70">
-                              <Tag size={9} className="text-blue-500 shrink-0" />
-                              <span>{job.matchedKeyword}</span>
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Company */}
-                      <td className="p-3 sm:p-4">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-7 h-7 rounded-lg ${job.companyColor} text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0`}>
-                            {job.companyLogo}
-                          </div>
-                          <div className="font-semibold text-gray-900 dark:text-gray-100">
-                            {job.company}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Relevance Score */}
-                      <td className="p-3 sm:p-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-14 bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden shrink-0">
-                            <div
-                              className={`h-full ${
-                                relScore >= 80
-                                  ? 'bg-emerald-500'
-                                  : relScore >= 65
-                                  ? 'bg-blue-500'
-                                  : 'bg-amber-500'
-                              }`}
-                              style={{ width: `${relScore}%` }}
-                            />
-                          </div>
-                          <span
-                            className={`text-xs font-black px-1.5 py-0.5 rounded ${
-                              relScore >= 80
-                                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
-                                : relScore >= 65
-                                ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
-                                : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
-                            }`}
-                          >
-                            {relScore}%
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Platform / Source */}
-                      <td className="p-3 sm:p-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${job.platformColor}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${job.platformDot}`} />
-                          {job.platformName}
-                        </span>
-                      </td>
-
-                      {/* Location & Mode */}
-                      <td className="p-3 sm:p-4">
-                        <div className="text-gray-800 dark:text-gray-200 font-medium">
-                          {job.location}
-                        </div>
-                        <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                          {job.workplaceLabel}
-                        </div>
-                      </td>
-
-                      {/* Contract */}
-                      <td className="p-3 sm:p-4">
-                        <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs border ${getContractBadgeStyle(job.contract)}`}>
-                          {job.contract}
-                        </span>
-                      </td>
-
-                      {/* Date Posted */}
-                      <td className="p-3 sm:p-4 text-gray-600 dark:text-gray-400 text-xs">
-                        {job.posted}
-                      </td>
-
-                      {/* Actions & Transfer Button (+) */}
-                      <td className="p-3 sm:p-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {/* Preview Details Button */}
-                          <button
-                            type="button"
-                            onClick={() => setViewingJob(job)}
-                            className="p-1.5 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
-                            title={lang === 'en' ? 'View Job Details' : 'Voir le détail de l\'offre'}
-                          >
-                            <Eye size={16} />
-                          </button>
-
-                          {/* Open External URL */}
-                          {job.url && (
-                            <a
-                              href={formatExternalUrl(job.url)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => openExternalLink(job.url, e)}
-                              className="p-1.5 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
-                              title={lang === 'en' ? 'Open on Source Website' : 'Ouvrir sur le site d\'origine'}
+                        {/* Job Title */}
+                        <td className="p-3 sm:p-4">
+                          <div className="font-bold text-gray-900 dark:text-white">
+                            <span
+                              className="hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+                              onClick={() => setViewingJob(job)}
                             >
-                              <ExternalLink size={16} />
-                            </a>
-                          )}
-
-                          {/* "+" Button to Transfer to Applications Tab */}
-                          <button
-                            type="button"
-                            onClick={() => handleTransferToApplications(job)}
-                            disabled={isTransferred}
-                            className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
-                              isTransferred
-                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 cursor-default opacity-90'
-                                : 'bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-blue-500/20'
-                            }`}
-                            title={
-                              isTransferred
-                                ? (lang === 'en' ? 'Already in your applications tracker' : 'Déjà présent dans vos candidatures')
-                                : (lang === 'en' ? 'Transfer this job offer to My Applications tab (+)' : 'Transférer cette offre dans l\'onglet Candidatures (+)')
-                            }
-                          >
-                            {isTransferred ? (
-                              <>
-                                <Check size={14} className="stroke-[3]" />
-                                <span>{lang === 'en' ? 'Added' : 'Transféré'}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Plus size={15} className="stroke-[3]" />
-                                <span>{lang === 'en' ? 'Add' : 'Transférer'}</span>
-                              </>
+                              {job.title}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            {job.salary && job.salary !== 'Non spécifié' && (
+                              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                                {job.salary}
+                              </span>
                             )}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            {job.matchedKeyword && (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-bold text-[10px] border border-blue-200 dark:border-blue-800/70">
+                                <Tag size={9} className="text-blue-500 shrink-0" />
+                                <span>{job.matchedKeyword}</span>
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Company */}
+                        <td className="p-3 sm:p-4">
+                          <div className="flex items-center gap-2.5">
+                            <div className={`w-7 h-7 rounded-lg ${job.companyColor} text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0`}>
+                              {job.companyLogo}
+                            </div>
+                            <div className="font-semibold text-gray-900 dark:text-gray-100">
+                              {job.company}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Relevance Score */}
+                        <td className="p-3 sm:p-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-14 bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden shrink-0">
+                              <div
+                                className={`h-full ${
+                                  relScore >= 80
+                                    ? 'bg-emerald-500'
+                                    : relScore >= 65
+                                    ? 'bg-blue-500'
+                                    : 'bg-amber-500'
+                                }`}
+                                style={{ width: `${relScore}%` }}
+                              />
+                            </div>
+                            <span
+                              className={`text-xs font-black px-1.5 py-0.5 rounded ${
+                                relScore >= 80
+                                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                                  : relScore >= 65
+                                  ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300'
+                                  : 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300'
+                              }`}
+                            >
+                              {relScore}%
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Platform / Source */}
+                        <td className="p-3 sm:p-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${job.platformColor}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${job.platformDot}`} />
+                            {job.platformName}
+                          </span>
+                        </td>
+
+                        {/* Location & Mode */}
+                        <td className="p-3 sm:p-4">
+                          <div className="text-gray-800 dark:text-gray-200 font-medium">
+                            {job.location}
+                          </div>
+                          <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                            {job.workplaceLabel}
+                          </div>
+                        </td>
+
+                        {/* Contract */}
+                        <td className="p-3 sm:p-4">
+                          <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs border ${getContractBadgeStyle(job.contract)}`}>
+                            {job.contract}
+                          </span>
+                        </td>
+
+                        {/* Date Posted */}
+                        <td className="p-3 sm:p-4 text-gray-600 dark:text-gray-400 text-xs">
+                          {job.posted}
+                        </td>
+
+                        {/* Actions & Transfer Button (+) */}
+                        <td className="p-3 sm:p-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {/* Preview Details Button */}
+                            <button
+                              type="button"
+                              onClick={() => setViewingJob(job)}
+                              className="p-1.5 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
+                              title={lang === 'en' ? 'View Job Details' : 'Voir le détail de l\'offre'}
+                            >
+                              <Eye size={16} />
+                            </button>
+
+                            {/* Open External URL */}
+                            {job.url && (
+                              <a
+                                href={formatExternalUrl(job.url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => openExternalLink(job.url, e)}
+                                className="p-1.5 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
+                                title={lang === 'en' ? 'Open on Source Website' : 'Ouvrir sur le site d\'origine'}
+                              >
+                                <ExternalLink size={16} />
+                              </a>
+                            )}
+
+                            {/* "+" Button to Transfer to Applications Tab */}
+                            <button
+                              type="button"
+                              onClick={() => handleTransferToApplications(job)}
+                              disabled={isTransferred}
+                              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
+                                isTransferred
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 cursor-default opacity-90'
+                                  : 'bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-blue-500/20'
+                              }`}
+                              title={
+                                isTransferred
+                                  ? (lang === 'en' ? 'Already in your applications tracker' : 'Déjà présent dans vos candidatures')
+                                  : (lang === 'en' ? 'Transfer this job offer to My Applications tab (+)' : 'Transférer cette offre dans l\'onglet Candidatures (+)')
+                              }
+                            >
+                              {isTransferred ? (
+                                <>
+                                  <Check size={14} className="stroke-[3]" />
+                                  <span>{lang === 'en' ? 'Added' : 'Transféré'}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Plus size={15} className="stroke-[3]" />
+                                  <span>{lang === 'en' ? 'Add' : 'Transférer'}</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination / Show More Toolbar */}
+            {filteredJobs.length > displayedJobs.length && displayedJobs.length < MAX_SHOWN_JOBS ? (
+              <div className="p-4 bg-gray-50/80 dark:bg-gray-900/60 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                  {lang === 'en'
+                    ? `Showing ${displayedJobs.length} of ${Math.min(filteredJobs.length, MAX_SHOWN_JOBS)} offers (${filteredJobs.length > MAX_SHOWN_JOBS ? `capped to ${MAX_SHOWN_JOBS} max` : `${filteredJobs.length} found`})`
+                    : `Affichage de ${displayedJobs.length} sur ${Math.min(filteredJobs.length, MAX_SHOWN_JOBS)} offres (${filteredJobs.length > MAX_SHOWN_JOBS ? `limité à ${MAX_SHOWN_JOBS} max` : `${filteredJobs.length} trouvées`})`}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(prev => Math.min(prev + 25, MAX_SHOWN_JOBS, filteredJobs.length))}
+                    className="px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <ChevronDown size={15} className="text-blue-600 dark:text-blue-400" />
+                    <span>{lang === 'en' ? 'Show more (+25)' : 'Afficher plus (+25)'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(Math.min(MAX_SHOWN_JOBS, filteredJobs.length))}
+                    className="px-3.5 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    {lang === 'en' ? `Show all (max ${Math.min(MAX_SHOWN_JOBS, filteredJobs.length)})` : `Tout afficher (max ${Math.min(MAX_SHOWN_JOBS, filteredJobs.length)})`}
+                  </button>
+                </div>
+              </div>
+            ) : displayedJobs.length > 0 ? (
+              <div className="p-3.5 bg-gray-50/50 dark:bg-gray-900/40 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>
+                  {lang === 'en'
+                    ? `All ${displayedJobs.length} offers displayed ${displayedJobs.length >= MAX_SHOWN_JOBS ? '(maximum display limit of 100 reached)' : ''}`
+                    : `Toutes les ${displayedJobs.length} offres sont affichées ${displayedJobs.length >= MAX_SHOWN_JOBS ? '(limite maximale de 100 atteinte)' : ''}`}
+                </span>
+                {displayedJobs.length > 25 && (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(25)}
+                    className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    {lang === 'en' ? 'Show 25 first only' : 'Réduire aux 25 premières'}
+                  </button>
+                )}
+              </div>
+            ) : null}
           </div>
         )}
       </div>

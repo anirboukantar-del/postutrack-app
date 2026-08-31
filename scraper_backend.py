@@ -250,7 +250,7 @@ def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, r
     for q_term in query_terms:
         if len(records) >= results_wanted:
             break
-        for start_offset in [0, 10, 20]:
+        for start_offset in range(0, 100, 10):
             if len(records) >= results_wanted:
                 break
             try:
