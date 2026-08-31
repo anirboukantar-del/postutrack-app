@@ -22,7 +22,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { executeJobScrape, normalizeText } from './jobScraperService';
-import { openExternalLink } from './App';
+import { openExternalLink, formatExternalUrl } from './App';
 import { notifyDownloadSuccess } from './DownloadToast';
 
 export const SUPPORTED_JOB_BOARDS = [
@@ -357,7 +357,7 @@ export function JobScraperView({
           platformName: board.name,
           platformColor: board.color,
           platformDot: board.dotColor,
-          url: j.job_url || '',
+          url: j.job_url || j.url || j.apply_url || j.link || '',
           description: j.description || '',
           salary: j.salary || 'Non spécifié',
           contract: detectedContract,
@@ -604,21 +604,8 @@ export function JobScraperView({
         </div>
       )}
 
-      {/* Hero Header & Scraper Controls Card */}
+      {/* Scraper Controls Card */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
-        {/* Banner */}
-        <div className="p-5 sm:p-6 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight">
-              {lang === 'en' ? 'Job Scraper' : 'Scraper d\'Offres d\'Emploi'}
-            </h2>
-            <p className="text-xs sm:text-sm text-blue-100 max-w-2xl leading-relaxed">
-              {lang === 'en'
-                ? 'Search and scrape real job listings from LinkedIn, Indeed, Glassdoor & Welcome to the Jungle in real time, and transfer them with 1-click into your tracker.'
-                : 'Scrappez en direct les offres réelles sur LinkedIn, Indeed, Glassdoor et Welcome to the Jungle selon vos critères, et transférez-les en 1 clic dans vos candidatures.'}
-            </p>
-          </div>
-        </div>
 
         {/* Search & Multi-Keywords Box */}
         <div className="p-5 sm:p-6 space-y-5 bg-gray-50/50 dark:bg-gray-800/40">
@@ -1280,9 +1267,9 @@ export function JobScraperView({
                           {/* Open External URL */}
                           {job.url && (
                             <a
-                              href={job.url}
+                              href={formatExternalUrl(job.url)}
                               target="_blank"
-                              rel="noreferrer"
+                              rel="noopener noreferrer"
                               onClick={(e) => openExternalLink(job.url, e)}
                               className="p-1.5 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
                               title={lang === 'en' ? 'Open on Source Website' : 'Ouvrir sur le site d\'origine'}
@@ -1418,9 +1405,9 @@ export function JobScraperView({
             <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/50 flex flex-col sm:flex-row items-center justify-between gap-3">
               {viewingJob.url ? (
                 <a
-                  href={viewingJob.url}
+                  href={formatExternalUrl(viewingJob.url)}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   onClick={(e) => openExternalLink(viewingJob.url, e)}
                   className="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                 >

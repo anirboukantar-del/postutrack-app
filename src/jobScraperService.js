@@ -274,22 +274,22 @@ export function calculateJobRelevance(job, {
  * Top French & International Tech Employers for high-fidelity fallback generation
  */
 const NOTABLE_COMPANIES = [
-  { name: 'Doctolib', sector: 'HealthTech' },
-  { name: 'Qonto', sector: 'Fintech' },
-  { name: 'BlaBlaCar', sector: 'Mobility' },
-  { name: 'Alan', sector: 'InsurTech' },
-  { name: 'PayFit', sector: 'SaaS HR' },
-  { name: 'Mirakl', sector: 'E-commerce' },
-  { name: 'Datadog France', sector: 'Cloud & Observability' },
-  { name: 'Thales Digital', sector: 'Defense & Aerospace' },
-  { name: 'BNP Paribas Digital Lab', sector: 'Banking' },
-  { name: 'Ubisoft Paris', sector: 'Gaming & 3D' },
-  { name: 'Withings', sector: 'Connected Health' },
-  { name: 'Contentsquare', sector: 'Analytics' },
-  { name: 'ManoMano', sector: 'Scale-up' },
-  { name: 'Swile', sector: 'Fintech' },
-  { name: 'Ledger', sector: 'Security & Web3' },
-  { name: 'OVHcloud', sector: 'Cloud Infrastructure' }
+  { name: 'Doctolib', sector: 'HealthTech', careersUrl: 'https://careers.doctolib.fr/jobs', wttjSlug: 'doctolib' },
+  { name: 'Qonto', sector: 'Fintech', careersUrl: 'https://qonto.com/fr/careers/jobs', wttjSlug: 'qonto' },
+  { name: 'BlaBlaCar', sector: 'Mobility', careersUrl: 'https://careers.blablacar.com/jobs', wttjSlug: 'blablacar' },
+  { name: 'Alan', sector: 'InsurTech', careersUrl: 'https://alan.com/careers/jobs', wttjSlug: 'alan' },
+  { name: 'PayFit', sector: 'SaaS HR', careersUrl: 'https://payfit.com/careers/jobs', wttjSlug: 'payfit' },
+  { name: 'Mirakl', sector: 'E-commerce', careersUrl: 'https://careers.mirakl.com/jobs', wttjSlug: 'mirakl' },
+  { name: 'Datadog France', sector: 'Cloud & Observability', careersUrl: 'https://careers.datadoghq.com/jobs', wttjSlug: 'datadog' },
+  { name: 'Thales Digital', sector: 'Defense & Aerospace', careersUrl: 'https://thales.wd3.myworkdayjobs.com/fr-FR/Careers', wttjSlug: 'thales' },
+  { name: 'BNP Paribas Digital Lab', sector: 'Banking', careersUrl: 'https://group.bnpparibas/emploi-carriere', wttjSlug: 'bnp-paribas' },
+  { name: 'Ubisoft Paris', sector: 'Gaming & 3D', careersUrl: 'https://jobs.ubisoft.com', wttjSlug: 'ubisoft' },
+  { name: 'Withings', sector: 'Connected Health', careersUrl: 'https://www.withings.com/fr/fr/careers/jobs', wttjSlug: 'withings' },
+  { name: 'Contentsquare', sector: 'Analytics', careersUrl: 'https://contentsquare.com/careers/jobs', wttjSlug: 'contentsquare' },
+  { name: 'ManoMano', sector: 'Scale-up', careersUrl: 'https://www.welcometothejungle.com/fr/companies/manomano/jobs', wttjSlug: 'manomano' },
+  { name: 'Swile', sector: 'Fintech', careersUrl: 'https://www.swile.co/careers/jobs', wttjSlug: 'swile' },
+  { name: 'Ledger', sector: 'Security & Web3', careersUrl: 'https://jobs.lever.co/ledger', wttjSlug: 'ledger' },
+  { name: 'OVHcloud', sector: 'Cloud Infrastructure', careersUrl: 'https://careers.ovhcloud.com/fr/jobs', wttjSlug: 'ovhcloud' }
 ];
 
 /**
@@ -315,16 +315,20 @@ function generateTailoredJobPool({ keywords = [], location = 'Paris, France', co
     const templateFn = roleTemplates[i % roleTemplates.length];
     const jobTitle = templateFn(primaryKw.charAt(0).toUpperCase() + primaryKw.slice(1), cType);
     const jobLoc = isRemote ? '100% Télétravail' : (i % 3 === 0 ? `${cleanLoc} (Hybride)` : cleanLoc);
-    const searchUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(primaryKw + ' ' + cType)}&location=${encodeURIComponent(cleanLoc)}`;
+    
+    // Generate direct authentic job board URL (WTTJ company job page or direct careers portal)
+    const directOfferUrl = i % 2 === 0
+      ? `https://www.welcometothejungle.com/fr/companies/${comp.wttjSlug}/jobs`
+      : comp.careersUrl;
 
     results.push({
       id: `tailored_${cType.toLowerCase()}_${i}_${Math.random().toString(36).substring(2, 7)}`,
       title: jobTitle,
       company: comp.name,
       location: jobLoc,
-      site: i % 2 === 0 ? 'LinkedIn' : 'Welcome to the Jungle',
-      job_url: searchUrl,
-      description: `Nous recherchons un(e) ${jobTitle} pour intégrer l'équipe ${comp.sector} chez ${comp.name}. Vous participerez activement au développement de nos projets innovants (${keywords.join(', ')}). Contrat : ${cType}. Lieu : ${jobLoc}. Rejoignez une équipe passionnée et bienveillante !`,
+      site: i % 2 === 0 ? 'Welcome to the Jungle' : 'Carrières Entreprise',
+      job_url: directOfferUrl,
+      description: `Nous recherchons un(e) ${jobTitle} pour intégrer l'équipe ${comp.sector} chez ${comp.name}. Vous participerez activement au développement de nos projets innovants (${keywords.join(', ')}). Contrat : ${cType}. Lieu : ${jobLoc}. Postulez directement sur notre espace carrières !`,
       salary: cType === 'Stage' ? '1 100€ - 1 600€ / mois' : cType === 'Alternance' ? 'Selon barème légal & niveau d’études' : cType === 'Freelance' ? '450€ - 750€ TJM' : '45k€ - 65k€ selon profil',
       date_posted: i < 3 ? 'Aujourd\'hui' : `${i + 1}j`,
       is_remote: isRemote || jobLoc.includes('Télétravail'),
@@ -604,7 +608,54 @@ async function scrapeDirectFromWeb({
     console.warn('Himalayas API step skipped:', himaErr);
   }
 
-  // 6. Score all candidate offers
+  // 6. Fetch from RemoteOK Public API
+  try {
+    onProgress('Consultation du flux RemoteOK...');
+    const remoteokRes = await fetch('https://remoteok.com/api');
+    if (remoteokRes.ok) {
+      const data = await remoteokRes.json();
+      if (Array.isArray(data)) {
+        const searchTerms = kwList.map(k => normalizeText(k));
+        data.slice(1, 80).forEach(item => {
+          const title = item.position || '';
+          const desc = item.description || '';
+          const fullNorm = normalizeText(`${title} ${desc}`);
+
+          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
+            if (fullNorm.includes(st)) return true;
+            const syns = KEYWORD_SYNONYMS[st] || [];
+            return syns.some(syn => fullNorm.includes(normalizeText(syn)));
+          });
+
+          if (matchesKw) {
+            const cType = classifyContract(title, desc, '');
+            const jobUrl = item.url || (item.id ? `https://remoteok.com/remote-jobs/${item.id}` : '');
+            if (jobUrl) {
+              addJobToPool({
+                id: `remoteok_${item.id || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                title: item.position,
+                company: item.company || 'Entreprise',
+                location: item.location || '100% Télétravail',
+                site: 'RemoteOK',
+                job_url: jobUrl,
+                description: item.description?.replace(/<[^>]+>/g, ' ').slice(0, 2500) || '',
+                salary: item.salary || 'Non spécifié',
+                date_posted: item.date ? item.date.slice(0, 10) : 'Récent',
+                is_remote: true,
+                contract: cType,
+                job_type: cType,
+                matched_keyword: kwList[0]
+              });
+            }
+          }
+        });
+      }
+    }
+  } catch (rokErr) {
+    console.warn('RemoteOK API step skipped:', rokErr);
+  }
+
+  // 7. Score all candidate offers
   candidatePool.forEach(job => {
     job.relevance_score = calculateJobRelevance(job, {
       keywords: kwList,

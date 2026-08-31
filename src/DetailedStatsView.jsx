@@ -581,24 +581,6 @@ export const DetailedStatsView = ({
         </div>
       )}
 
-      {/* HEADER BANNER */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 opacity-10 flex items-center pointer-events-none pr-8">
-          <TrendingUp size={240} />
-        </div>
-        <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-white text-xs font-semibold backdrop-blur-md mb-3">
-            <Layers size={13} />
-            <span>{t.statsTab || 'Statistiques détaillées'}</span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            {t.detailedStatsTitle || 'Statistiques & Analyses Détaillées'}
-          </h2>
-          <p className="text-blue-100 text-sm sm:text-base mt-2 leading-relaxed">
-            {t.detailedStatsSubtitle || 'Analyse approfondie de vos candidatures, vélocité des réponses et performance par plateforme.'}
-          </p>
-        </div>
-      </div>
 
       {/* 1. ALL STATS METRICS GRID (Comprehensive View) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 2xl:gap-5">

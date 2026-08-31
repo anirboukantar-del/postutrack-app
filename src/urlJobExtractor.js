@@ -833,7 +833,8 @@ export async function importJobFromUrl(
   const hasAiKey =
     (selectedAiModel === 'gemini' && apiKey && apiKey.trim().length > 5) ||
     (selectedAiModel === 'openai' && openAiKey && openAiKey.trim().length > 5) ||
-    (selectedAiModel === 'anthropic' && anthropicKey && anthropicKey.trim().length > 5);
+    (selectedAiModel === 'anthropic' && anthropicKey && anthropicKey.trim().length > 5) ||
+    (selectedAiModel === 'other' && customApiUrl && customApiUrl.trim().length > 5);
 
   if (hasAiKey && cleanedDescription && cleanedDescription.length > 60) {
     try {
@@ -1051,6 +1052,46 @@ Return ONLY valid JSON.`;
     if (content) {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) return JSON.parse(jsonMatch[0]);
+    }
+  } else if (selectedAiModel === 'other') {
+    let endpoint = (customApiUrl || '').trim().replace(/\/+$/, '');
+    if (endpoint.endsWith('/chat/completions')) {
+      // already full endpoint
+    } else if (endpoint.endsWith('/v1')) {
+      endpoint = `${endpoint}/chat/completions`;
+    } else {
+      endpoint = `${endpoint}/chat/completions`;
+    }
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (openAiKey && openAiKey.trim()) {
+      headers['Authorization'] = openAiKey.trim().startsWith('Bearer ')
+        ? openAiKey.trim()
+        : `Bearer ${openAiKey.trim()}`;
+    }
+
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt + '\nReturn ONLY valid JSON matching the schema.' }],
+        response_format: { type: 'json_object' },
+        temperature: 0.1
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || err.message || `Custom API Error (${res.status})`);
+    }
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || data.response || (typeof data === 'string' ? data : JSON.stringify(data));
+    if (content) {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) return JSON.parse(jsonMatch[0]);
+      return JSON.parse(content);
     }
   }
 

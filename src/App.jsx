@@ -74,6 +74,7 @@ import { DownloadToastContainer, notifyDownloadSuccess } from './DownloadToast';
 import { JobScraperView } from './JobScraper';
 import { CreditsView } from './CreditsView';
 import { DetailedStatsView } from './DetailedStatsView';
+import SettingsView from './SettingsView';
 
 export const STATUS_KEYS = ['Postulé', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
 export const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
@@ -343,18 +344,71 @@ export const openExternalLink = async (url, e) => {
   const targetUrl = formatExternalUrl(url);
   if (!targetUrl) return;
 
-  try {
-    if (typeof window !== 'undefined' && (window.__TAURI_INTERNALS__ || window.__TAURI__)) {
-      const { openUrl } = await import('@tauri-apps/plugin-opener');
-      if (typeof openUrl === 'function') {
-        await openUrl(targetUrl);
+  // Check if running inside Tauri (v1 or v2)
+  const isTauri = typeof window !== 'undefined' && Boolean(
+    window.__TAURI__ || 
+    window.__TAURI_INTERNALS__ || 
+    window.__TAURI_METADATA__ ||
+    (window.__TAURI_IPC__ !== undefined)
+  );
+
+  if (isTauri) {
+    // 1. Try Tauri v2 opener plugin API
+    try {
+      if (window.__TAURI__?.opener?.openUrl) {
+        await window.__TAURI__.opener.openUrl(targetUrl);
         return;
       }
-    }
-  } catch (err) {
-    console.warn('Could not open external link with Tauri opener plugin:', err);
+    } catch (_) {}
+
+    // 2. Try Tauri v2 invoke plugin:opener
+    try {
+      if (window.__TAURI_INTERNALS__?.invoke) {
+        await window.__TAURI_INTERNALS__.invoke('plugin:opener|open_url', { url: targetUrl });
+        return;
+      }
+    } catch (_) {}
+
+    // 3. Try Tauri v2 opener dynamic import from @tauri-apps/plugin-opener
+    try {
+      const openerModule = await import('@tauri-apps/plugin-opener');
+      if (typeof openerModule?.openUrl === 'function') {
+        await openerModule.openUrl(targetUrl);
+        return;
+      }
+    } catch (_) {}
+
+    // 4. Try window.__TAURI__ shell or invoke fallback if available
+    try {
+      if (window.__TAURI__?.shell?.open) {
+        await window.__TAURI__.shell.open(targetUrl);
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      if (window.__TAURI_INTERNALS__?.invoke) {
+        await window.__TAURI_INTERNALS__.invoke('plugin:shell|open', { path: targetUrl });
+        return;
+      }
+    } catch (_) {}
   }
-  window.open(targetUrl, '_blank', 'noopener,noreferrer');
+
+  // Browser / WebView fallback
+  try {
+    const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    if (!opened || opened.closed || typeof opened.closed === 'undefined') {
+      const a = document.createElement('a');
+      a.href = targetUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch (_) {
+    window.location.href = targetUrl;
+  }
 };
 
 function AddApplicationModal({
@@ -884,10 +938,12 @@ function OnboardingStartingPage({
   
   const currentKey = selectedAiModel === 'gemini' 
     ? apiKey 
-    : selectedAiModel === 'openai' 
+    : selectedAiModel === 'openai' || selectedAiModel === 'other'
     ? openAiKey 
     : anthropicKey;
-  const hasKey = Boolean(currentKey && currentKey.trim().length > 5);
+  const hasKey = selectedAiModel === 'other'
+    ? Boolean((currentKey && currentKey.trim().length > 0) || (customApiUrl && customApiUrl.trim().length > 0))
+    : Boolean(currentKey && currentKey.trim().length > 5);
 
   const countWords = (str) => {
     if (!str) return 0;
@@ -1551,6 +1607,28 @@ function OnboardingStartingPage({
                     {lang === 'en' ? 'Requires an Anthropic Claude console key.' : 'Nécessite une clé Anthropic Console.'}
                   </p>
                 </div>
+
+                {/* Other (Custom / Compatible) Card */}
+                <div
+                  onClick={() => setSelectedAiModel('other')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    selectedAiModel === 'other'
+                      ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-750'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white">
+                      {lang === 'en' ? 'Other / Custom' : 'Autre / Custom'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
+                      Ollama / v1
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {lang === 'en' ? 'Custom API Key & URL (Ollama, OpenRouter, Groq).' : 'Clé & URL personnalisées (Ollama, OpenRouter, Groq).'}
+                  </p>
+                </div>
               </div>
 
               {/* Free Gemini Helper Banner */}
@@ -1583,7 +1661,9 @@ function OnboardingStartingPage({
                     ? t.geminiKeyLabel 
                     : selectedAiModel === 'openai' 
                     ? t.openAiKeyLabel 
-                    : t.anthropicKeyLabel}
+                    : selectedAiModel === 'anthropic'
+                    ? t.anthropicKeyLabel
+                    : (t.otherKeyLabel || (lang === 'en' ? 'API Key / Token (Optional)' : 'Clé API / Token (Optionnelle)'))}
                 </label>
 
                 <div className="relative">
@@ -1594,19 +1674,21 @@ function OnboardingStartingPage({
                         ? t.geminiKeyPlaceholder
                         : selectedAiModel === 'openai'
                         ? t.openAiKeyPlaceholder
-                        : t.anthropicKeyPlaceholder
+                        : selectedAiModel === 'anthropic'
+                        ? t.anthropicKeyPlaceholder
+                        : (t.otherKeyPlaceholder || (lang === 'en' ? 'Paste your API key (leave blank for local Ollama)...' : 'Collez votre clé API personnalisée (laissez vide si Ollama local)...'))
                     }
                     className="w-full p-3.5 pr-11 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
                     value={
                       selectedAiModel === 'gemini'
                         ? apiKey
-                        : selectedAiModel === 'openai'
+                        : selectedAiModel === 'openai' || selectedAiModel === 'other'
                         ? openAiKey
                         : anthropicKey
                     }
                     onChange={(e) => {
                       if (selectedAiModel === 'gemini') setApiKey(e.target.value);
-                      else if (selectedAiModel === 'openai') setOpenAiKey(e.target.value);
+                      else if (selectedAiModel === 'openai' || selectedAiModel === 'other') setOpenAiKey(e.target.value);
                       else setAnthropicKey(e.target.value);
                     }}
                   />
@@ -1626,7 +1708,11 @@ function OnboardingStartingPage({
                 <div className="flex items-center justify-between gap-2">
                   <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                     <Globe size={13} className="text-indigo-600 dark:text-indigo-400" />
-                    <span>{t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)"}</span>
+                    <span>
+                      {selectedAiModel === 'other'
+                        ? (lang === 'en' ? 'Custom API Endpoint / Base URL (Required)' : "URL d'API / Endpoint personnalisé (Requis)")
+                        : (t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)")}
+                    </span>
                   </label>
                   {customApiUrl && (
                     <button
@@ -1640,13 +1726,21 @@ function OnboardingStartingPage({
                 </div>
                 <input
                   type="text"
-                  placeholder={t.customApiUrlPlaceholder || "ex: https://api.openai.com/v1, http://localhost:11434/v1..."}
-                  className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder={t.customApiUrlPlaceholder || "ex: http://localhost:11434/v1, https://openrouter.ai/api/v1..."}
+                  className={`w-full p-3 text-xs font-mono rounded-xl border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    selectedAiModel === 'other' && !customApiUrl.trim()
+                      ? 'border-amber-400 dark:border-amber-500 ring-1 ring-amber-400/40'
+                      : 'border-gray-200 dark:border-gray-600'
+                  }`}
                   value={customApiUrl || ''}
                   onChange={(e) => setCustomApiUrl && setCustomApiUrl(e.target.value)}
                 />
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  {t.customApiUrlHelp || "Laissez vide pour l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (Ollama, OpenRouter, Groq, local...)."}
+                  {selectedAiModel === 'other'
+                    ? (lang === 'en'
+                        ? 'Compatible with standard OpenAI API format (e.g., Ollama at http://localhost:11434/v1, OpenRouter at https://openrouter.ai/api/v1, Groq, LM Studio, etc.).'
+                        : 'Compatible avec le format standard OpenAI (ex : Ollama à http://localhost:11434/v1, OpenRouter à https://openrouter.ai/api/v1, Groq, LM Studio, etc.).')
+                    : (t.customApiUrlHelp || "Laissez vide pour l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (Ollama, OpenRouter, Groq, local...).")}
                 </p>
               </div>
 
@@ -2002,9 +2096,9 @@ export default function App() {
   const [showDevStudio, setShowDevStudio] = useState(() => {
     try {
       const saved = localStorage.getItem('postutrack_show_dev_studio');
-      return saved !== null ? saved === 'true' : true;
+      return saved !== null ? saved === 'true' : false;
     } catch (e) {
-      return true;
+      return false;
     }
   });
 
@@ -2044,7 +2138,7 @@ export default function App() {
     setShowDevStudio(prev => {
       const nextState = !prev;
       if (!nextState && activeTab === 'dev') {
-        setActiveTab('profile');
+        setActiveTab('settings');
       }
       return nextState;
     });
@@ -2612,6 +2706,9 @@ ${aiResult.coverLetter}`;
     if (selectedAiModel === 'gemini' && !apiKey.trim()) return setAiError(t.missingGeminiKey);
     if (selectedAiModel === 'openai' && !openAiKey.trim()) return setAiError(t.missingOpenAiKey);
     if (selectedAiModel === 'anthropic' && !anthropicKey.trim()) return setAiError(t.missingAnthropicKey);
+    if (selectedAiModel === 'other' && !customApiUrl.trim()) {
+      return setAiError(lang === 'en' ? 'Please provide a Custom API URL / Endpoint in Settings for the Other provider.' : "Veuillez renseigner une URL d'API / Endpoint personnalisé dans les Paramètres pour le fournisseur Autre.");
+    }
 
     if (!jobDescription.trim()) {
       setAiError(t.missingJobDesc);
@@ -2891,6 +2988,40 @@ STRICT FORMAT RULES:
         const result = await response.json();
         if (!response.ok) throw new Error(result.error?.message || "Error connecting to Anthropic API.");
         text = result.content[0].text;
+
+      } else if (selectedAiModel === 'other') {
+        let endpoint = customApiUrl.trim().replace(/\/+$/, '');
+        if (endpoint.endsWith('/chat/completions')) {
+          // endpoint is already full
+        } else if (endpoint.endsWith('/v1')) {
+          endpoint = `${endpoint}/chat/completions`;
+        } else {
+          endpoint = `${endpoint}/chat/completions`;
+        }
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (openAiKey && openAiKey.trim()) {
+          headers['Authorization'] = openAiKey.trim().startsWith('Bearer ') 
+            ? openAiKey.trim() 
+            : `Bearer ${openAiKey.trim()}`;
+        }
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [{ role: "user", content: finalPrompt }],
+            response_format: { type: "json_object" },
+            temperature: 0.1
+          })
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error?.message || result.message || `Custom API returned status ${response.status}`);
+        }
+        text = result?.choices?.[0]?.message?.content || result?.response || (typeof result === 'string' ? result : JSON.stringify(result));
       }
 
       if (text) {
@@ -3033,6 +3164,7 @@ STRICT FORMAT RULES:
       case 'tailor': return t.tailor;
       case 'dev': return t.devLabTitle || 'Dev Studio — Laboratoire CV (0 Token)';
       case 'profile': return t.profile;
+      case 'settings': return t.settings || (lang === 'en' ? 'Settings' : 'Paramètres');
       case 'credits': return t.credits || 'Crédits & Liens';
       default: return activeTab;
     }
@@ -3044,7 +3176,7 @@ STRICT FORMAT RULES:
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.4.0
+            v0.4.1
           </span>
         </h1>
       </div>
@@ -3056,29 +3188,33 @@ STRICT FORMAT RULES:
           </button>
         )}
         <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <LayoutDashboard size={20} className="shrink-0" /> 
+          <LayoutDashboard size={20} className="text-sky-500 dark:text-sky-400 shrink-0" /> 
           <span className="truncate">{t.dashboard}</span>
         </button>
+        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <UserCheck size={20} className="text-emerald-500 dark:text-emerald-400 shrink-0" /> 
+          <span className="truncate">{t.profile}</span>
+        </button>
         <button onClick={() => setActiveTab('stats')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <BarChart2 size={20} className="shrink-0" /> 
+          <BarChart2 size={20} className="text-indigo-500 dark:text-indigo-400 shrink-0" /> 
           <span className="truncate">{t.statsTab || t.stats || 'Statistiques'}</span>
         </button>
         <button onClick={() => setActiveTab('scraper')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <Compass size={20} className="shrink-0" />
+          <Compass size={20} className="text-cyan-500 dark:text-cyan-400 shrink-0" />
           <span className="truncate">{t.scraper || "Scraper d'offres"}</span>
         </button>
         <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <ListTodo size={20} className="shrink-0" /> 
+          <ListTodo size={20} className="text-blue-500 dark:text-blue-400 shrink-0" /> 
           <span className="truncate">{t.applications}</span>
         </button>
         <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <Sparkles size={20} className="text-amber-500 shrink-0" /> 
+          <Sparkles size={20} className="text-amber-500 dark:text-amber-400 shrink-0" /> 
           <span className="truncate">{t.tailor}</span>
         </button>
         {showDevStudio && (
           <button onClick={() => setActiveTab('dev')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-semibold border border-amber-300/60 dark:border-amber-700/60' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
             <div className="flex items-center gap-3 min-w-0">
-              <Code size={20} className="text-amber-500 shrink-0" />
+              <Code size={20} className="text-orange-500 dark:text-orange-400 shrink-0" />
               <span className="truncate">{t.dev || 'Dev Studio'}</span>
             </div>
             <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 shrink-0">
@@ -3086,12 +3222,12 @@ STRICT FORMAT RULES:
             </span>
           </button>
         )}
-        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <UserCheck size={20} className="text-emerald-500 shrink-0" /> 
-          <span className="truncate">{t.profile}</span>
+        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'settings' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <Settings size={20} className="text-rose-500 dark:text-rose-400 shrink-0" /> 
+          <span className="truncate">{t.settings || (lang === 'en' ? 'Settings' : 'Paramètres')}</span>
         </button>
         <button onClick={() => setActiveTab('credits')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <Award size={20} className="text-purple-500 shrink-0" /> 
+          <Award size={20} className="text-purple-500 dark:text-purple-400 shrink-0" /> 
           <span className="truncate">{t.credits || (lang === 'en' ? 'Credits' : 'Crédits')}</span>
         </button>
       </nav>
@@ -3137,7 +3273,7 @@ STRICT FORMAT RULES:
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.4.0
+                v0.4.1
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -3205,42 +3341,46 @@ STRICT FORMAT RULES:
         <div className="md:hidden flex items-center gap-1 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 overflow-x-auto scrollbar-none no-print print:hidden sticky top-[53px] z-10">
           {(!isOnboardingCompleted || activeTab === 'onboarding') && (
             <button onClick={() => setActiveTab('onboarding')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-              <Rocket size={14} className="shrink-0" />
+              <Rocket size={14} className="text-indigo-500 shrink-0" />
               <span>{t.onboarding}</span>
             </button>
           )}
           <button onClick={() => setActiveTab('dashboard')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <LayoutDashboard size={14} className="shrink-0" />
+            <LayoutDashboard size={14} className="text-sky-500 dark:text-sky-400 shrink-0" />
             <span>{t.dashboard}</span>
           </button>
+          <button onClick={() => setActiveTab('profile')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <UserCheck size={14} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
+            <span>{t.profile}</span>
+          </button>
           <button onClick={() => setActiveTab('stats')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <BarChart2 size={14} className="shrink-0" />
+            <BarChart2 size={14} className="text-indigo-500 dark:text-indigo-400 shrink-0" />
             <span>{t.statsTab || t.stats || 'Statistiques'}</span>
           </button>
-          <button onClick={() => setActiveTab('scraper')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'scraper' ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <Compass size={14} className="text-indigo-500 shrink-0" />
+          <button onClick={() => setActiveTab('scraper')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <Compass size={14} className="text-cyan-500 dark:text-cyan-400 shrink-0" />
             <span>{t.scraper || "Scraper"}</span>
           </button>
           <button onClick={() => setActiveTab('applications')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <ListTodo size={14} className="shrink-0" />
+            <ListTodo size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
             <span>{t.applications}</span>
           </button>
           <button onClick={() => setActiveTab('tailor')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <Sparkles size={14} className="text-amber-500 shrink-0" />
+            <Sparkles size={14} className="text-amber-500 dark:text-amber-400 shrink-0" />
             <span>{t.tailor}</span>
           </button>
           {showDevStudio && (
             <button onClick={() => setActiveTab('dev')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-              <Code size={14} className="text-amber-500 shrink-0" />
+              <Code size={14} className="text-orange-500 dark:text-orange-400 shrink-0" />
               <span>{t.dev || 'Dev Studio'}</span>
             </button>
           )}
-          <button onClick={() => setActiveTab('profile')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <UserCheck size={14} className="text-emerald-500 shrink-0" />
-            <span>{t.profile}</span>
+          <button onClick={() => setActiveTab('settings')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'settings' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <Settings size={14} className="text-rose-500 dark:text-rose-400 shrink-0" />
+            <span>{t.settings || (lang === 'en' ? 'Settings' : 'Paramètres')}</span>
           </button>
           <button onClick={() => setActiveTab('credits')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <Award size={14} className="text-purple-500 shrink-0" />
+            <Award size={14} className="text-purple-500 dark:text-purple-400 shrink-0" />
             <span>{t.credits || (lang === 'en' ? 'Credits' : 'Crédits')}</span>
           </button>
         </div>
@@ -4339,174 +4479,35 @@ STRICT FORMAT RULES:
                   </div>
                 </div>
 
-                {/* Section API Key */}
-                <div className="mt-8 p-5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl">
-                  <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
-                    <div className="flex items-center gap-2">
-                      <Settings className="text-blue-600 dark:text-blue-400" size={20} />
-                      <h4 className="font-bold text-blue-900 dark:text-blue-300">{t.aiConfigTitle}</h4>
-                    </div>
-                    <select 
-                      className="p-2 border border-blue-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-700 text-blue-900 dark:text-blue-300 font-medium shadow-xs outline-none"
-                      value={selectedAiModel}
-                      onChange={(e) => setSelectedAiModel(e.target.value)}
-                    >
-                      <option value="gemini">{t.geminiOption}</option>
-                      <option value="openai">{t.openAiOption}</option>
-                      <option value="anthropic">{t.anthropicOption}</option>
-                    </select>
-                  </div>
-                  
-                  <p className="text-xs text-blue-700 dark:text-blue-400 mb-4">{t.apiKeyPrivacyNote}</p>
-                  
-                  <div className="space-y-3">
-                    {selectedAiModel === 'gemini' && (
-                      <div>
-                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">{t.geminiKeyLabel}</label>
-                        <input 
-                          type="password" 
-                          placeholder={t.geminiKeyPlaceholder} 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                          value={apiKey} 
-                          onChange={e => setApiKey(e.target.value)} 
-                        />
-                      </div>
-                    )}
-                    
-                    {selectedAiModel === 'openai' && (
-                      <div>
-                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">{t.openAiKeyLabel}</label>
-                        <input 
-                          type="password" 
-                          placeholder={t.openAiKeyPlaceholder} 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                          value={openAiKey} 
-                          onChange={e => setOpenAiKey(e.target.value)} 
-                        />
-                      </div>
-                    )}
-
-                    {selectedAiModel === 'anthropic' && (
-                      <div>
-                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">{t.anthropicKeyLabel}</label>
-                        <input 
-                          type="password" 
-                          placeholder={t.anthropicKeyPlaceholder} 
-                          className="w-full p-3 border border-blue-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                          value={anthropicKey} 
-                          onChange={e => setAnthropicKey(e.target.value)} 
-                        />
-                      </div>
-                    )}
-
-                    {/* Section URL d'API Personnalisée */}
-                    <div className="pt-3 border-t border-blue-200/70 dark:border-blue-800/40">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-                          <Globe size={13} className="text-blue-600 dark:text-blue-400" />
-                          <span>{t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)"}</span>
-                        </label>
-                        {customApiUrl && (
-                          <button 
-                            type="button" 
-                            onClick={() => setCustomApiUrl('')} 
-                            className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                          >
-                            {t.resetDefaultUrl || 'Réinitialiser URL par défaut'}
-                          </button>
-                        )}
-                      </div>
-                      <input 
-                        type="text" 
-                        placeholder={t.customApiUrlPlaceholder || "ex: https://api.openai.com/v1, http://localhost:11434/v1, https://openrouter.ai/api/v1..."} 
-                        className="w-full p-3 border border-blue-200 rounded-lg bg-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:bg-gray-700 dark:border-gray-600 dark:text-white" 
-                        value={customApiUrl} 
-                        onChange={e => setCustomApiUrl(e.target.value)} 
-                      />
-                      <p className="mt-1.5 text-[11px] text-blue-700/80 dark:text-blue-300/70 leading-relaxed">
-                        {t.customApiUrlHelp || "Laissez vide pour utiliser l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (Ollama, OpenRouter, Groq, LM Studio, proxy interne...)."}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section Dev Studio Toggle / Préférences */}
-                <div className="mt-8 p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-amber-500/10 dark:from-amber-950/30 dark:via-amber-900/10 dark:to-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl">
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div className="flex items-start gap-3.5">
-                      <div className="p-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-xl shrink-0 mt-0.5 border border-amber-300 dark:border-amber-700/70">
-                        <Code size={20} />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-gray-900 dark:text-white text-sm">
-                            {t.devStudioToggleTitle || 'Dev Studio (Laboratoire CV 0 Token)'}
-                          </h4>
-                          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
-                            0 Token
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 max-w-xl leading-relaxed">
-                          {t.devStudioToggleSubtitle || "Activer ou masquer l'onglet Dev Studio dans la barre de navigation pour concevoir et tester vos CVs sans consommer de tokens API."}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3 shrink-0 ml-auto sm:ml-0">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
-                        showDevStudio 
-                          ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700' 
-                          : 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
-                      }`}>
-                        {showDevStudio 
-                          ? (t.devStudioEnabled || 'Visible dans le menu') 
-                          : (t.devStudioDisabled || 'Masqué du menu')}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleToggleDevStudio}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                          showDevStudio ? 'bg-amber-600' : 'bg-gray-300 dark:bg-gray-600'
-                        }`}
-                        role="switch"
-                        aria-checked={showDevStudio}
-                        title={t.toggleDevStudioBtn || 'Activer / Désactiver le Dev Studio'}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                            showDevStudio ? 'translate-x-5' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Section Zone de Danger / Réinitialisation */}
-                <div className="mt-8 p-5 bg-rose-50/80 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertOctagon className="text-rose-600 dark:text-rose-400" size={20} />
-                    <h4 className="font-bold text-rose-900 dark:text-rose-300">{t.dangerZoneTitle}</h4>
-                  </div>
-                  <p className="text-xs text-rose-700 dark:text-rose-400 mb-4">{t.dangerZoneSubtitle}</p>
-                  <button
-                    type="button"
-                    onClick={() => setIsResetConfirmOpen(true)}
-                    className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors cursor-pointer flex items-center gap-2"
-                  >
-                    <Trash2 size={16} />
-                    {t.resetDataBtn}
-                  </button>
-                </div>
-
-                {savedNotice && <div className="p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm font-medium flex items-center gap-2"><CheckCircle size={18} /> {t.profileSavedNotice}</div>}
-                <div className="flex justify-end">
+                {savedNotice && <div className="mt-6 p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm font-medium flex items-center gap-2"><CheckCircle size={18} /> {t.profileSavedNotice}</div>}
+                <div className="flex justify-end mt-6">
                   <button type="submit" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-md transition-all cursor-pointer">
                     {t.saveProfileBtn}
                   </button>
                 </div>
               </form>
             </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <SettingsView 
+              t={t}
+              lang={lang}
+              selectedAiModel={selectedAiModel}
+              setSelectedAiModel={setSelectedAiModel}
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              openAiKey={openAiKey}
+              setOpenAiKey={setOpenAiKey}
+              anthropicKey={anthropicKey}
+              setAnthropicKey={setAnthropicKey}
+              customApiUrl={customApiUrl}
+              setCustomApiUrl={setCustomApiUrl}
+              showDevStudio={showDevStudio}
+              handleToggleDevStudio={handleToggleDevStudio}
+              onOpenResetConfirm={() => setIsResetConfirmOpen(true)}
+              resetSuccessNotice={resetSuccessNotice}
+            />
           )}
 
           {activeTab === 'credits' && (

@@ -264,15 +264,34 @@ def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, r
                             title_m = re.search(r'<h3 class=\"base-search-card__title\"[^>]*>\s*(.*?)\s*</h3>', c, re.S)
                             comp_m = re.search(r'<h4 class=\"base-search-card__subtitle\"[^>]*>\s*(?:<a[^>]*>)?\s*(.*?)\s*(?:</a>)?\s*</h4>', c, re.S)
                             loc_m = re.search(r'<span class=\"job-search-card__location\"[^>]*>\s*(.*?)\s*</span>', c, re.S)
-                            link_m = re.search(r'<a class=\"base-card__full-link[^\"]*\" href=\"(https://[^\"]+)\"', c, re.S)
+                            
+                            # Robust link extraction
+                            link_m = re.search(r'<a[^>]+class=[\"\'][^\"\']*base-card__full-link[^\"\']*[\"\'][^>]*href=[\"\'](https://[^\"\']+)[\"\']', c, re.I) or \
+                                     re.search(r'<a[^>]+href=[\"\'](https://[^\"\']+)[\"\'][^>]*class=[\"\'][^\"\']*base-card__full-link', c, re.I) or \
+                                     re.search(r'href=[\"\'](https://[a-z0-9\.\-]+linkedin\.com/jobs/view/[^\"\']+)[\"\']', c, re.I) or \
+                                     re.search(r'href=[\"\'](https://[^\"]+linkedin\.com[^\"]+)[\"\']', c, re.I)
+                            
+                            urn_m = re.search(r'data-entity-urn=[\"\']urn:li:jobPosting:(\d+)[\"\']', c, re.I)
                             date_m = re.search(r'<time[^>]*datetime=\"([^\"]+)\"', c)
 
-                            if title_m and link_m:
+                            if title_m and (link_m or urn_m):
                                 raw_title = title_m.group(1).strip()
                                 clean_title = re.sub(r'<[^>]+>', '', raw_title).strip()
                                 comp_name = re.sub(r'<[^>]+>', '', comp_m.group(1)).strip() if comp_m else "Entreprise"
                                 job_loc = re.sub(r'<[^>]+>', '', loc_m.group(1)).strip() if loc_m else location
-                                direct_url = link_m.group(1).split('?')[0]
+                                
+                                if urn_m:
+                                    direct_url = f"https://www.linkedin.com/jobs/view/{urn_m.group(1)}/"
+                                elif link_m:
+                                    raw_link = link_m.group(1)
+                                    if "currentJobId=" in raw_link:
+                                        c_id = re.search(r'currentJobId=(\d+)', raw_link)
+                                        direct_url = f"https://www.linkedin.com/jobs/view/{c_id.group(1)}/" if c_id else raw_link.split('?')[0]
+                                    else:
+                                        direct_url = raw_link.split('?')[0]
+                                else:
+                                    direct_url = f"https://www.linkedin.com/jobs/search/?keywords={urllib.parse.quote(clean_title)}&location={urllib.parse.quote(job_loc)}"
+                                
                                 date_str = date_m.group(1) if date_m else "Récent"
 
                                 # Determine platform name
