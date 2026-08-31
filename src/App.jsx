@@ -60,7 +60,8 @@ import {
   Image as ImageIcon,
   Compass,
   Award,
-  Pencil
+  Pencil,
+  BarChart2
 } from 'lucide-react';
 import { translations } from './i18n';
 import HiringWeatherSection from './HiringWeather';
@@ -72,8 +73,9 @@ import { downloadElementAsPDF } from './pdfExport';
 import { DownloadToastContainer, notifyDownloadSuccess } from './DownloadToast';
 import { JobScraperView } from './JobScraper';
 import { CreditsView } from './CreditsView';
+import { DetailedStatsView } from './DetailedStatsView';
 
-export const STATUS_KEYS = ['Postulé', 'En cours', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
+export const STATUS_KEYS = ['Postulé', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
 export const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
 export const SOURCE_KEYS = [
   'Workday',
@@ -121,17 +123,29 @@ export const isApplicationGhosted = (app) => {
 
 /**
  * Automatically transitions pending applications older than 2 weeks (>= 14 days) with no answers to 'Ghosted'.
+ * Also migrates any legacy 'En cours' status to 'Postulé'.
  */
 export const autoApplyGhostStatus = (apps) => {
   if (!Array.isArray(apps)) return { updated: [], changed: false };
   let changed = false;
   const updated = apps.map(app => {
-    const isPending = ['Postulé', 'En cours', 'Applied', 'In Progress'].includes(app.status) || !app.status;
-    if (isPending && isApplicationGhosted(app)) {
+    let currentStatus = app.status;
+    if (currentStatus === 'En cours' || currentStatus === 'In Progress') {
+      currentStatus = 'Postulé';
+      changed = true;
+    }
+    const isPending = ['Postulé', 'Applied'].includes(currentStatus) || !currentStatus;
+    if (isPending && isApplicationGhosted({ ...app, status: currentStatus })) {
       changed = true;
       return {
         ...app,
         status: 'Ghosted'
+      };
+    }
+    if (currentStatus !== app.status) {
+      return {
+        ...app,
+        status: currentStatus
       };
     }
     return app;
@@ -143,7 +157,7 @@ const DEFAULT_APPLICATIONS = [
   { id: 1, company: 'Google', role: 'Software Engineer', date: '2026-08-01', responseDate: '2026-08-08', source: 'Workday', status: 'Entretien', type: 'CDI', url: 'https://careers.google.com' },
   { id: 2, company: 'Datadog', role: 'Frontend Engineer', date: '2026-08-04', responseDate: '2026-08-11', source: 'Greenhouse', status: 'Offre', type: 'CDI', url: 'https://www.welcometothejungle.com' },
   { id: 3, company: 'Doctolib', role: 'Fullstack Developer', date: '2026-08-07', responseDate: '2026-08-12', source: 'SmartRecruiters', status: 'Refusé', type: 'CDI', url: 'https://fr.indeed.com' },
-  { id: 4, company: 'Mirakl', role: 'React Engineer', date: '2026-08-10', responseDate: '', source: 'LinkedIn', status: 'En cours', type: 'CDI', url: '' },
+  { id: 4, company: 'Mirakl', role: 'React Engineer', date: '2026-08-10', responseDate: '', source: 'LinkedIn', status: 'Postulé', type: 'CDI', url: '' },
   { id: 5, company: 'Qonto', role: 'Product Engineer', date: '2026-08-15', responseDate: '', source: 'Lever', status: 'Postulé', type: 'CDI', url: '' }
 ];
 
@@ -151,10 +165,9 @@ const getStatusLabel = (status, t) => {
   switch (status) {
     case 'Postulé':
     case 'Applied':
-      return t.statusApplied;
     case 'En cours':
     case 'In Progress':
-      return t.statusInProgress;
+      return t.statusApplied;
     case 'Entretien':
     case 'Interview':
       return t.statusInterview;
@@ -178,10 +191,9 @@ const getStatusColor = (status) => {
   switch (status) {
     case 'Postulé':
     case 'Applied':
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';
     case 'En cours':
     case 'In Progress':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300';
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300';
     case 'Entretien':
     case 'Interview':
       return 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300';
@@ -377,6 +389,7 @@ function AddApplicationModal({
   const [importUrlInput, setImportUrlInput] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [importFeedback, setImportFeedback] = useState(null);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
   const handlePerformImport = async (urlToImport) => {
     const cleanUrl = (urlToImport || '').trim();
@@ -442,6 +455,7 @@ function AddApplicationModal({
 
   useEffect(() => {
     setImportFeedback(null);
+    setIsConfirmingDelete(false);
     if (editingApp) {
       const isKnown = SOURCE_KEYS.includes(editingApp.source);
       setFormData({
@@ -781,19 +795,38 @@ function AddApplicationModal({
 
           <div className="pt-3 flex items-center justify-between gap-2.5 border-t dark:border-gray-700">
             {editingApp && onDelete ? (
-              <button 
-                type="button" 
-                onClick={() => {
-                  if (window.confirm(t.deleteConfirm || (lang === 'en' ? 'Are you sure you want to delete this application?' : 'Supprimer cette candidature ?'))) {
-                    onDelete(editingApp.id);
-                  }
-                }} 
-                className="px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
-                title={t.deleteApplication || t.delete}
-              >
-                <Trash2 size={15} />
-                <span>{t.deleteApplication || t.delete}</span>
-              </button>
+              isConfirmingDelete ? (
+                <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      onDelete(editingApp.id);
+                      setIsConfirmingDelete(false);
+                    }} 
+                    className="px-3 py-2 bg-rose-600 hover:bg-rose-700 active:scale-98 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                  >
+                    <Trash2 size={15} />
+                    <span>{lang === 'en' ? 'Confirm delete?' : 'Confirmer la suppression ?'}</span>
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsConfirmingDelete(false)} 
+                    className="px-2.5 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xs font-medium cursor-pointer"
+                  >
+                    {t.cancel || 'Annuler'}
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  type="button" 
+                  onClick={() => setIsConfirmingDelete(true)} 
+                  className="px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title={t.deleteApplication || t.delete}
+                >
+                  <Trash2 size={15} />
+                  <span>{t.deleteApplication || t.delete}</span>
+                </button>
+              )
             ) : (
               <div />
             )}
@@ -2994,6 +3027,7 @@ STRICT FORMAT RULES:
     switch (activeTab) {
       case 'onboarding': return t.onboarding;
       case 'dashboard': return t.dashboard;
+      case 'stats': return t.statsTab || t.stats || 'Statistiques détaillées';
       case 'scraper': return t.scraper || "Scraper d'offres";
       case 'applications': return t.applications;
       case 'tailor': return t.tailor;
@@ -3010,7 +3044,7 @@ STRICT FORMAT RULES:
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.3.3
+            v0.4.0
           </span>
         </h1>
       </div>
@@ -3024,6 +3058,10 @@ STRICT FORMAT RULES:
         <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <LayoutDashboard size={20} className="shrink-0" /> 
           <span className="truncate">{t.dashboard}</span>
+        </button>
+        <button onClick={() => setActiveTab('stats')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <BarChart2 size={20} className="shrink-0" /> 
+          <span className="truncate">{t.statsTab || t.stats || 'Statistiques'}</span>
         </button>
         <button onClick={() => setActiveTab('scraper')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <Compass size={20} className="shrink-0" />
@@ -3099,7 +3137,7 @@ STRICT FORMAT RULES:
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.3.3
+                v0.4.0
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -3174,6 +3212,10 @@ STRICT FORMAT RULES:
           <button onClick={() => setActiveTab('dashboard')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <LayoutDashboard size={14} className="shrink-0" />
             <span>{t.dashboard}</span>
+          </button>
+          <button onClick={() => setActiveTab('stats')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <BarChart2 size={14} className="shrink-0" />
+            <span>{t.statsTab || t.stats || 'Statistiques'}</span>
           </button>
           <button onClick={() => setActiveTab('scraper')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'scraper' ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <Compass size={14} className="text-indigo-500 shrink-0" />
@@ -3291,275 +3333,139 @@ STRICT FORMAT RULES:
                 onResetDate={() => setSimulatedMonth(null)} 
               />
 
-              {/* Top Metric Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 2xl:gap-6">
-                {/* Total Applications */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-blue-200 dark:hover:border-blue-800/60 transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.totalApplications}</span>
-                    <div className="p-2 sm:p-2.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0">
-                      <Briefcase className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
-                  </div>
+              {/* Dashboard: Exactly 3 Stats (Total applications, Rejections, Offers) - Clickable to open Detailed Stats */}
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    <span>{lang === 'en' ? 'Key Metrics' : 'Indicateurs Clés'}</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('stats')}
+                    className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span>{t.viewDetailedStatsBanner || (lang === 'en' ? 'Detailed analytics & charts' : 'Statistiques détaillées & graphiques')}</span>
+                    <ArrowRight size={14} />
+                  </button>
                 </div>
 
-                {/* Interviews */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-purple-200 dark:hover:border-purple-800/60 transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.interviews}</span>
-                    <div className="p-2 sm:p-2.5 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl shrink-0">
-                      <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{interviewsCount}</p>
-                  </div>
-                </div>
-
-                {/* Offers */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-800/60 transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.offersReceived}</span>
-                    <div className="p-2 sm:p-2.5 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
-                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
-                  </div>
-                </div>
-
-                {/* Rejections */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-rose-200 dark:hover:border-rose-800/60 transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.rejections}</span>
-                    <div className="p-2 sm:p-2.5 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl shrink-0">
-                      <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
-                  </div>
-                </div>
-
-                {/* Ghosted / Sans réponse */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-slate-300 dark:hover:border-slate-600 transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.ghostedCountLabel || t.ghosted || 'Ghosté(s)'}</span>
-                    <div className="p-2 sm:p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl shrink-0">
-                      <Ghost className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{ghostedCount}</p>
-                    <p className="text-[11px] 2xl:text-xs text-gray-400 dark:text-gray-500 mt-1 leading-tight">{t.ghostedTooltip || '> 14j sans retour'}</p>
-                  </div>
-                </div>
-
-                {/* Average Response Time */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-amber-200 dark:hover:border-amber-800/60 transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.avgResponseTime}</span>
-                    <div className="p-2 sm:p-2.5 bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
-                      <Timer className="w-4 h-4 sm:w-5 sm:h-5" />
-                    </div>
-                  </div>
-                  <div>
-                    {avgResponseDays !== null ? (
-                      <div>
-                        <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-baseline gap-1">
-                          {avgResponseDays} <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{avgResponseDays <= 1 ? t.avgDaySingle : t.avgDays}</span>
-                        </p>
-                        <p className="text-[11px] 2xl:text-xs text-gray-400 dark:text-gray-500 mt-1 leading-tight">{t.basedOnAnswers ? t.basedOnAnswers.replace('{count}', answeredApps.length) : `${answeredApps.length} réponses`}</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 2xl:gap-6">
+                  {/* 1. Total Applications */}
+                  <div 
+                    onClick={() => setActiveTab('stats')}
+                    className="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer group"
+                    title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {t.totalApplications}
+                      </span>
+                      <div className="p-2.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                        <Briefcase className="w-5 h-5" />
                       </div>
-                    ) : (
-                      <p className="text-xs sm:text-sm font-medium text-gray-400 dark:text-gray-500">{t.noResponseData}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Overall Reply Rate */}
-                <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 2xl:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-800/60 transition-all">
-                  <div className="flex items-start justify-between gap-2 mb-3">
-                    <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">{t.replyRate}</span>
-                    <div className="p-2 sm:p-2.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0">
-                      <Percent className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                    <div className="flex items-baseline justify-between mt-1">
+                      <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
+                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span>{t.stats || 'Détails'}</span>
+                        <ArrowRight size={13} />
+                      </span>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{overallReplyRate}%</p>
-                    <p className="text-[11px] 2xl:text-xs text-gray-400 dark:text-gray-500 mt-1 leading-tight">{answeredApps.length} / {totalApplications} {t.repliesCount?.toLowerCase() || 'réponses'}</p>
+
+                  {/* 2. Rejections */}
+                  <div 
+                    onClick={() => setActiveTab('stats')}
+                    className="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-lg hover:border-rose-300 dark:hover:border-rose-700 transition-all cursor-pointer group"
+                    title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
+                        {t.rejections}
+                      </span>
+                      <div className="p-2.5 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                        <XCircle className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-1">
+                      <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
+                      <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span>{t.stats || 'Détails'}</span>
+                        <ArrowRight size={13} />
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 3. Offers */}
+                  <div 
+                    onClick={() => setActiveTab('stats')}
+                    className="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-lg hover:border-emerald-300 dark:hover:border-emerald-700 transition-all cursor-pointer group"
+                    title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {t.offersReceived}
+                      </span>
+                      <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div className="flex items-baseline justify-between mt-1">
+                      <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span>{t.stats || 'Détails'}</span>
+                        <ArrowRight size={13} />
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Platform / Source Analytics Section */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-4 sm:p-6 2xl:p-8">
-                <div className="flex justify-between items-start flex-wrap gap-3 sm:gap-4 mb-5 sm:mb-6">
+              {/* Action Banner to access Detailed Stats */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/30 dark:via-indigo-950/30 dark:to-purple-950/30 border border-blue-200/80 dark:border-blue-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-xs shrink-0">
+                    <BarChart2 size={24} />
+                  </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <Globe className="text-blue-600 dark:text-blue-400" size={20} />
-                      <h3 className="text-base sm:text-lg 2xl:text-xl font-bold text-gray-900 dark:text-white">{t.sourceAnalysis}</h3>
-                    </div>
-                    <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-1">{t.sourceAnalysisSubtitle}</p>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button 
-                      onClick={handleExportCSV} 
-                      className="px-3 py-1.5 2xl:px-4 2xl:py-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/60 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl text-xs 2xl:text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                      title={t.exportDataTooltip}
-                    >
-                      <Download size={14} className="text-emerald-600 dark:text-emerald-400" />
-                      <span>{t.exportCSVBtn}</span>
-                    </button>
-                    <button 
-                      onClick={() => setActiveTab('applications')} 
-                      className="px-3.5 py-1.5 2xl:px-4 2xl:py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-xl text-xs 2xl:text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-                    >
-                      <ListTodo size={14} /> {t.applications}
-                    </button>
+                    <h4 className="font-bold text-gray-900 dark:text-white text-base">
+                      {t.detailedStatsTitle || 'Statistiques & Analyses Détaillées'}
+                    </h4>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                      {t.appVelocitySubtitle || 'Visualisez la courbe de vélocité de vos candidatures, la performance par plateforme et exportez vos données.'}
+                    </p>
                   </div>
                 </div>
-
-                {/* Highlights: Best & Worst Source cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 2xl:gap-6 mb-6">
-                  {/* Most replies source */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 dark:from-emerald-950/40 dark:to-teal-950/20 border border-emerald-200/80 dark:border-emerald-800/60">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs 2xl:text-sm font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                        <TrendingUp size={16} /> {t.mostRepliesSource}
-                      </span>
-                      {sourceStats.mostReplies && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs 2xl:text-sm font-bold bg-emerald-600 text-white shadow-2xs">
-                          {sourceStats.mostReplies.replyRate}% {t.replyRate.toLowerCase()}
-                        </span>
-                      )}
-                    </div>
-                    {sourceStats.mostReplies ? (
-                      <div>
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <span className={`inline-flex items-center whitespace-nowrap px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border shrink-0 ${getSourceBadgeStyle(sourceStats.mostReplies.source)}`}>
-                            {getSourceLabel(sourceStats.mostReplies.source, t)}
-                          </span>
-                          <span className="text-xs sm:text-sm 2xl:text-base font-semibold text-gray-800 dark:text-gray-200">
-                            {sourceStats.mostReplies.answered} / {sourceStats.mostReplies.total} {t.repliesCount.toLowerCase()}
-                          </span>
-                        </div>
-                        <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-2">
-                          {sourceStats.mostReplies.interviews} {t.interviews.toLowerCase()} • {sourceStats.mostReplies.offers} {t.offersReceived.toLowerCase()} • {sourceStats.mostReplies.rejections} {t.rejections.toLowerCase()}
-                          {sourceStats.mostReplies.avgDays && ` • ~${sourceStats.mostReplies.avgDays} ${t.avgDays}`}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{t.noRepliesYet}</p>
-                    )}
-                  </div>
-
-                  {/* Least replies source */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-500/10 to-gray-500/5 dark:from-slate-900/40 dark:to-gray-900/20 border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs 2xl:text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        <TrendingDown size={16} /> {t.leastRepliesSource}
-                      </span>
-                      {sourceStats.leastReplies && (
-                        <span className="px-2.5 py-0.5 rounded-full text-xs 2xl:text-sm font-bold bg-slate-600 text-white shadow-2xs">
-                          {sourceStats.leastReplies.replyRate}% {t.replyRate.toLowerCase()}
-                        </span>
-                      )}
-                    </div>
-                    {sourceStats.leastReplies ? (
-                      <div>
-                        <div className="flex items-center gap-2 mt-2 flex-wrap">
-                          <span className={`inline-flex items-center whitespace-nowrap px-2.5 sm:px-3 py-1 rounded-lg text-xs sm:text-sm font-bold border shrink-0 ${getSourceBadgeStyle(sourceStats.leastReplies.source)}`}>
-                            {getSourceLabel(sourceStats.leastReplies.source, t)}
-                          </span>
-                          <span className="text-xs sm:text-sm 2xl:text-base font-semibold text-gray-800 dark:text-gray-200">
-                            {sourceStats.leastReplies.answered} / {sourceStats.leastReplies.total} {t.repliesCount.toLowerCase()}
-                          </span>
-                        </div>
-                        <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-2">
-                          {sourceStats.leastReplies.pending} {t.pending.toLowerCase()} • {sourceStats.leastReplies.rejections} {t.rejections.toLowerCase()}
-                          {sourceStats.leastReplies.avgDays ? ` • ~${sourceStats.leastReplies.avgDays} ${t.avgDays}` : ''}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{t.noRepliesYet}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Detailed Source Breakdown Table */}
-                <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-                  <table className="w-full text-left border-collapse text-xs sm:text-sm 2xl:text-base min-w-[560px]">
-                    <thead>
-                      <tr className="bg-gray-50 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs 2xl:text-sm uppercase tracking-wider border-b dark:border-gray-700">
-                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold">{t.source}</th>
-                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-center">{t.totalApplications}</th>
-                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-center">{t.repliesCount}</th>
-                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold min-w-[140px] sm:min-w-[160px]">{t.replyRate}</th>
-                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-center">{t.positiveRate}</th>
-                        <th className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-right">{t.avgResponseTime}</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700/80">
-                      {sourceStats.list.map((item) => (
-                        <tr key={item.source} className="hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors">
-                          <td className="p-2.5 sm:p-3 2xl:p-4 font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                      <span className={`inline-flex items-center whitespace-nowrap px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs 2xl:text-sm font-semibold border shrink-0 ${getSourceBadgeStyle(item.source)}`}>
-                        {getSourceLabel(item.source, t)}
-                      </span>
-                          </td>
-                          <td className="p-2.5 sm:p-3 2xl:p-4 text-center font-bold text-gray-800 dark:text-gray-200">{item.total}</td>
-                          <td className="p-2.5 sm:p-3 2xl:p-4 text-center text-xs 2xl:text-sm">
-                            <span className="font-semibold text-gray-700 dark:text-gray-300">{item.answered}</span>
-                            <span className="text-gray-400 dark:text-gray-500 ml-1">({item.interviews} E, {item.offers} O, {item.rejections} R)</span>
-                          </td>
-                          <td className="p-2.5 sm:p-3 2xl:p-4">
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    item.replyRate >= 60 ? 'bg-emerald-500' : item.replyRate >= 30 ? 'bg-amber-500' : 'bg-slate-400'
-                                  }`}
-                                  style={{ width: `${item.replyRate}%` }}
-                                />
-                              </div>
-                              <span className="text-[11px] sm:text-xs 2xl:text-sm font-bold text-gray-700 dark:text-gray-300 w-9 text-right">{item.replyRate}%</span>
-                            </div>
-                          </td>
-                          <td className="p-2.5 sm:p-3 2xl:p-4 text-center">
-                            <span className={`px-2 py-0.5 rounded text-xs 2xl:text-sm font-semibold ${
-                              item.positiveRate > 0 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'
-                            }`}>
-                              {item.positiveRate}%
-                            </span>
-                          </td>
-                          <td className="p-2.5 sm:p-3 2xl:p-4 text-right">
-                            {item.avgDays !== null ? (
-                              <span className="inline-flex items-center gap-1 font-semibold text-gray-800 dark:text-gray-200">
-                                <Timer size={13} className="text-amber-500 shrink-0" /> {item.avgDays} {item.avgDays <= 1 ? t.avgDaySingle : t.avgDays}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                      {sourceStats.list.length === 0 && (
-                        <tr>
-                          <td colSpan="6" className="p-6 text-center text-gray-400 dark:text-gray-500 text-sm">
-                            {t.noApplications}
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('stats')}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-xs shrink-0 self-stretch sm:self-auto justify-center"
+                >
+                  <TrendingUp size={16} />
+                  <span>{lang === 'en' ? 'Open Detailed Stats' : 'Accéder aux statistiques'}</span>
+                  <ArrowRight size={15} />
+                </button>
               </div>
             </div>
+          )}
+
+          {activeTab === 'stats' && (
+            <DetailedStatsView
+              applications={applications}
+              t={t}
+              lang={lang}
+              onGoToTailor={(appId) => {
+                const app = applications.find(a => a.id === appId);
+                if (app && app.jobDescription) {
+                  setJobDescription(app.jobDescription);
+                }
+                setActiveTab('tailor');
+              }}
+              onUpdateStatus={(appId, newStatus) => {
+                updateApplicationStatus(appId, newStatus);
+              }}
+              formatExternalUrl={formatExternalUrl}
+            />
           )}
 
           {activeTab === 'scraper' && (
@@ -4328,6 +4234,8 @@ STRICT FORMAT RULES:
           {activeTab === 'dev' && showDevStudio && (
             <DevResumeLab
               profile={profile}
+              applications={applications}
+              setApplications={setApplications}
               selectedResumeTemplate={selectedResumeTemplate}
               setSelectedResumeTemplate={setSelectedResumeTemplate}
               resumeAccentColor={resumeAccentColor}

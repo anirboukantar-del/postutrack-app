@@ -32,6 +32,7 @@ import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplat
 import { HIRING_WEATHER_MONTHS } from './HiringWeather';
 import { downloadElementAsPDF } from './pdfExport';
 import { notifyDownloadSuccess } from './DownloadToast';
+import { generateYearOfExampleApplications } from './sampleApplications';
 
 // Preset sample resumes for instant 0-token testing
 const SAMPLE_TECH_CV = {
@@ -139,6 +140,8 @@ const SAMPLE_PRODUCT_CV = {
 
 export function DevResumeLab({
   profile,
+  applications = [],
+  setApplications,
   selectedResumeTemplate,
   setSelectedResumeTemplate,
   resumeAccentColor,
@@ -167,12 +170,29 @@ export function DevResumeLab({
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [sampleLoadedNotice, setSampleLoadedNotice] = useState(false);
 
   const realMonthIdx = new Date().getMonth();
   const currentSimMonthIdx = (simulatedMonth !== null && !isNaN(simulatedMonth) && simulatedMonth >= 0 && simulatedMonth <= 11)
     ? simulatedMonth
     : realMonthIdx;
   const isSimulationActive = simulatedMonth !== null && !isNaN(simulatedMonth) && simulatedMonth !== realMonthIdx;
+
+  // Handler to inject 1 year of realistic applications into the app
+  const handleLoadSampleApplications = () => {
+    if (!setApplications) return;
+    const exampleApps = generateYearOfExampleApplications();
+    setApplications(exampleApps);
+    try {
+      localStorage.setItem('postutrack_applications', JSON.stringify(exampleApps));
+    } catch (e) {
+      console.error(e);
+    }
+    setSampleLoadedNotice(true);
+    setTimeout(() => {
+      setSampleLoadedNotice(false);
+    }, 4000);
+  };
 
   // Load a preset
   const handleSelectPreset = (presetKey) => {
@@ -322,6 +342,14 @@ export function DevResumeLab({
               }`}
             >
               👤 {t.loadMyProfileData || 'Mon Profil'}
+            </button>
+            <span className="text-gray-300 dark:text-gray-600">|</span>
+            <button
+              onClick={handleLoadSampleApplications}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/80 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1"
+              title={t.loadSampleApplicationsDesc}
+            >
+              ⚡ {lang === 'en' ? '1-Year Sample Apps' : '1 An de Candidatures'}
             </button>
           </div>
         </div>
@@ -781,6 +809,87 @@ export function DevResumeLab({
             <span className="text-gray-600 dark:text-gray-300">
               {lang === 'en' ? HIRING_WEATHER_MONTHS[currentSimMonthIdx].descEn : HIRING_WEATHER_MONTHS[currentSimMonthIdx].descFr}
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Realistic Example Applications Injector (Dev Tool for 1-Year Dataset) */}
+      <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-blue-500/10 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-blue-950/30 p-4 sm:p-5 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-200/60 dark:border-indigo-800/40 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-xl shadow-xs shrink-0">
+              <FlaskConical size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
+                  {t.loadSampleApplicationsTitle || 'Injecter 1 an de candidatures réalistes'}
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-700">
+                  {applications.length > 0 
+                    ? `${applications.length} ${lang === 'en' ? 'current apps' : 'candidatures actuelles'}`
+                    : (lang === 'en' ? '0 apps' : '0 candidature')}
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                {t.loadSampleApplicationsDesc || "Génère un jeu complet et réaliste de ~50 candidatures étalées sur 12 mois (statuts variés, canaux ATS, relances et délais réels) pour tester instantanément tous les graphiques et métriques."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleLoadSampleApplications}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-sm hover:shadow-md active:scale-98 transition-all cursor-pointer"
+            >
+              <Zap size={15} className="text-amber-300" />
+              <span>{t.loadSampleApplicationsBtn || "⚡ Charger 1 an d'exemples"}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Feedback notification when loaded */}
+        {sampleLoadedNotice && (
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+            <Check size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{t.sampleApplicationsLoadedSuccess || "50+ candidatures d'exemple sur 12 mois ont été chargées avec succès !"}</span>
+          </div>
+        )}
+
+        {/* Feature summary pills of the generated sample dataset */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-xs">
+          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-indigo-100 dark:border-indigo-900/50">
+            <div className="text-indigo-600 dark:text-indigo-400 font-bold text-[11px] uppercase tracking-wider">
+              {lang === 'en' ? 'Timeframe' : 'Période'}
+            </div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+              {lang === 'en' ? 'Last 12 Months' : '12 derniers mois'}
+            </div>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-indigo-100 dark:border-indigo-900/50">
+            <div className="text-purple-600 dark:text-purple-400 font-bold text-[11px] uppercase tracking-wider">
+              {lang === 'en' ? 'Statuses' : 'Statuts'}
+            </div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200 mt-0.5 truncate" title="Postulé, Entretien, Offre, Refusé, Ghosted">
+              {lang === 'en' ? 'Applied, Interview, Offer, Ghosted' : 'Postulé, Entretien, Offre, Ghosted'}
+            </div>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-indigo-100 dark:border-indigo-900/50">
+            <div className="text-blue-600 dark:text-blue-400 font-bold text-[11px] uppercase tracking-wider">
+              {lang === 'en' ? 'Sources / ATS' : 'Canaux & ATS'}
+            </div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200 mt-0.5 truncate" title="LinkedIn, WTTJ, Workday, Greenhouse, Ashby, Lever, Indeed, Taleo">
+              LinkedIn, WTTJ, Workday, etc.
+            </div>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/80 dark:bg-gray-800/80 border border-indigo-100 dark:border-indigo-900/50">
+            <div className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px] uppercase tracking-wider">
+              {lang === 'en' ? 'Contract Types' : 'Contrats'}
+            </div>
+            <div className="font-semibold text-gray-800 dark:text-gray-200 mt-0.5">
+              CDI, CDD, Freelance, Stage
+            </div>
           </div>
         </div>
       </div>
