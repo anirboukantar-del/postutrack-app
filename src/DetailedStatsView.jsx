@@ -1157,8 +1157,8 @@ export const DetailedStatsView = ({
                     </td>
 
                     {/* Status */}
-                    <td className="p-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(app.status)}`}>
+                    <td className="p-2.5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold border ${getStatusColor(app.status)}`}>
                         {app.status || 'Postulé'}
                       </span>
                     </td>

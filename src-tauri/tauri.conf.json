@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "postutrack",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "identifier": "com.anir.postutrack",
   "build": {
     "frontendDist": "../dist",
@@ -10,6 +10,7 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "postutrack",

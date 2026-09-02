@@ -348,6 +348,36 @@ export function JobScraperView({
         const detectedContract = j.contract || detectContractType(j, contractType !== 'all' ? contractType : 'CDI');
         const relevance = j.relevance_score || j.relevanceScore || 80;
 
+        // Build guaranteed direct or platform search URL
+        let resolvedUrl = (j.job_url || j.url || j.apply_url || j.link || '').trim();
+        if (!resolvedUrl || resolvedUrl.length < 5) {
+          const jTitle = j.title || 'Poste';
+          const jComp = j.company || '';
+          const jLoc = j.location || location || '';
+          const q = encodeURIComponent(`${jTitle} ${jComp}`.trim());
+          const locQ = encodeURIComponent(jLoc);
+          const pName = (board.name || j.site || '').toLowerCase();
+          if (pName.includes('linkedin')) {
+            resolvedUrl = `https://www.linkedin.com/jobs/search/?keywords=${q}&location=${locQ}`;
+          } else if (pName.includes('indeed')) {
+            resolvedUrl = `https://fr.indeed.com/jobs?q=${q}&l=${locQ}`;
+          } else if (pName.includes('welcometothejungle') || pName.includes('jungle')) {
+            resolvedUrl = `https://www.welcometothejungle.com/fr/jobs?query=${q}`;
+          } else if (pName.includes('glassdoor')) {
+            resolvedUrl = `https://www.glassdoor.fr/Emploi/france-${q}-emplois-SRCH_IL.0,6_IN86_KO7,${7 + q.length}.htm`;
+          } else if (pName.includes('arbeitnow')) {
+            resolvedUrl = `https://www.arbeitnow.com/jobs?search=${q}`;
+          } else if (pName.includes('remotive')) {
+            resolvedUrl = `https://remotive.com/?query=${q}`;
+          } else if (pName.includes('jobicy')) {
+            resolvedUrl = `https://jobicy.com/jobs?q=${q}`;
+          } else if (pName.includes('remoteok')) {
+            resolvedUrl = `https://remoteok.com/remote-${encodeURIComponent(jTitle)}-jobs`;
+          } else {
+            resolvedUrl = `https://www.google.com/search?q=${encodeURIComponent(`${jTitle} ${jComp} offre emploi ${jLoc}`.trim())}`;
+          }
+        }
+
         return {
           id: j.id || `job_${i}_${Date.now()}`,
           title: j.title || 'Poste',
@@ -359,7 +389,7 @@ export function JobScraperView({
           platformName: board.name,
           platformColor: board.color,
           platformDot: board.dotColor,
-          url: j.job_url || j.url || j.apply_url || j.link || '',
+          url: resolvedUrl,
           description: j.description || '',
           salary: j.salary || 'Non spécifié',
           contract: detectedContract,
@@ -1022,26 +1052,64 @@ export function JobScraperView({
 
         {/* Results Table OR Clean Empty State */}
         {scrapedJobs.length === 0 ? (
-          <div className="p-12 text-center space-y-4">
+          <div className="p-10 text-center space-y-5">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto shadow-inner">
               <Search size={26} />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <h4 className="text-base font-bold text-gray-900 dark:text-white">
                 {hasSearched
-                  ? (lang === 'en' ? 'No offers found' : 'Aucune offre trouvée')
+                  ? (lang === 'en' ? 'No live offers matched your search' : 'Aucune offre réelle correspondante trouvée')
                   : (lang === 'en' ? 'Ready to scrape live jobs' : 'Prêt à scraper des offres en direct')}
               </h4>
               <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
                 {hasSearched
                   ? (lang === 'en' 
-                      ? 'No jobs returned for your query. Try broadening your keywords, location, or selecting other portals.' 
-                      : 'Aucun résultat renvoyé pour ces critères. Essayez d\'élargir les mots-clés ou de cibler d\'autres plateformes.')
+                      ? 'No genuine job postings matched these exact keywords on the queried live feeds. You can adjust your keywords or search directly on job boards below:' 
+                      : 'Aucune offre réelle n\'a été trouvée avec ces mots-clés exacts sur les flux interrogés. Vous pouvez élargir vos critères ou lancer la recherche en 1 clic sur les plateformes ci-dessous :')
                   : (lang === 'en' 
-                      ? 'Configure your keywords and target platforms above, then click "Scrape Jobs" to fetch live postings directly via JobSpy.' 
+                      ? 'Configure your keywords and target platforms above, then click "Scrape Jobs" to fetch live postings directly.' 
                       : 'Indiquez vos mots-clés et plateformes cibles ci-dessus, puis cliquez sur "Lancer le Scraper" pour extraire en temps réel les offres réelles.')}
               </p>
             </div>
+
+            {hasSearched && (
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-2 max-w-xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => openExternalLink(`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords.join(' '))}&location=${encodeURIComponent(location)}`)}
+                  className="px-3 py-2 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ExternalLink size={13} />
+                  <span>LinkedIn Jobs</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openExternalLink(`https://fr.indeed.com/jobs?q=${encodeURIComponent(keywords.join(' '))}&l=${encodeURIComponent(location)}`)}
+                  className="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ExternalLink size={13} />
+                  <span>Indeed</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openExternalLink(`https://www.welcometothejungle.com/fr/jobs?query=${encodeURIComponent(keywords.join(' '))}&aroundQuery=${encodeURIComponent(location)}`)}
+                  className="px-3 py-2 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 rounded-xl text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ExternalLink size={13} />
+                  <span>Welcome to the Jungle</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openExternalLink(`https://candidat.francetravail.fr/offres/recherche?motsCles=${encodeURIComponent(keywords.join(' '))}&lieux=${encodeURIComponent(location)}`)}
+                  className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <ExternalLink size={13} />
+                  <span>France Travail</span>
+                </button>
+              </div>
+            )}
+
             {!hasSearched && (
               <button
                 type="button"

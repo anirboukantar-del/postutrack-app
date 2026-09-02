@@ -271,94 +271,14 @@ export function calculateJobRelevance(job, {
 }
 
 /**
- * Top French & International Tech Employers for high-fidelity fallback generation
- */
-const NOTABLE_COMPANIES = [
-  { name: 'Doctolib', sector: 'HealthTech', careersUrl: 'https://careers.doctolib.fr/jobs', wttjSlug: 'doctolib' },
-  { name: 'Qonto', sector: 'Fintech', careersUrl: 'https://qonto.com/fr/careers/jobs', wttjSlug: 'qonto' },
-  { name: 'BlaBlaCar', sector: 'Mobility', careersUrl: 'https://careers.blablacar.com/jobs', wttjSlug: 'blablacar' },
-  { name: 'Alan', sector: 'InsurTech', careersUrl: 'https://alan.com/careers/jobs', wttjSlug: 'alan' },
-  { name: 'PayFit', sector: 'SaaS HR', careersUrl: 'https://payfit.com/careers/jobs', wttjSlug: 'payfit' },
-  { name: 'Mirakl', sector: 'E-commerce', careersUrl: 'https://careers.mirakl.com/jobs', wttjSlug: 'mirakl' },
-  { name: 'Datadog France', sector: 'Cloud & Observability', careersUrl: 'https://careers.datadoghq.com/jobs', wttjSlug: 'datadog' },
-  { name: 'Thales Digital', sector: 'Defense & Aerospace', careersUrl: 'https://thales.wd3.myworkdayjobs.com/fr-FR/Careers', wttjSlug: 'thales' },
-  { name: 'BNP Paribas Digital Lab', sector: 'Banking', careersUrl: 'https://group.bnpparibas/emploi-carriere', wttjSlug: 'bnp-paribas' },
-  { name: 'Ubisoft Paris', sector: 'Gaming & 3D', careersUrl: 'https://jobs.ubisoft.com', wttjSlug: 'ubisoft' },
-  { name: 'Withings', sector: 'Connected Health', careersUrl: 'https://www.withings.com/fr/fr/careers/jobs', wttjSlug: 'withings' },
-  { name: 'Contentsquare', sector: 'Analytics', careersUrl: 'https://contentsquare.com/careers/jobs', wttjSlug: 'contentsquare' },
-  { name: 'ManoMano', sector: 'Scale-up', careersUrl: 'https://www.welcometothejungle.com/fr/companies/manomano/jobs', wttjSlug: 'manomano' },
-  { name: 'Swile', sector: 'Fintech', careersUrl: 'https://www.swile.co/careers/jobs', wttjSlug: 'swile' },
-  { name: 'Ledger', sector: 'Security & Web3', careersUrl: 'https://jobs.lever.co/ledger', wttjSlug: 'ledger' },
-  { name: 'OVHcloud', sector: 'Cloud Infrastructure', careersUrl: 'https://careers.ovhcloud.com/fr/jobs', wttjSlug: 'ovhcloud' }
-];
-
-/**
- * Generates tailored, realistic job postings for the exact requested keyword, contract and location
- * when external network queries are restricted, offline or return limited contract matches.
- */
-function generateTailoredJobPool({ keywords = [], location = 'Paris, France', contractType = 'all', count = 15, isRemote = false }) {
-  const primaryKw = keywords[0] || 'Software Engineer';
-  const cleanLoc = location.trim() || 'Paris, France';
-  const cType = contractType && contractType !== 'all' ? contractType : 'CDI';
-  const results = [];
-
-  const roleTemplates = [
-    (kw, c) => c === 'Stage' ? `Stage - ${kw} (H/F)` : c === 'Alternance' ? `Alternant(e) ${kw} (Bac+4 / Bac+5)` : c === 'Freelance' ? `Consultant ${kw} - Mission Freelance` : `${kw} (H/F)`,
-    (kw, c) => c === 'Stage' ? `Stage Fin d'Études (PFE) - ${kw}` : c === 'Alternance' ? `Apprenti(e) ${kw} - Digital Lab` : c === 'Freelance' ? `Lead ${kw} (Freelance / Télétravail)` : `Senior ${kw}`,
-    (kw, c) => c === 'Stage' ? `Assistant(e) ${kw} - Stage 6 mois` : c === 'Alternance' ? `Contrat de Professionnalisation - ${kw}` : c === 'Freelance' ? `Expert ${kw} / Tech Advisor` : `${kw} - Core Platform`,
-    (kw, c) => c === 'Stage' ? `Stage ${kw} - Innovation & R&D` : c === 'Alternance' ? `Alternance Master - ${kw} (F/H)` : c === 'Freelance' ? `${kw} Indépendant (Long terme)` : `Lead ${kw} Tech`,
-    (kw, c) => c === 'Stage' ? `Stagiaire ${kw} Junior` : c === 'Alternance' ? `Alternance 12-24 mois - ${kw}` : c === 'Freelance' ? `Développeur ${kw} Senior - Portage / B2B` : `${kw} - Product Team`
-  ];
-
-  for (let i = 0; i < count; i++) {
-    const comp = NOTABLE_COMPANIES[i % NOTABLE_COMPANIES.length];
-    const templateFn = roleTemplates[i % roleTemplates.length];
-    const jobTitle = templateFn(primaryKw.charAt(0).toUpperCase() + primaryKw.slice(1), cType);
-    const jobLoc = isRemote ? '100% Télétravail' : (i % 3 === 0 ? `${cleanLoc} (Hybride)` : cleanLoc);
-    
-    // Choose authentic destination site and valid direct target URL
-    const sitePick = i % 3;
-    let siteName = 'Welcome to the Jungle';
-    let directOfferUrl = `https://www.welcometothejungle.com/fr/companies/${comp.wttjSlug}/jobs`;
-    if (sitePick === 1) {
-      siteName = 'LinkedIn';
-      directOfferUrl = `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(jobTitle + ' ' + comp.name)}&location=${encodeURIComponent(cleanLoc)}`;
-    } else if (sitePick === 2) {
-      siteName = 'Indeed';
-      directOfferUrl = `https://fr.indeed.com/jobs?q=${encodeURIComponent(jobTitle + ' ' + comp.name)}&l=${encodeURIComponent(cleanLoc)}`;
-    }
-
-    results.push({
-      id: `tailored_${cType.toLowerCase()}_${i}_${Math.random().toString(36).substring(2, 7)}`,
-      title: jobTitle,
-      company: comp.name,
-      location: jobLoc,
-      site: siteName,
-      job_url: directOfferUrl,
-      description: `Nous recherchons un(e) ${jobTitle} pour intégrer l'équipe ${comp.sector} chez ${comp.name}. Vous participerez activement au développement de nos projets innovants (${keywords.join(', ')}). Contrat : ${cType}. Lieu : ${jobLoc}. Postulez directement sur notre espace carrières ou via l'offre !`,
-      salary: cType === 'Stage' ? '1 100€ - 1 600€ / mois' : cType === 'Alternance' ? 'Selon barème légal & niveau d’études' : cType === 'Freelance' ? '450€ - 750€ TJM' : '45k€ - 65k€ selon profil',
-      date_posted: i < 3 ? 'Aujourd\'hui' : `${i + 1}j`,
-      is_remote: isRemote || jobLoc.includes('Télétravail'),
-      job_type: cType,
-      contract: cType,
-      matched_keyword: primaryKw,
-      relevance_score: 95 - (i * 2)
-    });
-  }
-
-  return results;
-}
-
-/**
- * Multi-Source Web Scraper: Searches candidate offers across multiple live public sources:
- * - LinkedIn Guest Search (Live public job posts)
- * - The Muse Public API
- * - Arbeitnow Public API (pages 1 to 4)
- * - Remotive Public API
- * - Jobicy Public API
- * - Himalayas Public API
- * - RemoteOK Public API
- * - Jina AI Search
+ * Direct web extraction across multiple real public job feeds & boards:
+ * - LinkedIn Guest Search (Live public job postings)
+ * - Arbeitnow Public API (multi-page live job feed)
+ * - The Muse Public API (live job listings)
+ * - Remotive Public API (live remote job listings)
+ * - Jobicy Public API (live developer & tech job feed)
+ * - Himalayas Public API (live job openings)
+ * - RemoteOK Public API (live tech job listings)
  */
 async function scrapeDirectFromWeb({
   keywords = [],
@@ -386,7 +306,7 @@ async function scrapeDirectFromWeb({
     candidatePool.push(job);
   }
 
-  onProgress('Recherche multi-plateformes étendue (analyse des flux d\'offres)...');
+  onProgress('Recherche multi-plateformes étendue (analyse des flux d\'offres réelles)...');
 
   // 1. Fetch from LinkedIn Guest Search API (live real job postings)
   try {
@@ -396,9 +316,9 @@ async function scrapeDirectFromWeb({
       kwList.forEach(k => queryTerms.push(`${k} ${contractType}`));
     }
 
-    for (const qTerm of queryTerms) {
+    for (const qTerm of queryTerms.slice(0, 3)) {
       if (candidatePool.length >= maxPoolTarget) break;
-      for (const startOffset of [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]) {
+      for (const startOffset of [0, 10, 20, 30]) {
         if (candidatePool.length >= maxPoolTarget) break;
         try {
           const liUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(qTerm)}&location=${encodeURIComponent(location)}&start=${startOffset}`;
@@ -452,7 +372,7 @@ async function scrapeDirectFromWeb({
                   location: jobLoc,
                   site: 'LinkedIn',
                   job_url: directUrl,
-                  description: `Offre d'emploi ${cleanTitle} chez ${compName} (${jobLoc}). Consultez les détails complets et postulez directement sur l'offre.`,
+                  description: `Offre d'emploi réelle : ${cleanTitle} chez ${compName} (${jobLoc}). Consultez les critères et postulez directement via le lien de l'offre.`,
                   salary: 'Non spécifié',
                   date_posted: dateM ? dateM[1] : 'Récent',
                   is_remote: jobLoc.toLowerCase().includes('remote') || jobLoc.toLowerCase().includes('télétravail') || isRemote,
@@ -470,10 +390,10 @@ async function scrapeDirectFromWeb({
     console.warn('LinkedIn search step skipped:', liErr);
   }
 
-  // 2. Fetch from Arbeitnow Public Job API (pages 1 to 4)
+  // 2. Fetch from Arbeitnow Public Job API (live multi-pages)
   try {
-    onProgress('Consultation du flux Arbeitnow (multi-pages)...');
-    for (let page = 1; page <= 4; page++) {
+    onProgress('Consultation du flux Arbeitnow (offres réelles)...');
+    for (let page = 1; page <= 5; page++) {
       if (candidatePool.length >= maxPoolTarget) break;
       const pageUrl = page === 1 ? 'https://www.arbeitnow.com/api/job-board-api' : `https://www.arbeitnow.com/api/job-board-api?page=${page}`;
       const arbeitRes = await fetch(pageUrl);
@@ -520,52 +440,54 @@ async function scrapeDirectFromWeb({
     console.warn('Arbeitnow API step skipped:', apiErr);
   }
 
-  // 2. Fetch from The Muse Public Jobs API
+  // 3. Fetch from The Muse Public Jobs API
   try {
     onProgress('Consultation du flux The Muse...');
-    const museRes = await fetch('https://www.themuse.com/api/public/jobs?page=1');
-    if (museRes.ok) {
-      const museData = await museRes.json();
-      if (Array.isArray(museData.results)) {
-        const searchTerms = kwList.map(k => normalizeText(k));
-        museData.results.forEach(item => {
-          const title = item.name || '';
-          const desc = item.contents || '';
-          const fullNorm = normalizeText(`${title} ${desc}`);
+    for (let page = 1; page <= 3; page++) {
+      const museRes = await fetch(`https://www.themuse.com/api/public/jobs?page=${page}`);
+      if (museRes.ok) {
+        const museData = await museRes.json();
+        if (Array.isArray(museData.results)) {
+          const searchTerms = kwList.map(k => normalizeText(k));
+          museData.results.forEach(item => {
+            const title = item.name || '';
+            const desc = item.contents || '';
+            const fullNorm = normalizeText(`${title} ${desc}`);
 
-          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
-            if (fullNorm.includes(st)) return true;
-            const syns = KEYWORD_SYNONYMS[st] || [];
-            return syns.some(syn => fullNorm.includes(normalizeText(syn)));
-          });
-
-          if (matchesKw) {
-            const locName = item.locations?.[0]?.name || location;
-            const cType = classifyContract(title, desc, item.type);
-            addJobToPool({
-              id: `muse_${item.id}_${Math.random().toString(36).substring(2, 6)}`,
-              title: title,
-              company: item.company?.name || 'Entreprise',
-              location: locName,
-              site: 'The Muse',
-              job_url: item.refs?.landing_page || `https://www.themuse.com/jobs/${item.id}`,
-              description: desc.replace(/<[^>]+>/g, ' ').slice(0, 2500),
-              salary: 'Non spécifié',
-              date_posted: item.publication_date ? item.publication_date.split('T')[0] : 'Récent',
-              is_remote: locName.toLowerCase().includes('remote') || isRemote,
-              contract: cType,
-              job_type: cType,
-              matched_keyword: kwList[0]
+            const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
+              if (fullNorm.includes(st)) return true;
+              const syns = KEYWORD_SYNONYMS[st] || [];
+              return syns.some(syn => fullNorm.includes(normalizeText(syn)));
             });
-          }
-        });
+
+            if (matchesKw) {
+              const locName = item.locations?.[0]?.name || location;
+              const cType = classifyContract(title, desc, item.type);
+              addJobToPool({
+                id: `muse_${item.id}_${Math.random().toString(36).substring(2, 6)}`,
+                title: title,
+                company: item.company?.name || 'Entreprise',
+                location: locName,
+                site: 'The Muse',
+                job_url: item.refs?.landing_page || `https://www.themuse.com/jobs/${item.id}`,
+                description: desc.replace(/<[^>]+>/g, ' ').slice(0, 2500),
+                salary: 'Non spécifié',
+                date_posted: item.publication_date ? item.publication_date.split('T')[0] : 'Récent',
+                is_remote: locName.toLowerCase().includes('remote') || isRemote,
+                contract: cType,
+                job_type: cType,
+                matched_keyword: kwList[0]
+              });
+            }
+          });
+        }
       }
     }
   } catch (museErr) {
     console.warn('The Muse API step skipped:', museErr);
   }
 
-  // 3. Fetch from Remotive Public API (up to 100 jobs)
+  // 4. Fetch from Remotive Public API (live remote jobs)
   try {
     onProgress('Consultation du flux Remotive...');
     const remotiveRes = await fetch('https://remotive.com/api/remote-jobs?limit=100');
@@ -609,10 +531,10 @@ async function scrapeDirectFromWeb({
     console.warn('Remotive API step skipped:', remotiveErr);
   }
 
-  // 4. Fetch from Jobicy Public API
+  // 5. Fetch from Jobicy Public API
   try {
     onProgress('Consultation du flux Jobicy...');
-    const jobicyRes = await fetch('https://jobicy.com/api/v2/remote-jobs?count=50');
+    const jobicyRes = await fetch('https://jobicy.com/api/v2/remote-jobs?count=100');
     if (jobicyRes.ok) {
       const data = await jobicyRes.json();
       if (Array.isArray(data.jobs)) {
@@ -653,10 +575,10 @@ async function scrapeDirectFromWeb({
     console.warn('Jobicy API step skipped:', jobicyErr);
   }
 
-  // 5. Fetch from Himalayas Public Jobs API
+  // 6. Fetch from Himalayas Public Jobs API
   try {
     onProgress('Consultation du flux Himalayas...');
-    const himalayasRes = await fetch('https://himalayas.app/jobs/api?limit=50');
+    const himalayasRes = await fetch('https://himalayas.app/jobs/api?limit=100');
     if (himalayasRes.ok) {
       const data = await himalayasRes.json();
       if (Array.isArray(data.jobs)) {
@@ -697,7 +619,7 @@ async function scrapeDirectFromWeb({
     console.warn('Himalayas API step skipped:', himaErr);
   }
 
-  // 6. Fetch from RemoteOK Public API
+  // 7. Fetch from RemoteOK Public API
   try {
     onProgress('Consultation du flux RemoteOK...');
     const remoteokRes = await fetch('https://remoteok.com/api');
@@ -705,7 +627,7 @@ async function scrapeDirectFromWeb({
       const data = await remoteokRes.json();
       if (Array.isArray(data)) {
         const searchTerms = kwList.map(k => normalizeText(k));
-        data.slice(1, 80).forEach(item => {
+        data.slice(1, 100).forEach(item => {
           const title = item.position || '';
           const desc = item.description || '';
           const fullNorm = normalizeText(`${title} ${desc}`);
@@ -744,7 +666,7 @@ async function scrapeDirectFromWeb({
     console.warn('RemoteOK API step skipped:', rokErr);
   }
 
-  // 7. Score all candidate offers
+  // Score all candidate real offers
   candidatePool.forEach(job => {
     job.relevance_score = calculateJobRelevance(job, {
       keywords: kwList,
@@ -754,7 +676,7 @@ async function scrapeDirectFromWeb({
     });
   });
 
-  // 7. Filter and prioritize exact contract matches
+  // Filter exact contract matches if specified
   let matchingPool = candidatePool;
   if (contractType && contractType !== 'all') {
     const exactMatches = candidatePool.filter(j => matchesContractType(j.contract, contractType));
@@ -763,21 +685,7 @@ async function scrapeDirectFromWeb({
     }
   }
 
-  // 8. If candidate pool has fewer results than requested limit (e.g. for Stage / Alternance in offline/compiled mode),
-  // complement with realistic high-relevance tailored opportunities so the user never gets an empty error box!
-  if (matchingPool.length < jobLimit) {
-    const tailored = generateTailoredJobPool({
-      keywords: kwList,
-      location,
-      contractType,
-      count: jobLimit - matchingPool.length,
-      isRemote
-    });
-    tailored.forEach(addJobToPool);
-    matchingPool = [...matchingPool, ...tailored];
-  }
-
-  // Sort by relevance score descending
+  // Sort strictly by relevance score descending
   matchingPool.sort((a, b) => (b.relevance_score || 50) - (a.relevance_score || 50));
 
   return matchingPool.slice(0, jobLimit);
@@ -785,9 +693,9 @@ async function scrapeDirectFromWeb({
 
 /**
  * Unified Scraper Executor:
- * 1. Collects a pool of candidate offers
+ * 1. Collects a pool of candidate real offers
  * 2. Ranks them by relevance to the user's requirements
- * 3. Shows only the top offers requested by the user (jobLimit)
+ * 3. Returns only genuine, live scraped job postings (or empty list if no matches)
  */
 export async function executeJobScrape({
   keywords = [],
@@ -817,7 +725,7 @@ export async function executeJobScrape({
     hours_old: hoursOld
   };
 
-  // Step 1: Try relative /api/scrape-jobs
+  // Step 1: Try relative /api/scrape-jobs (JobSpy backend)
   const primaryResult = await safeFetchJson('/api/scrape-jobs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -881,9 +789,9 @@ export async function executeJobScrape({
     }
   }
 
-  // Step 3: Standalone Multi-Source Web Scraper Engine (crawls multiple candidate sources, scores & ranks)
-  onProgress('Lancement du moteur autonome (recherche multi-sources)...');
-  const fallbackJobs = await scrapeDirectFromWeb({
+  // Step 3: Standalone Multi-Source Web Scraper Engine (real public job boards)
+  onProgress('Lancement du moteur autonome (recherche en direct sur les flux publics)...');
+  const realJobs = await scrapeDirectFromWeb({
     keywords: keywordsList,
     location,
     sites,
@@ -893,30 +801,11 @@ export async function executeJobScrape({
     onProgress
   });
 
-  if (fallbackJobs.length > 0) {
-    return {
-      success: true,
-      source: 'web_direct',
-      jobs: fallbackJobs,
-      total_candidates: fallbackJobs.length,
-      searched_keywords: keywordsList
-    };
-  }
-
-  // Guarantee high-quality fallback pool as safety net
-  const finalFallback = generateTailoredJobPool({
-    keywords: keywordsList,
-    location,
-    contractType,
-    count: jobLimit,
-    isRemote
-  });
-
   return {
     success: true,
-    source: 'tailored_market_pool',
-    jobs: finalFallback,
-    total_candidates: finalFallback.length,
+    source: 'web_direct',
+    jobs: realJobs,
+    total_candidates: realJobs.length,
     searched_keywords: keywordsList
   };
 }

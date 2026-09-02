@@ -61,7 +61,9 @@ import {
   Compass,
   Award,
   Pencil,
-  BarChart2
+  BarChart2,
+  Search,
+  Library
 } from 'lucide-react';
 import { translations } from './i18n';
 import HiringWeatherSection from './HiringWeather';
@@ -75,6 +77,7 @@ import { JobScraperView } from './JobScraper';
 import { CreditsView } from './CreditsView';
 import { DetailedStatsView } from './DetailedStatsView';
 import SettingsView from './SettingsView';
+import CVLibrary from './CVLibrary';
 
 export const STATUS_KEYS = ['Postulé', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
 export const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
@@ -327,24 +330,35 @@ const getResponseDays = (app) => {
 
 export const formatExternalUrl = (url) => {
   if (!url) return '';
-  const trimmed = String(url).trim();
+  let trimmed = String(url).trim();
   if (!trimmed) return '';
+
+  // Clean HTML entity escaping if any
+  trimmed = trimmed
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
+
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
   if (/^https?:\/\//i.test(trimmed)) {
     return trimmed;
+  }
+  if (trimmed.startsWith('www.')) {
+    return `https://${trimmed}`;
   }
   return `https://${trimmed}`;
 };
 
 export const openExternalLink = async (url, e) => {
-  if (e) {
-    if (typeof e.preventDefault === 'function') e.preventDefault();
-    if (typeof e.stopPropagation === 'function') e.stopPropagation();
-  }
   if (!url) return;
   const targetUrl = formatExternalUrl(url);
   if (!targetUrl) return;
 
-  // Check if running inside Tauri (v1 or v2)
+  // Check if running inside Tauri desktop environment
   const isTauri = typeof window !== 'undefined' && Boolean(
     window.__TAURI__ || 
     window.__TAURI_INTERNALS__ || 
@@ -353,23 +367,12 @@ export const openExternalLink = async (url, e) => {
   );
 
   if (isTauri) {
-    // 1. Try Tauri v2 opener plugin API
-    try {
-      if (window.__TAURI__?.opener?.openUrl) {
-        await window.__TAURI__.opener.openUrl(targetUrl);
-        return;
-      }
-    } catch (_) {}
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-    // 2. Try Tauri v2 invoke plugin:opener
-    try {
-      if (window.__TAURI_INTERNALS__?.invoke) {
-        await window.__TAURI_INTERNALS__.invoke('plugin:opener|open_url', { url: targetUrl });
-        return;
-      }
-    } catch (_) {}
-
-    // 3. Try Tauri v2 opener dynamic import from @tauri-apps/plugin-opener
+    // 1. Try Tauri v2 plugin-opener package import
     try {
       const openerModule = await import('@tauri-apps/plugin-opener');
       if (typeof openerModule?.openUrl === 'function') {
@@ -378,7 +381,23 @@ export const openExternalLink = async (url, e) => {
       }
     } catch (_) {}
 
-    // 4. Try window.__TAURI__ shell or invoke fallback if available
+    // 2. Try window.__TAURI__.opener.openUrl
+    try {
+      if (window.__TAURI__?.opener?.openUrl) {
+        await window.__TAURI__.opener.openUrl(targetUrl);
+        return;
+      }
+    } catch (_) {}
+
+    // 3. Try Tauri v2 internal invoke for opener plugin
+    try {
+      if (window.__TAURI_INTERNALS__?.invoke) {
+        await window.__TAURI_INTERNALS__.invoke('plugin:opener|open_url', { url: targetUrl });
+        return;
+      }
+    } catch (_) {}
+
+    // 4. Try window.__TAURI__.shell.open (Tauri v1 legacy fallback)
     try {
       if (window.__TAURI__?.shell?.open) {
         await window.__TAURI__.shell.open(targetUrl);
@@ -386,28 +405,22 @@ export const openExternalLink = async (url, e) => {
       }
     } catch (_) {}
 
+    // 5. WebView fallback in Tauri
     try {
-      if (window.__TAURI_INTERNALS__?.invoke) {
-        await window.__TAURI_INTERNALS__.invoke('plugin:shell|open', { path: targetUrl });
-        return;
-      }
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      return;
     } catch (_) {}
-  }
-
-  // Browser / WebView fallback
-  try {
-    const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer');
-    if (!opened || opened.closed || typeof opened.closed === 'undefined') {
-      const a = document.createElement('a');
-      a.href = targetUrl;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+  } else {
+    // In standard browser / preview:
+    // If clicked on an <a> element with native target="_blank", DO NOT preventDefault!
+    // The browser will open the URL natively and instantaneously without triggering popup blockers.
+    if (!e || !e.target || (!e.target.closest || !e.target.closest('a'))) {
+      try {
+        window.open(targetUrl, '_blank', 'noopener,noreferrer');
+      } catch (_) {
+        window.location.href = targetUrl;
+      }
     }
-  } catch (_) {
-    window.location.href = targetUrl;
   }
 };
 
@@ -976,6 +989,9 @@ function OnboardingStartingPage({
           }));
           if (data.applications && Array.isArray(data.applications) && setApplications) {
             setApplications(autoApplyGhostStatus(data.applications).updated);
+          }
+          if (data.cvLibrary && Array.isArray(data.cvLibrary) && setCvLibrary) {
+            setCvLibrary(data.cvLibrary);
           }
           imported = true;
         } 
@@ -1839,7 +1855,6 @@ export default function App() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState(null);
   const [initialModalUrl, setInitialModalUrl] = useState('');
-  const [quickUrlInput, setQuickUrlInput] = useState('');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [resetSuccessNotice, setResetSuccessNotice] = useState(false);
   const [isStartupWarningDismissed, setIsStartupWarningDismissed] = useState(() => {
@@ -1962,6 +1977,123 @@ export default function App() {
     }
   }, [profile]);
 
+  // --- 2b. SAUVEGARDE DE LA BIBLIOTHÈQUE DE CV ---
+  const [cvLibrary, setCvLibrary] = useState(() => {
+    try {
+      const saved = localStorage.getItem('postutrack_cv_library');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('postutrack_cv_library', JSON.stringify(cvLibrary));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [cvLibrary]);
+
+  const saveResumeToLibrary = ({
+    id,
+    applicationId = null,
+    title = '',
+    cv,
+    format = 'structured',
+    source = 'tailored',
+    template = selectedResumeTemplate,
+    accentColor = resumeAccentColor,
+    density = resumeDensity,
+    isMultiPage = isMultiPageResume,
+    showPhoto = showResumePhoto,
+    photoSize = resumePhotoSize,
+    matchScore = null,
+    analysisSummary = '',
+    injectedKeywords = []
+  }) => {
+    const linkedApp = applicationId ? applications.find(a => String(a.id) === String(applicationId)) : null;
+    const company = linkedApp ? linkedApp.company : '';
+    const role = linkedApp ? linkedApp.role : '';
+
+    const resolvedTitle = (title && title.trim())
+      ? title.trim()
+      : (linkedApp ? `${company} - ${role}` : (cv?.fullName ? `CV - ${cv.fullName}` : 'Mon CV'));
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const entry = {
+      id: id || `cv-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+      applicationId: applicationId ? String(applicationId) : null,
+      title: resolvedTitle,
+      company,
+      role,
+      date: dateStr,
+      timestamp: Date.now(),
+      cv,
+      format,
+      source,
+      template: template || 'modern',
+      accentColor: accentColor || '#2563eb',
+      density: density || 'normal',
+      isMultiPage: Boolean(isMultiPage),
+      showPhoto: showPhoto !== false,
+      photoSize: photoSize || 'md',
+      matchScore,
+      analysisSummary,
+      injectedKeywords
+    };
+
+    setCvLibrary(prev => {
+      // RULE: Save ONLY the last resume for an application
+      let filtered = prev;
+      if (entry.applicationId) {
+        filtered = filtered.filter(item => String(item.applicationId) !== String(entry.applicationId));
+      } else if (id) {
+        filtered = filtered.filter(item => item.id !== id);
+      }
+      return [entry, ...filtered];
+    });
+
+    return entry;
+  };
+
+  const handleOpenInTailorFromLibrary = (cvItem) => {
+    if (cvItem.applicationId) {
+      handleSelectAssociatedApplication(cvItem.applicationId);
+    } else {
+      setSelectedAppId('');
+    }
+    if (cvItem.cv) {
+      setAiResult({
+        cv: cvItem.cv,
+        matchScore: cvItem.matchScore || null,
+        analysisSummary: cvItem.analysisSummary || '',
+        injectedKeywords: cvItem.injectedKeywords || []
+      });
+      setGenerationMode('cv');
+    }
+    if (cvItem.template) setSelectedResumeTemplate(cvItem.template);
+    if (cvItem.accentColor) setResumeAccentColor(cvItem.accentColor);
+    if (cvItem.density) setResumeDensity(cvItem.density);
+    if (cvItem.isMultiPage !== undefined) setIsMultiPageResume(cvItem.isMultiPage);
+    if (cvItem.showPhoto !== undefined) setShowResumePhoto(cvItem.showPhoto);
+    if (cvItem.photoSize) setResumePhotoSize(cvItem.photoSize);
+
+    setActiveTab('tailor');
+  };
+
   // --- REINITIALISATION COMPLETE DE L'APPLICATION ---
   const handleResetAllData = () => {
     try {
@@ -1986,10 +2118,12 @@ export default function App() {
       localStorage.removeItem('postutrack_resume_template');
       localStorage.removeItem('postutrack_resume_color');
       localStorage.removeItem('postutrack_resume_density');
+      localStorage.removeItem('postutrack_cv_library');
     } catch (e) {
       console.error(e);
     }
     setApplications([]);
+    setCvLibrary([]);
     setProfile({
       fullName: '',
       photo: '',
@@ -2144,6 +2278,56 @@ export default function App() {
     });
   };
 
+  // Applications Search & Filter States
+  const [appSearchQuery, setAppSearchQuery] = useState('');
+  const [appStatusFilter, setAppStatusFilter] = useState('all');
+  const [appContractFilter, setAppContractFilter] = useState('all');
+
+  // Filtered applications list
+  const filteredApplications = useMemo(() => {
+    return applications.filter(app => {
+      // Search query filter (matches company, role, platform/source, contract type, notes, date, status label)
+      if (appSearchQuery.trim()) {
+        const q = appSearchQuery.toLowerCase().trim();
+        const company = (app.company || '').toLowerCase();
+        const role = (app.role || '').toLowerCase();
+        const source = (app.source || '').toLowerCase();
+        const sourceLabel = getSourceLabel(app.source || '', t).toLowerCase();
+        const contract = (app.type || '').toLowerCase();
+        const contractLabel = getContractLabel(app.type || '', t).toLowerCase();
+        const status = (app.status || '').toLowerCase();
+        const statusLabel = getStatusLabel(app.status || '', t).toLowerCase();
+        const notes = (app.notes || '').toLowerCase();
+        const date = (app.date || '').toLowerCase();
+
+        const matches = company.includes(q) ||
+          role.includes(q) ||
+          source.includes(q) ||
+          sourceLabel.includes(q) ||
+          contract.includes(q) ||
+          contractLabel.includes(q) ||
+          status.includes(q) ||
+          statusLabel.includes(q) ||
+          notes.includes(q) ||
+          date.includes(q);
+
+        if (!matches) return false;
+      }
+
+      // Status filter
+      if (appStatusFilter !== 'all' && app.status !== appStatusFilter) {
+        return false;
+      }
+
+      // Contract filter
+      if (appContractFilter !== 'all' && app.type !== appContractFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [applications, appSearchQuery, appStatusFilter, appContractFilter, t]);
+
   // AI Letter States
   const [generationMode, setGenerationMode] = useState('cv'); // 'cv' or 'letter'
   const [baseLetter, setBaseLetter] = useState(profile.masterLetter || '');
@@ -2181,6 +2365,7 @@ export default function App() {
         averageResponseTimeDays: avgTime
       },
       applications: enrichedApplications,
+      cvLibrary: cvLibrary,
       profile: profile,
       apiKey: apiKey,
       openAiKey: openAiKey,
@@ -2273,6 +2458,9 @@ export default function App() {
         const backup = JSON.parse(event.target.result);
         if (backup.applications && Array.isArray(backup.applications)) {
           setApplications(autoApplyGhostStatus(backup.applications).updated);
+        }
+        if (backup.cvLibrary && Array.isArray(backup.cvLibrary)) {
+          setCvLibrary(backup.cvLibrary);
         }
         if (backup.profile) setProfile(backup.profile);
         if (backup.apiKey) setApiKey(backup.apiKey);
@@ -3066,6 +3254,23 @@ STRICT FORMAT RULES:
               .replace(/Let's cleanly put[^:]*:/gi, '')
               .trim();
           }
+
+          saveResumeToLibrary({
+            applicationId: selectedAppId || null,
+            title: selectedAppId ? '' : (companyName && roleName ? `${companyName} - ${roleName}` : ''),
+            cv: parsed.cv,
+            format: 'structured',
+            source: 'tailored',
+            template: selectedResumeTemplate,
+            accentColor: resumeAccentColor,
+            density: resumeDensity,
+            isMultiPage: isMultiPageResume,
+            showPhoto: showResumePhoto,
+            photoSize: resumePhotoSize,
+            matchScore: parsed.matchScore || null,
+            analysisSummary: parsed.analysisSummary || '',
+            injectedKeywords: parsed.injectedKeywords || []
+          });
         }
         setAiResult(parsed);
       } else {
@@ -3131,29 +3336,6 @@ STRICT FORMAT RULES:
     );
   };
 
-  const handleQuickImport = (urlToImport) => {
-    const cleanUrl = (urlToImport || '').trim();
-    if (!cleanUrl) return;
-    setEditingApplication(null);
-    setInitialModalUrl(cleanUrl);
-    setIsAddModalOpen(true);
-    setQuickUrlInput('');
-  };
-
-  const handleQuickPasteFromClipboard = async () => {
-    try {
-      if (navigator.clipboard && navigator.clipboard.readText) {
-        const text = await navigator.clipboard.readText();
-        if (text && text.trim()) {
-          setQuickUrlInput(text.trim());
-          handleQuickImport(text.trim());
-        }
-      }
-    } catch (err) {
-      console.warn('Clipboard read error:', err);
-    }
-  };
-
   const getTabHeading = () => {
     switch (activeTab) {
       case 'onboarding': return t.onboarding;
@@ -3171,16 +3353,16 @@ STRICT FORMAT RULES:
   };
 
   const renderSidebar = () => (
-    <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 no-print print:hidden transition-colors duration-200 shrink-0">
-      <div className="p-5 xl:p-6 2xl:p-8">
+    <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 no-print print:hidden transition-colors duration-200 shrink-0 overflow-hidden">
+      <div className="p-5 xl:p-6 2xl:p-8 shrink-0">
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.4.2
+            v0.5.0
           </span>
         </h1>
       </div>
-      <nav className="flex-1 px-3 xl:px-4 space-y-1.5 xl:space-y-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 xl:px-4 py-1 space-y-1.5 xl:space-y-2 custom-scrollbar">
         {(!isOnboardingCompleted || activeTab === 'onboarding') && (
           <button onClick={() => setActiveTab('onboarding')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
             <Rocket size={20} className="text-indigo-500 shrink-0" /> 
@@ -3206,6 +3388,17 @@ STRICT FORMAT RULES:
         <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <ListTodo size={20} className="text-blue-500 dark:text-blue-400 shrink-0" /> 
           <span className="truncate">{t.applications}</span>
+        </button>
+        <button onClick={() => setActiveTab('cvLibrary')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'cvLibrary' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <Library size={20} className="text-teal-500 dark:text-teal-400 shrink-0" /> 
+            <span className="truncate">{t.cvLibrary || 'Bibliothèque CV'}</span>
+          </div>
+          {cvLibrary.length > 0 && (
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-300 shrink-0">
+              {cvLibrary.length}
+            </span>
+          )}
         </button>
         <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
           <Sparkles size={20} className="text-amber-500 dark:text-amber-400 shrink-0" /> 
@@ -3233,7 +3426,7 @@ STRICT FORMAT RULES:
       </nav>
 
       {/* Sidebar Bottom Profile Card */}
-      <div className="p-3.5 xl:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/60">
+      <div className="p-3.5 xl:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/60 shrink-0">
         <div 
           onClick={() => setActiveTab('profile')}
           className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
@@ -3273,7 +3466,7 @@ STRICT FORMAT RULES:
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.4.2
+                v0.5.0
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -3364,6 +3557,15 @@ STRICT FORMAT RULES:
           <button onClick={() => setActiveTab('applications')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <ListTodo size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
             <span>{t.applications}</span>
+          </button>
+          <button onClick={() => setActiveTab('cvLibrary')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'cvLibrary' ? 'bg-teal-50 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <Library size={14} className="text-teal-500 dark:text-teal-400 shrink-0" />
+            <span>{t.cvLibrary || 'Bibliothèque CV'}</span>
+            {cvLibrary.length > 0 && (
+              <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-teal-200 dark:bg-teal-800 text-teal-900 dark:text-teal-100 font-bold">
+                {cvLibrary.length}
+              </span>
+            )}
           </button>
           <button onClick={() => setActiveTab('tailor')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
             <Sparkles size={14} className="text-amber-500 dark:text-amber-400 shrink-0" />
@@ -3628,7 +3830,7 @@ STRICT FORMAT RULES:
           )}
 
           {activeTab === 'applications' && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors w-full mx-auto">
               <div className="p-4 sm:p-5 2xl:p-6 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-start sm:items-center flex-col sm:flex-row gap-3.5 sm:gap-4">
                 <div>
                   <h3 className="text-base sm:text-lg 2xl:text-xl font-bold text-gray-800 dark:text-white">{t.applications}</h3>
@@ -3656,50 +3858,95 @@ STRICT FORMAT RULES:
                 </div>
               </div>
 
-              {/* Quick URL Import Bar */}
-              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-blue-50/80 dark:from-blue-950/25 dark:via-indigo-950/25 dark:to-blue-950/25 border-b border-blue-100/80 dark:border-blue-900/40 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-blue-950 dark:text-blue-200 shrink-0">
-                  <Sparkles size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                  <span>{t.quickImportBarTitle || "Import direct depuis une URL"}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-1 sm:max-w-xl">
-                  <div className="relative flex-1">
-                    <input
-                      type="url"
-                      value={quickUrlInput}
-                      onChange={(e) => setQuickUrlInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleQuickImport(quickUrlInput);
-                        }
-                      }}
-                      placeholder={t.quickImportBarPlaceholder || "Collez le lien d'une offre (LinkedIn, WTTJ, Greenhouse...)"}
-                      className="w-full pl-3 pr-14 py-2 text-xs sm:text-sm bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 shadow-2xs"
-                    />
+              {/* Search & Filter Bar */}
+              <div className="p-3 sm:p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
+                {/* Search Input */}
+                <div className="relative flex-1 min-w-0">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
+                    <Search size={15} />
+                  </div>
+                  <input
+                    type="text"
+                    value={appSearchQuery}
+                    onChange={(e) => setAppSearchQuery(e.target.value)}
+                    placeholder={t.searchApplicationsPlaceholder || "Rechercher par entreprise, poste, plateforme, statut..."}
+                    className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-colors shadow-2xs"
+                  />
+                  {appSearchQuery && (
                     <button
                       type="button"
-                      onClick={handleQuickPasteFromClipboard}
-                      className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors cursor-pointer"
+                      onClick={() => setAppSearchQuery('')}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                      title={t.clearFilters || "Effacer"}
                     >
-                      {t.pasteUrl || "Coller"}
+                      <X size={14} />
                     </button>
+                  )}
+                </div>
+
+                {/* Filter Dropdowns & Reset */}
+                <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+                  {/* Status Filter */}
+                  <div className="relative flex-1 sm:flex-none">
+                    <select
+                      value={appStatusFilter}
+                      onChange={(e) => setAppStatusFilter(e.target.value)}
+                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200 font-medium cursor-pointer shadow-2xs"
+                    >
+                      <option value="all">{t.allStatuses || "Tous les statuts"}</option>
+                      {STATUS_KEYS.map(statusKey => (
+                        <option key={statusKey} value={statusKey}>
+                          {getStatusLabel(statusKey, t)}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <button
-                    type="button"
-                    disabled={!quickUrlInput.trim()}
-                    onClick={() => handleQuickImport(quickUrlInput)}
-                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                  >
-                    <Wand2 size={14} />
-                    <span>{t.importBtn || "Importer"}</span>
-                  </button>
+
+                  {/* Contract Filter */}
+                  <div className="relative flex-1 sm:flex-none">
+                    <select
+                      value={appContractFilter}
+                      onChange={(e) => setAppContractFilter(e.target.value)}
+                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200 font-medium cursor-pointer shadow-2xs"
+                    >
+                      <option value="all">{t.allContracts || "Tous les contrats"}</option>
+                      {CONTRACT_KEYS.map(contractKey => (
+                        <option key={contractKey} value={contractKey}>
+                          {getContractLabel(contractKey, t)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Reset Filters button if any filter is active */}
+                  {(appSearchQuery || appStatusFilter !== 'all' || appContractFilter !== 'all') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAppSearchQuery('');
+                        setAppStatusFilter('all');
+                        setAppContractFilter('all');
+                      }}
+                      className="px-2.5 sm:px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                      title={t.clearFilters || "Effacer"}
+                    >
+                      <RotateCcw size={13} />
+                      <span className="hidden sm:inline">{t.clearFilters || "Effacer"}</span>
+                    </button>
+                  )}
+
+                  {/* Showing matching count indicator */}
+                  {(appSearchQuery || appStatusFilter !== 'all' || appContractFilter !== 'all') && (
+                    <span className="text-[11px] font-semibold px-2.5 py-1 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg whitespace-nowrap">
+                      {filteredApplications.length} / {applications.length}
+                    </span>
+                  )}
                 </div>
               </div>
 
               {/* Mobile Card List (< 640px) */}
               <div className="block sm:hidden divide-y divide-gray-100 dark:divide-gray-700/80">
-                {applications.map(app => (
+                {filteredApplications.map(app => (
                   <div key={app.id} className="p-4 space-y-2.5 hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
                     <div className="flex items-start justify-between gap-2">
                       <div>
@@ -3721,20 +3968,20 @@ STRICT FORMAT RULES:
                         </div>
                         <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">{app.role}</div>
                       </div>
-                      <span className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[10px] font-bold border shrink-0 ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
+                      <span className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
                         {getSourceLabel(app.source || 'LinkedIn', t)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center whitespace-nowrap px-2.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[10px] font-semibold border dark:border-gray-600 shrink-0">
+                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[10px] font-medium border dark:border-gray-600 shrink-0">
                           {getContractLabel(app.type, t)}
                         </span>
                         <span className="text-gray-500 dark:text-gray-400 text-[11px] whitespace-nowrap">{app.date}</span>
                       </div>
                       {getResponseDays(app) !== null && (
-                        <span className="inline-flex items-center whitespace-nowrap text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0 gap-1">
+                        <span className="inline-flex items-center whitespace-nowrap text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0 gap-1">
                           <Timer size={10} /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
                         </span>
                       )}
@@ -3744,7 +3991,7 @@ STRICT FORMAT RULES:
                       <select
                         value={app.status}
                         onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                        className={`inline-flex items-center justify-center text-center whitespace-nowrap px-3.5 py-1 min-w-[88px] sm:min-w-[96px] rounded-full text-xs font-semibold cursor-pointer outline-none appearance-none shadow-2xs transition-opacity hover:opacity-85 ${getStatusColor(app.status)}`}
+                        className={`inline-flex items-center justify-center text-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold cursor-pointer outline-none appearance-none shadow-2xs transition-opacity hover:opacity-85 ${getStatusColor(app.status)}`}
                         style={{ textAlignLast: 'center', textAlign: 'center' }}
                       >
                         {STATUS_KEYS.map(statusKey => (
@@ -3758,41 +4005,43 @@ STRICT FORMAT RULES:
                         <button 
                           type="button"
                           onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
-                          className="p-2 bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/40 text-gray-700 dark:text-gray-200 rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center shadow-2xs"
+                          className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/40 text-gray-700 dark:text-gray-200 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shadow-2xs"
                           title={t.editApplication || t.edit}
                           aria-label={t.editApplication || t.edit}
                         >
-                          <Pencil size={15} />
+                          <Pencil size={14} />
                         </button>
                       </div>
                     </div>
                   </div>
                 ))}
-                {applications.length === 0 && (
-                  <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">{t.noApplications}</div>
+                {filteredApplications.length === 0 && (
+                  <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+                    {applications.length === 0 ? t.noApplications : (t.noMatchingApplications || "Aucune candidature ne correspond à vos critères de recherche.")}
+                  </div>
                 )}
               </div>
 
               {/* Desktop / Tablet Table (>= 640px) */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs md:text-sm min-w-full">
+              <div className="hidden sm:block w-full overflow-hidden">
+                <table className="w-full table-fixed text-left border-collapse text-xs md:text-sm">
                   <thead>
-                    <tr className="bg-gray-100/60 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs 2xl:text-sm uppercase tracking-wider">
-                      <th className="px-2.5 sm:px-3.5 py-3 font-semibold">{t.company}</th>
-                      <th className="px-2.5 sm:px-3.5 py-3 font-semibold">{t.role}</th>
-                      <th className="px-2 sm:px-3 py-3 font-semibold">{t.source}</th>
-                      <th className="px-2 sm:px-3 py-3 font-semibold">{t.contract}</th>
-                      <th className="px-2 sm:px-3 py-3 font-semibold whitespace-nowrap">{t.date}</th>
-                      <th className="px-2 sm:px-3 py-3 font-semibold">{t.status}</th>
-                      <th className="px-2.5 sm:px-3.5 py-3 text-center font-semibold whitespace-nowrap w-12">{t.actions}</th>
+                    <tr className="bg-gray-100/70 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs uppercase tracking-wider border-b dark:border-gray-700">
+                      <th className="w-[20%] px-3 py-2.5 font-semibold truncate">{t.company}</th>
+                      <th className="w-[27%] px-3 py-2.5 font-semibold truncate">{t.role}</th>
+                      <th className="w-[15%] px-2 py-2.5 font-semibold truncate">{t.platformHeader || t.source}</th>
+                      <th className="w-[13%] px-2 py-2.5 font-semibold truncate">{t.contractHeader || t.contract}</th>
+                      <th className="w-[11%] px-2 py-2.5 font-semibold truncate">{t.dateHeader || t.date}</th>
+                      <th className="w-[10%] px-2 py-2.5 font-semibold truncate">{t.statusHeader || t.status}</th>
+                      <th className="w-[4%] px-2 py-2.5 text-center font-semibold truncate">{t.actions}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {applications.map(app => (
-                      <tr key={app.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td className="px-2.5 sm:px-3.5 py-2.5 font-semibold text-gray-900 dark:text-gray-100">
+                    {filteredApplications.map(app => (
+                      <tr key={app.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition-colors">
+                        <td className="w-[20%] px-3 py-2 font-semibold text-gray-900 dark:text-gray-100 overflow-hidden">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="truncate max-w-[100px] md:max-w-[150px] lg:max-w-[220px]" title={app.company}>{app.company}</span>
+                            <span className="truncate" title={app.company}>{app.company}</span>
                             {app.url && (
                               <a 
                                 href={formatExternalUrl(app.url)} 
@@ -3808,34 +4057,39 @@ STRICT FORMAT RULES:
                             )}
                           </div>
                         </td>
-                        <td className="px-2.5 sm:px-3.5 py-2.5 text-gray-700 dark:text-gray-300 font-medium">
-                          <div className="truncate max-w-[100px] md:max-w-[150px] lg:max-w-[220px]" title={app.role}>{app.role}</div>
+                        <td className="w-[27%] px-3 py-2 text-gray-700 dark:text-gray-300 font-medium overflow-hidden">
+                          <div className="truncate" title={app.role}>{app.role}</div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2.5">
-                          <span className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-[11px] md:text-xs font-semibold border shrink-0 max-w-full truncate ${getSourceBadgeStyle(app.source || 'LinkedIn')}`} title={getSourceLabel(app.source || 'LinkedIn', t)}>
-                            <span className="truncate">{getSourceLabel(app.source || 'LinkedIn', t)}</span>
-                          </span>
+                        <td className="w-[15%] px-2 py-2 overflow-hidden">
+                          <div className="min-w-0">
+                            <span className={`inline-flex items-center max-w-full px-1.5 py-0.5 rounded-full text-[10.5px] font-semibold border truncate ${getSourceBadgeStyle(app.source || 'LinkedIn')}`} title={getSourceLabel(app.source || 'LinkedIn', t)}>
+                              <span className="truncate">{getSourceLabel(app.source || 'LinkedIn', t)}</span>
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2.5">
-                          <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[11px] md:text-xs font-medium border dark:border-gray-600 max-w-full truncate" title={getContractLabel(app.type, t)}>
-                            <span className="truncate">{getContractLabel(app.type, t)}</span>
-                          </span>
+                        <td className="w-[13%] px-2 py-2 overflow-hidden">
+                          <div className="min-w-0">
+                            <span className="inline-flex items-center max-w-full px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[10.5px] font-medium border dark:border-gray-600 truncate" title={getContractLabel(app.type, t)}>
+                              <span className="truncate">{getContractLabel(app.type, t)}</span>
+                            </span>
+                          </div>
                         </td>
-                        <td className="px-2 sm:px-3 py-2.5 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
-                          <div>{app.date}</div>
+                        <td className="w-[11%] px-2 py-2 text-gray-500 dark:text-gray-400 text-xs overflow-hidden">
+                          <div className="truncate" title={app.date}>{app.date}</div>
                           {app.responseDate && (
-                            <div className="text-[10px] sm:text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1 mt-0.5 truncate" title={`${t.responseDate}: ${app.responseDate}`}>
+                            <div className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-0.5 mt-0.5 truncate" title={`${t.responseDate}: ${app.responseDate}`}>
                               <Clock size={10} className="shrink-0" /> <span className="truncate">{app.responseDate}</span>
                             </div>
                           )}
                         </td>
-                        <td className="px-2 sm:px-3 py-2.5">
-                          <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
+                        <td className="w-[10%] px-2 py-2 overflow-hidden">
+                          <div className="flex flex-col items-start gap-0.5 min-w-0">
                             <select
                               value={app.status}
                               onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                              className={`inline-flex items-center justify-center text-center whitespace-nowrap px-3.5 py-1 min-w-[88px] sm:min-w-[96px] rounded-full text-[11px] sm:text-xs font-semibold cursor-pointer outline-none appearance-none hover:opacity-85 transition-opacity shrink-0 shadow-2xs ${getStatusColor(app.status)}`}
+                              className={`inline-flex max-w-full text-center truncate px-2 py-0.5 rounded-full text-[10.5px] font-semibold cursor-pointer outline-none appearance-none hover:opacity-85 transition-opacity shadow-2xs ${getStatusColor(app.status)}`}
                               style={{ textAlignLast: 'center', textAlign: 'center' }}
+                              title={getStatusLabel(app.status, t)}
                             >
                               {STATUS_KEYS.map(statusKey => (
                                 <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium text-center">
@@ -3844,13 +4098,13 @@ STRICT FORMAT RULES:
                               ))}
                             </select>
                             {getResponseDays(app) !== null && (
-                              <span className="inline-flex items-center whitespace-nowrap text-[10px] sm:text-[11px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0 gap-0.5" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
-                                <Timer size={10} className="shrink-0" /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
+                              <span className="inline-flex items-center text-[9.5px] font-semibold px-1 py-0.2 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 gap-0.5 truncate" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
+                                <Timer size={8.5} className="shrink-0" /> {getResponseDays(app)}{lang === 'en' ? 'd' : 'j'}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-2.5 sm:px-3.5 py-2.5 text-center whitespace-nowrap">
+                        <td className="w-[4%] px-2 py-2 text-center overflow-hidden">
                           <button 
                             type="button"
                             onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
@@ -3858,18 +4112,35 @@ STRICT FORMAT RULES:
                             title={t.editApplication || t.edit}
                             aria-label={t.editApplication || t.edit}
                           >
-                            <Pencil size={15} />
+                            <Pencil size={13} />
                           </button>
                         </td>
                       </tr>
                     ))}
-                    {applications.length === 0 && (
-                      <tr><td colSpan="7" className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">{t.noApplications}</td></tr>
+                    {filteredApplications.length === 0 && (
+                      <tr>
+                        <td colSpan="7" className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+                          {applications.length === 0 ? t.noApplications : (t.noMatchingApplications || "Aucune candidature ne correspond à vos critères de recherche.")}
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
               </div>
             </div>
+          )}
+
+          {activeTab === 'cvLibrary' && (
+            <CVLibrary
+              cvLibrary={cvLibrary}
+              setCvLibrary={setCvLibrary}
+              applications={applications}
+              profile={profile}
+              lang={lang}
+              t={t}
+              onOpenInTailor={handleOpenInTailorFromLibrary}
+              notifyDownloadSuccess={notifyDownloadSuccess}
+            />
           )}
 
           {activeTab === 'tailor' && (
@@ -4042,7 +4313,7 @@ STRICT FORMAT RULES:
                   <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 space-y-4 print:hidden">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-gray-100 dark:border-gray-700 pb-3.5">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <LayoutTemplate className="text-blue-600 dark:text-blue-400" size={18} />
                           <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white">
                             {t.resumeTemplatesTitle || 'Modèle de CV'}
@@ -4050,6 +4321,16 @@ STRICT FORMAT RULES:
                           <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             {RESUME_TEMPLATES.find(tpl => tpl.id === selectedResumeTemplate)?.name || 'RenderCV Classic'}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('cvLibrary')}
+                            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors cursor-pointer"
+                            title={t.cvLibrary}
+                          >
+                            <Library size={12} />
+                            <span>{lang === 'en' ? 'Saved in CV Library' : 'Enregistré dans la Bibliothèque'}</span>
+                            <ArrowRight size={11} />
+                          </button>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                           {selectedResumeTemplate === 'rendercv' 
