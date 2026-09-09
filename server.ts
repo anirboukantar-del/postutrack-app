@@ -133,57 +133,110 @@ async function startServer() {
     }
 
     const cleanUrl = url.trim();
+    const targetUrl = /^https?:\/\//i.test(cleanUrl) ? cleanUrl : `https://${cleanUrl}`;
     let text = "";
 
-    // 1. Try Jina Reader
+    // 1. Try Jina Reader without encoding the scheme slashes
     try {
-      const jinaUrl = `https://r.jina.ai/${encodeURIComponent(cleanUrl)}`;
+      const jinaUrl = `https://r.jina.ai/${targetUrl}`;
       const jinaRes = await fetch(jinaUrl, {
         headers: {
           "Accept": "text/plain",
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
         },
-        signal: AbortSignal.timeout(14000)
+        signal: AbortSignal.timeout(12000)
       });
       if (jinaRes.ok) {
-        text = await jinaRes.text();
+        const jinaText = await jinaRes.text();
+        if (jinaText && jinaText.length > 60) {
+          text = jinaText;
+        }
       }
     } catch (jinaErr) {
-      console.warn("Server Jina Reader fetch warning:", jinaErr);
+      console.warn("Server Jina Reader fetch notice:", jinaErr);
     }
 
     // 2. Direct HTML fetch fallback if Jina failed or returned minimal data
     if (!text || text.length < 100) {
       try {
-        const directRes = await fetch(cleanUrl, {
+        const directRes = await fetch(targetUrl, {
           headers: {
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+            "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7"
           },
-          signal: AbortSignal.timeout(12000)
+          signal: AbortSignal.timeout(10000)
         });
         if (directRes.ok) {
           const rawHtml = await directRes.text();
-          text = rawHtml;
+          
+          // Check for JSON-LD JobPosting schema
+          const jsonLdMatch = rawHtml.match(/<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi);
+          if (jsonLdMatch) {
+            for (const tag of jsonLdMatch) {
+              try {
+                const content = tag.replace(/<\/?script[^>]*>/gi, '').trim();
+                const parsed = JSON.parse(content);
+                const items = Array.isArray(parsed) ? parsed : (parsed['@graph'] || [parsed]);
+                const job = items.find((it: any) => it['@type'] === 'JobPosting');
+                if (job) {
+                  const jobTitle = job.title || '';
+                  const company = job.hiringOrganization?.name || '';
+                  const desc = (job.description || '')
+                    .replace(/<[^>]+>/g, ' ')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                  if (desc.length > 50) {
+                    text = `# ${jobTitle}\n**Entreprise:** ${company}\n\n${desc}`;
+                    break;
+                  }
+                }
+              } catch (e) {
+                // Ignore parse errors from non-job JSON-LD
+              }
+            }
+          }
+
+          // If no JSON-LD found, clean standard HTML body
+          if (!text || text.length < 100) {
+            const stripped = rawHtml
+              .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+              .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+              .replace(/<!--[\s\S]*?-->/g, '')
+              .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, '')
+              .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, '')
+              .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, '')
+              .replace(/<\/?[a-z][a-z0-9]*[^<>]*>/gi, ' ')
+              .replace(/&nbsp;/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/\s{2,}/g, ' ')
+              .trim();
+            if (stripped.length > 100) {
+              text = stripped;
+            }
+          }
         }
       } catch (directErr) {
-        console.warn("Server direct fetch warning:", directErr);
+        console.warn("Server direct fetch notice:", directErr);
       }
     }
 
     if (!text || text.trim().length === 0) {
       return res.json({
         success: false,
-        error: "Impossible d'extraire automatiquement le contenu de cette page. Veuillez copier-coller l'annonce manuellement.",
+        error: "Site protégé ou inaccessible pour l'extraction automatique.",
         rawText: "",
-        url: cleanUrl
+        url: targetUrl
       });
     }
 
     return res.json({
       success: true,
       rawText: text,
-      url: cleanUrl
+      url: targetUrl
     });
   });
 

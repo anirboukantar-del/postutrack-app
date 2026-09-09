@@ -153,7 +153,7 @@ export function ProfilePhotoUploader({
         >
           {photo ? (
             <>
-              <img src={photo} alt={name} className="w-full h-full object-cover" />
+              <img src={photo} alt={name} className="w-full h-full object-cover object-top" referrerPolicy="no-referrer" />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
                 <Camera size={18} />
               </div>
@@ -238,7 +238,7 @@ export function ProfilePhotoUploader({
           >
             {photo ? (
               <>
-                <img src={photo} alt={name} className="w-full h-full object-cover" />
+                <img src={photo} alt={name} className="w-full h-full object-cover object-top" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-medium gap-1">
                   <Camera size={20} />
                   <span>{lang === 'en' ? 'Edit' : 'Modifier'}</span>

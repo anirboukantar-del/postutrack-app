@@ -67,7 +67,7 @@ import {
 } from 'lucide-react';
 import { translations } from './i18n';
 import HiringWeatherSection from './HiringWeather';
-import { importJobFromUrl, detectSourceFromUrl, detectContractType, cleanJobDescription, normalizeJobUrl } from './urlJobExtractor';
+import { importJobFromUrl, detectSourceFromUrl, detectContractType, cleanJobDescription, normalizeJobUrl, extractHintsFromUrl } from './urlJobExtractor';
 import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplates';
 import { ProfilePhotoUploader } from './ProfilePhotoUploader';
 import { DevResumeLab } from './DevResumeLab';
@@ -78,6 +78,9 @@ import { CreditsView } from './CreditsView';
 import { DetailedStatsView } from './DetailedStatsView';
 import SettingsView from './SettingsView';
 import CVLibrary from './CVLibrary';
+import { getDemoProfile, generateDemoApplications, getDemoCvLibrary } from './demoData';
+import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
+import { buildPromptWithTemplate } from './promptBuilder';
 
 export const STATUS_KEYS = ['Postulé', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
 export const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
@@ -1857,6 +1860,32 @@ export default function App() {
   const [initialModalUrl, setInitialModalUrl] = useState('');
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [resetSuccessNotice, setResetSuccessNotice] = useState(false);
+  const [isDemoConfirmOpen, setIsDemoConfirmOpen] = useState(false);
+  const [demoSuccessNotice, setDemoSuccessNotice] = useState(false);
+
+  const handleLoadDemoData = () => {
+    const demoProfile = getDemoProfile();
+    const demoApps = generateDemoApplications(200);
+    const demoCvLib = getDemoCvLibrary(demoApps);
+
+    setProfile(demoProfile);
+    setApplications(demoApps);
+    setCvLibrary(demoCvLib);
+    setIsOnboardingCompleted(true);
+
+    try {
+      localStorage.setItem('postutrack_profile', JSON.stringify(demoProfile));
+      localStorage.setItem('postutrack_applications', JSON.stringify(demoApps));
+      localStorage.setItem('postutrack_cv_library', JSON.stringify(demoCvLib));
+      localStorage.setItem('postutrack_onboarding_completed', 'true');
+    } catch (e) {
+      console.error(e);
+    }
+
+    setIsDemoConfirmOpen(false);
+    setDemoSuccessNotice(true);
+    setTimeout(() => setDemoSuccessNotice(false), 6000);
+  };
   const [isStartupWarningDismissed, setIsStartupWarningDismissed] = useState(() => {
     try {
       return localStorage.getItem('postutrack_startup_warning_dismissed') === 'true';
@@ -1950,6 +1979,9 @@ export default function App() {
       const saved = localStorage.getItem('postutrack_profile');
       if (saved) {
         const parsed = JSON.parse(saved);
+        if (parsed.fullName === 'John DEMO' && (!parsed.photo || parsed.photo.includes('unsplash.com'))) {
+          parsed.photo = '/john-demo.png';
+        }
         return { photo: '', ...parsed };
       }
     } catch (e) {
@@ -1967,6 +1999,13 @@ export default function App() {
     };
   });
 
+  // Ensure John DEMO has the requested photo active
+  useEffect(() => {
+    if (profile.fullName === 'John DEMO' && (!profile.photo || profile.photo.includes('unsplash.com'))) {
+      setProfile(prev => ({ ...prev, photo: '/john-demo.png' }));
+    }
+  }, [profile.fullName]);
+
   const [savedNotice, setSavedNotice] = useState(false);
 
   useEffect(() => {
@@ -1983,7 +2022,33 @@ export default function App() {
       const saved = localStorage.getItem('postutrack_cv_library');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const freshDemoCvs = getDemoCvLibrary();
+          const demoMap = new Map(freshDemoCvs.map(c => [c.id, c]));
+          let hasDemoItems = false;
+
+          const merged = parsed.map(item => {
+            if (item.id && demoMap.has(item.id)) {
+              hasDemoItems = true;
+              const fresh = demoMap.get(item.id);
+              demoMap.delete(item.id);
+              return {
+                ...fresh,
+                applicationId: item.applicationId || fresh.applicationId
+              };
+            }
+            return item;
+          });
+
+          // If this library is using demo CVs, ensure all fresh demo CVs (like master CV) are included
+          if (hasDemoItems) {
+            demoMap.forEach(freshItem => {
+              merged.unshift(freshItem);
+            });
+          }
+
+          return merged;
+        }
       }
     } catch (e) {
       console.error(e);
@@ -2119,6 +2184,8 @@ export default function App() {
       localStorage.removeItem('postutrack_resume_color');
       localStorage.removeItem('postutrack_resume_density');
       localStorage.removeItem('postutrack_cv_library');
+      localStorage.removeItem('postutrack_master_cv_prompt');
+      localStorage.removeItem('postutrack_master_letter_prompt');
     } catch (e) {
       console.error(e);
     }
@@ -2139,6 +2206,8 @@ export default function App() {
     setAnthropicKey('');
     setSelectedAiModel('gemini');
     setCustomApiUrl('');
+    setMasterCvPrompt(DEFAULT_MASTER_CV_PROMPT);
+    setMasterLetterPrompt(DEFAULT_MASTER_LETTER_PROMPT);
     setSelectedResumeTemplate('rendercv');
     setResumeAccentColor('#2563eb');
     setResumeDensity('normal');
@@ -2172,6 +2241,59 @@ export default function App() {
   const [customApiUrl, setCustomApiUrl] = useState(() => {
     try { return localStorage.getItem('postutrack_custom_api_url') || ''; } catch (e) { return ''; }
   });
+
+  // Master AI Prompts states (Customizable with restore capability)
+  const [masterCvPrompt, setMasterCvPrompt] = useState(() => {
+    try {
+      const saved = localStorage.getItem('postutrack_master_cv_prompt');
+      return saved !== null && saved !== '' ? saved : DEFAULT_MASTER_CV_PROMPT;
+    } catch (e) {
+      return DEFAULT_MASTER_CV_PROMPT;
+    }
+  });
+
+  const [masterLetterPrompt, setMasterLetterPrompt] = useState(() => {
+    try {
+      const saved = localStorage.getItem('postutrack_master_letter_prompt');
+      return saved !== null && saved !== '' ? saved : DEFAULT_MASTER_LETTER_PROMPT;
+    } catch (e) {
+      return DEFAULT_MASTER_LETTER_PROMPT;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (masterCvPrompt && masterCvPrompt !== DEFAULT_MASTER_CV_PROMPT) {
+        localStorage.setItem('postutrack_master_cv_prompt', masterCvPrompt);
+      } else {
+        localStorage.removeItem('postutrack_master_cv_prompt');
+      }
+    } catch (e) {}
+  }, [masterCvPrompt]);
+
+  useEffect(() => {
+    try {
+      if (masterLetterPrompt && masterLetterPrompt !== DEFAULT_MASTER_LETTER_PROMPT) {
+        localStorage.setItem('postutrack_master_letter_prompt', masterLetterPrompt);
+      } else {
+        localStorage.removeItem('postutrack_master_letter_prompt');
+      }
+    } catch (e) {}
+  }, [masterLetterPrompt]);
+
+  const handleRestoreMasterCvPrompt = () => {
+    setMasterCvPrompt(DEFAULT_MASTER_CV_PROMPT);
+    try {
+      localStorage.removeItem('postutrack_master_cv_prompt');
+    } catch (e) {}
+  };
+
+  const handleRestoreMasterLetterPrompt = () => {
+    setMasterLetterPrompt(DEFAULT_MASTER_LETTER_PROMPT);
+    try {
+      localStorage.removeItem('postutrack_master_letter_prompt');
+    } catch (e) {}
+  };
 
   useEffect(() => {
     try {
@@ -2371,7 +2493,9 @@ export default function App() {
       openAiKey: openAiKey,
       anthropicKey: anthropicKey,
       selectedAiModel: selectedAiModel,
-      customApiUrl: customApiUrl
+      customApiUrl: customApiUrl,
+      masterCvPrompt: masterCvPrompt,
+      masterLetterPrompt: masterLetterPrompt
     };
     
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
@@ -2468,6 +2592,8 @@ export default function App() {
         if (backup.anthropicKey) setAnthropicKey(backup.anthropicKey);
         if (backup.selectedAiModel) setSelectedAiModel(backup.selectedAiModel);
         if (backup.customApiUrl !== undefined) setCustomApiUrl(backup.customApiUrl);
+        if (backup.masterCvPrompt !== undefined) setMasterCvPrompt(backup.masterCvPrompt);
+        if (backup.masterLetterPrompt !== undefined) setMasterLetterPrompt(backup.masterLetterPrompt);
         
         setSavedNotice(true);
         setTimeout(() => setSavedNotice(false), 3000);
@@ -2539,23 +2665,71 @@ ${aiResult.coverLetter}`;
     try {
       const normalized = normalizeJobUrl(urlToExtract);
       const formatted = formatExternalUrl(normalized || urlToExtract);
-      const proxyUrl = `https://r.jina.ai/${encodeURIComponent(formatted)}`;
-      const response = await fetch(proxyUrl, {
-        headers: { 'Accept': 'text/plain' }
-      });
+      let rawText = '';
+
+      // 1. Primary Strategy: Dedicated server-side proxy
+      try {
+        const serverRes = await fetch('/api/extract-job-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: formatted }),
+          signal: AbortSignal.timeout ? AbortSignal.timeout(15000) : undefined
+        });
+        if (serverRes.ok) {
+          const data = await serverRes.json();
+          if (data && data.success && data.rawText && data.rawText.length > 50) {
+            rawText = data.rawText;
+          }
+        }
+      } catch (serverErr) {
+        console.warn('Server job extractor notice:', serverErr);
+      }
+
+      // 2. Secondary Strategy: Direct Jina Reader proxy fallback (clean unencoded URL)
+      if (!rawText || rawText.length < 50) {
+        try {
+          const proxyUrl = `https://r.jina.ai/${formatted}`;
+          const response = await fetch(proxyUrl, {
+            headers: { Accept: 'text/plain' },
+            signal: AbortSignal.timeout ? AbortSignal.timeout(12000) : undefined
+          });
+          if (response.ok) {
+            const body = await response.text();
+            if (body && body.length > 50) {
+              rawText = body;
+            }
+          }
+        } catch (clientErr) {
+          console.warn('Client Jina fetch notice:', clientErr);
+        }
+      }
       
-      if (!response.ok) throw new Error(t.networkExtractionError);
-      
-      const rawText = await response.text();
-      const cleaned = cleanJobDescription(rawText, formatted);
-      
-      if (cleaned && cleaned.length > 50) {
-        setJobDescription(cleaned.substring(0, 12000));
+      if (rawText && rawText.length > 50) {
+        const cleaned = cleanJobDescription(rawText, formatted);
+        if (cleaned && cleaned.length > 50) {
+          setJobDescription(cleaned.substring(0, 12000));
+          return;
+        }
+      }
+
+      // 3. Graceful fallback when site blocks automated scraping:
+      // Extract position & company hints from URL without throwing or showing a fatal error
+      const hints = extractHintsFromUrl(formatted);
+      if (hints && (hints.role || hints.company)) {
+        const titleLine = hints.role ? `${hints.role}` : (lang === 'en' ? 'Job Position' : 'Poste');
+        const compLine = hints.company ? ` @ ${hints.company}` : '';
+        const header = lang === 'en'
+          ? `[Detected from URL: ${titleLine}${compLine}]\n\n`
+          : `[Détecté depuis le lien : ${titleLine}${compLine}]\n\n`;
+        const note = lang === 'en'
+          ? `Note: This job portal protects its page content against automated scraping. The key details above were detected from the link. Please paste the full job description text below for optimal AI tailoring.`
+          : `Note : Ce site d'emploi protège sa page contre l'extraction automatisée. Les informations principales ont été déduites du lien. Vous pouvez copier-coller le texte complet de l'annonce ci-dessous pour une génération optimale.`;
+        setJobDescription(`${header}${note}`);
       } else {
-        setJobDescription(t.extractedTooShort);
+        setJobDescription(t.extractFailed);
       }
     } catch (e) {
-      console.error(e);
+      console.warn('Job URL extraction notice:', e);
       setJobDescription(t.extractFailed);
     } finally {
       setIsExtracting(false);
@@ -2961,33 +3135,23 @@ ${aiResult.coverLetter}`;
 
         const categorySkillsDefault = isEn ? 'SKILLS' : 'COMPÉTENCES';
 
-        prompt = `Act as an expert recruiter and ATS resume optimization specialist. Analyze the job posting for "${companyName}" for the role of "${roleName}":
-        
-JOB DESCRIPTION / OFFRE D'EMPLOI:
-${jobDescription}
-
-CANDIDATE PROFILE & MASTER RESUME / PROFIL ET CV MAÎTRE:
-Name : ${profile.fullName}
-Email : ${profile.email}
-Phone : ${profile.phone}
-Location : ${profile.location}
-Master CV Content :
-${baseCV || profile.masterCV}
-
-${langDirective}
-${densityInstructions}
-${modificationInstructions}
-${keywordInstructions}
-Skill categories rule: Main skills category MUST be named '${categorySkillsDefault}'. Other groups can be 'TOOLS', 'LANGUAGES' (or 'OUTILS', 'LANGUES' in French).
-${customPromptStr}
-
-STRICT GENERATION RULES:
-1. You MUST extract, structure, and include ALL professional experiences, education history, and skills from the Master CV into the JSON output. Under NO circumstance should "experiences", "education", or "skills" arrays be empty if data exists in the Master CV.
-2. "summary" is a concise, professional 2-to-3 sentence introductory hook tailored to the position.
-3. CRITICAL: Output ONLY the clean, final polished text. NEVER include word counts, notes in parentheses like "(43 mots respectés)", self-corrections, thoughts, or commentary ("No, wait", "Let's cleanly put...").
-4. If the offer specifies contract duration/type/start date, mention it succinctly in the summary.
-5. Sort professional experiences and education in reverse chronological order (most recent first).
-6. Return ONLY a valid JSON object matching the schema.`;
+        const cvPromptTemplate = masterCvPrompt || DEFAULT_MASTER_CV_PROMPT;
+        prompt = buildPromptWithTemplate(cvPromptTemplate, {
+          companyName,
+          roleName,
+          jobDescription,
+          candidateName: profile.fullName || 'Candidate',
+          candidateEmail: profile.email || '',
+          candidatePhone: profile.phone || '',
+          candidateLocation: profile.location || '',
+          candidateMasterCV: baseCV || profile.masterCV,
+          languageDirective: langDirective,
+          densityInstructions: densityInstructions,
+          modificationInstructions: modificationInstructions,
+          keywordInstructions: keywordInstructions,
+          categorySkillsDefault: categorySkillsDefault,
+          customInstructions: customPromptStr
+        });
 
         responseSchema = {
           type: "OBJECT",
@@ -3060,26 +3224,17 @@ STRICT GENERATION RULES:
           ? "CRITICAL LANGUAGE REQUIREMENT: Write the cover letter in fluent, high-quality ENGLISH."
           : "CONSIGNE DE LANGUE : Rédige la lettre de motivation en FRANÇAIS.";
 
-        prompt = `Act as an expert career advisor. Write a tailored cover letter (maximum 1 single A4 page) for "${companyName}" for the position "${roleName}".
-        
-JOB DESCRIPTION:
-${jobDescription}
-
-CANDIDATE RESUME PROFILE:
-${baseCV || profile.masterCV}
-
-MASTER COVER LETTER (Style/Tone baseline):
-${baseLetter || profile.masterLetter || "Generate directly from the resume and job requirements."}
-
-${langDirective}
-${toneInstructions}
-${customPromptStr}
-
-STRICT FORMAT RULES:
-1. Do NOT include top headers (Candidate name, address, date) because they are formatted automatically by the layout. Start directly with the formal salutation (e.g. "Dear Hiring Manager," or "Madame, Monsieur,").
-2. End with an appropriate formal closing and signature (e.g. "Sincerely, [Candidate Name]" or "Je vous prie d'agréer...").
-3. Use clear paragraphs separated by double line breaks (\\n\\n).
-4. Return ONLY valid JSON.`;
+        const letterPromptTemplate = masterLetterPrompt || DEFAULT_MASTER_LETTER_PROMPT;
+        prompt = buildPromptWithTemplate(letterPromptTemplate, {
+          companyName,
+          roleName,
+          jobDescription,
+          candidateMasterCV: baseCV || profile.masterCV,
+          candidateMasterLetter: baseLetter || profile.masterLetter || "Generate directly from the resume and job requirements.",
+          languageDirective: langDirective,
+          toneInstructions: toneInstructions,
+          customInstructions: customPromptStr
+        });
 
         responseSchema = {
           type: "OBJECT",
@@ -3358,7 +3513,7 @@ STRICT FORMAT RULES:
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.5.0
+            v0.5.1
           </span>
         </h1>
       </div>
@@ -3436,7 +3591,8 @@ STRICT FORMAT RULES:
             <img 
               src={profile.photo} 
               alt={profile.fullName || 'User'} 
-              className="w-9 h-9 xl:w-10 xl:h-10 rounded-full object-cover shrink-0 ring-2 ring-indigo-500/30 shadow-2xs" 
+              className="w-9 h-9 xl:w-10 xl:h-10 rounded-full object-cover object-top shrink-0 ring-2 ring-indigo-500/30 shadow-2xs" 
+              referrerPolicy="no-referrer"
             />
           ) : (
             <div className="w-9 h-9 xl:w-10 xl:h-10 bg-indigo-600 dark:bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs">
@@ -3466,7 +3622,7 @@ STRICT FORMAT RULES:
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.5.0
+                v0.5.1
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -3475,6 +3631,18 @@ STRICT FORMAT RULES:
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* BOUTON DEMO */}
+            <button
+              onClick={() => setIsDemoConfirmOpen(true)}
+              type="button"
+              className="flex items-center gap-1.5 px-3 py-1 sm:py-1.5 2xl:py-2 text-xs 2xl:text-sm font-bold rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0 border border-amber-300/40 select-none active:scale-95"
+              title={t.demoButtonTooltip || "Charger les données de démonstration (Profil John DEMO, 200 candidatures sur 3 ans, CVs)"}
+              aria-label="Charger les données démo"
+            >
+              <Sparkles size={14} className="text-amber-100 animate-pulse shrink-0" />
+              <span className="tracking-wide">DEMO</span>
+            </button>
+
             {/* BOUTON GITHUB */}
             <a
               href="https://github.com/anirboukantar-del/postutrack-app"
@@ -3518,7 +3686,8 @@ STRICT FORMAT RULES:
                 <img 
                   src={profile.photo} 
                   alt={profile.fullName || 'User'} 
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover shrink-0 ring-1 ring-blue-400" 
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover object-top shrink-0 ring-1 ring-blue-400" 
+                  referrerPolicy="no-referrer"
                 />
               ) : (
                 <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shrink-0">
@@ -3639,6 +3808,23 @@ STRICT FORMAT RULES:
             <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm font-medium flex items-center gap-2 max-w-4xl mx-auto shadow-xs">
               <CheckCircle size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{t.resetSuccessNotice}</span>
+            </div>
+          )}
+
+          {demoSuccessNotice && (
+            <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 rounded-2xl text-sm font-medium flex items-center justify-between gap-3 max-w-4xl mx-auto shadow-sm animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2.5">
+                <Sparkles size={20} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>{t.demoSuccessNotice}</span>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setDemoSuccessNotice(false)} 
+                className="text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+                aria-label="Fermer"
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
 
@@ -4787,7 +4973,14 @@ STRICT FORMAT RULES:
               showDevStudio={showDevStudio}
               handleToggleDevStudio={handleToggleDevStudio}
               onOpenResetConfirm={() => setIsResetConfirmOpen(true)}
+              onOpenDemoConfirm={() => setIsDemoConfirmOpen(true)}
               resetSuccessNotice={resetSuccessNotice}
+              masterCvPrompt={masterCvPrompt}
+              setMasterCvPrompt={setMasterCvPrompt}
+              masterLetterPrompt={masterLetterPrompt}
+              setMasterLetterPrompt={setMasterLetterPrompt}
+              onRestoreMasterCvPrompt={handleRestoreMasterCvPrompt}
+              onRestoreMasterLetterPrompt={handleRestoreMasterLetterPrompt}
             />
           )}
 
@@ -4864,6 +5057,59 @@ STRICT FORMAT RULES:
               >
                 <Trash2 size={16} />
                 {t.resetConfirmBtn}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmation Démo John DEMO */}
+      {isDemoConfirmOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 max-w-md w-full p-6 text-left space-y-4">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+              <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl">
+                <Sparkles size={24} />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.demoConfirmTitle}</h3>
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              {t.demoConfirmSubtitle}
+            </p>
+
+            <div className="space-y-2.5 bg-amber-50/70 dark:bg-amber-950/30 p-3.5 rounded-xl border border-amber-200/70 dark:border-amber-800/50 text-xs text-amber-900 dark:text-amber-200">
+              <div className="flex items-start gap-2">
+                <CheckCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <span><strong>{lang === 'fr' ? 'Profil John DEMO' : 'John DEMO Profile'}</strong> : {t.demoItemProfile}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <span><strong>{lang === 'fr' ? '200 candidatures' : '200 applications'}</strong> : {t.demoItemApps}</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <CheckCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <span><strong>{lang === 'fr' ? 'Bibliothèque de CVs' : 'CV Library'}</strong> : {t.demoItemResumes}</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setIsDemoConfirmOpen(false)}
+                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+              >
+                {t.demoCancelBtn}
+              </button>
+              <button
+                type="button"
+                onClick={handleLoadDemoData}
+                className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-sm font-semibold shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Sparkles size={16} />
+                {t.demoConfirmBtn}
               </button>
             </div>
           </div>

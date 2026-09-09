@@ -53,11 +53,42 @@ export const DetailedStatsView = ({
   const [sortOrder, setSortOrder] = useState('date-desc');
   const [exportNotice, setExportNotice] = useState('');
 
-  // Velocity Line Visibility State (interactive toggles)
+  // Velocity Line Visibility State (interactive toggles) - Exactly 2 lines: applications sent and interviews
   const [visibleLines, setVisibleLines] = useState({
     sent: true,
-    responses: true,
-    successRate: true
+    interviews: true
+  });
+
+  // Time period filter state: '12m' | '6m' | '3m' | 'all'
+  const [timePeriod, setTimePeriod] = useState('12m');
+
+  // For 'all' (Al Time average) mode: plot 'avg' (average) or 'total' (cumulative) on the line
+  const [allTimeMetric, setAllTimeMetric] = useState('avg');
+
+  // Available Years in applications
+  const availableYears = useMemo(() => {
+    if (!applications || applications.length === 0) return [new Date().getFullYear()];
+    const yearsSet = new Set();
+    applications.forEach(a => {
+      if (a.date) {
+        const d = new Date(a.date);
+        if (!isNaN(d.getTime())) yearsSet.add(d.getFullYear());
+      }
+    });
+    const arr = Array.from(yearsSet).sort((a, b) => b - a);
+    return arr.length > 0 ? arr : [new Date().getFullYear()];
+  }, [applications]);
+
+  // Selected year (defaults to the most frequent/latest year with data)
+  const [selectedYear, setSelectedYear] = useState(() => {
+    if (!applications || applications.length === 0) return new Date().getFullYear();
+    const years = applications
+      .map(a => a.date ? new Date(a.date).getFullYear() : null)
+      .filter(y => y && !isNaN(y));
+    if (years.length === 0) return new Date().getFullYear();
+    const counts = {};
+    years.forEach(y => { counts[y] = (counts[y] || 0) + 1; });
+    return Number(Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0]);
   });
 
   const toggleLine = (lineKey) => {
@@ -146,104 +177,243 @@ export const DetailedStatsView = ({
   const interviewRate = totalApplications > 0 ? Math.round((interviewsCount / totalApplications) * 100) : 0;
   const offerRate = totalApplications > 0 ? Math.round((offersCount / totalApplications) * 100) : 0;
 
-  // 1. APPLICATION VELOCITY (Dual-Axis / Timeline Graph)
-  const velocityData = useMemo(() => {
-    if (!applications || applications.length === 0) return [];
+  // 1. APPLICATION VELOCITY (Bi-Weekly Points, Months-only X-Axis, 2 lines: sent and interviews)
+  const { velocityData, monthTicks, monthTickMap } = useMemo(() => {
+    if (!applications || applications.length === 0) {
+      return { velocityData: [], monthTicks: [], monthTickMap: {} };
+    }
 
-    // Map all application sent dates and response dates into YYYY-MM buckets
-    const monthMap = {};
+    const monthNamesFr = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const fullMonthNamesFr = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+    const fullMonthNamesEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const names = lang === 'en' ? monthNamesEn : monthNamesFr;
+    const fullNames = lang === 'en' ? fullMonthNamesEn : fullMonthNamesFr;
 
-    // Helper to get YYYY-MM
-    const getYearMonth = (dateStr) => {
-      if (!dateStr) return null;
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return null;
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      return `${y}-${m}`;
-    };
+    // Bucket applications by `${year}-${monthIndex}-${half}`
+    const bucketMap = {};
 
     applications.forEach(app => {
-      // Sent date
-      const sentYM = getYearMonth(app.date);
-      if (sentYM) {
-        if (!monthMap[sentYM]) {
-          monthMap[sentYM] = { ym: sentYM, sent: 0, responses: 0, interviews: 0, offers: 0, rejections: 0 };
-        }
-        monthMap[sentYM].sent += 1;
-      }
+      if (!app.date) return;
+      const d = new Date(app.date);
+      if (isNaN(d.getTime())) return;
+      const y = d.getFullYear();
+      const m = d.getMonth();
+      const day = d.getDate();
+      const half = day <= 15 ? 0 : 1;
+      const key = `${y}-${m}-${half}`;
 
-      // Response date
-      const isAnswered = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(app.status) || Boolean(app.responseDate);
-      if (isAnswered) {
-        const respDateStr = app.responseDate || app.statusModifiedAt || app.date;
-        const respYM = getYearMonth(respDateStr);
-        if (respYM) {
-          if (!monthMap[respYM]) {
-            monthMap[respYM] = { ym: respYM, sent: 0, responses: 0, interviews: 0, offers: 0, rejections: 0 };
-          }
-          monthMap[respYM].responses += 1;
-          if (['Entretien', 'Interview'].includes(app.status)) monthMap[respYM].interviews += 1;
-          if (['Offre', 'Offer'].includes(app.status)) monthMap[respYM].offers += 1;
-          if (['Refusé', 'Rejected'].includes(app.status)) monthMap[respYM].rejections += 1;
-        }
+      if (!bucketMap[key]) {
+        bucketMap[key] = { sent: 0, interviews: 0 };
+      }
+      bucketMap[key].sent += 1;
+
+      if (['Entretien', 'Interview', 'Offre', 'Offer'].includes(app.status)) {
+        bucketMap[key].interviews += 1;
       }
     });
 
-    // Fixed 13-month calendar timeline: starts in January (startYear) and ends in January of next year (startYear + 1)
-    const now = new Date();
-    let startYear = now.getFullYear();
+    const activeYear = selectedYear || new Date().getFullYear();
 
-    if (applications.length > 0) {
-      const validDates = applications
-        .map(a => a.date ? new Date(a.date) : null)
-        .filter(d => d && !isNaN(d.getTime()));
-      if (validDates.length > 0) {
-        startYear = Math.min(...validDates.map(d => d.getFullYear()));
+    // For 'all' ("Al Time average"): aggregate across ALL historical years into the 12 calendar months (24 bi-weekly points)
+    if (timePeriod === 'all') {
+      const validYears = Array.from(new Set(
+        applications
+          .map(a => a.date ? new Date(a.date).getFullYear() : null)
+          .filter(y => y && !isNaN(y))
+      )).sort((a, b) => a - b);
+
+      const minYear = validYears.length > 0 ? validYears[0] : new Date().getFullYear();
+      const maxYear = validYears.length > 0 ? validYears[validYears.length - 1] : minYear;
+      const yearSpan = Math.max(1, validYears.length);
+      const yearsSpanLabel = validYears.length > 1
+        ? (lang === 'en' ? `Over ${validYears.length} years (${minYear}–${maxYear})` : `Sur ${validYears.length} ans (${minYear}–${maxYear})`)
+        : (lang === 'en' ? `Year ${minYear}` : `Année ${minYear}`);
+
+      const result = [];
+      const ticks = [];
+      const tickMap = {};
+      let pointIndex = 0;
+
+      for (let m = 0; m < 12; m++) {
+        const monthName = names[m];
+        const fullMonthName = fullNames[m];
+
+        // Half 0: Days 1 to 15 across ALL years
+        let totalSent0 = 0;
+        let totalInterviews0 = 0;
+        validYears.forEach(yr => {
+          const k = `${yr}-${m}-0`;
+          if (bucketMap[k]) {
+            totalSent0 += bucketMap[k].sent;
+            totalInterviews0 += bucketMap[k].interviews;
+          }
+        });
+        const avgSent0 = Number((totalSent0 / yearSpan).toFixed(1));
+        const avgInterviews0 = Number((totalInterviews0 / yearSpan).toFixed(1));
+        const rate0 = totalSent0 > 0 ? Math.round((totalInterviews0 / totalSent0) * 100) : 0;
+
+        const p0Id = pointIndex++;
+        ticks.push(p0Id);
+        tickMap[p0Id] = monthName;
+
+        result.push({
+          id: p0Id,
+          isAllTimeAverage: true,
+          allTimeMetric,
+          yearSpan,
+          yearsSpanLabel,
+          monthIndex: m,
+          half: 0,
+          monthName,
+          fullMonthName,
+          periodLabel: `${monthName} (1-15)`,
+          fullPeriodLabel: `${fullMonthName} 1-15`,
+          halfLabel: t.halfMonth1 || '1ère quinzaine',
+          sent: allTimeMetric === 'total' ? totalSent0 : avgSent0,
+          interviews: allTimeMetric === 'total' ? totalInterviews0 : avgInterviews0,
+          totalSent: totalSent0,
+          totalInterviews: totalInterviews0,
+          avgSent: avgSent0,
+          avgInterviews: avgInterviews0,
+          conversionRate: rate0
+        });
+
+        // Half 1: Days 16 to end of month across ALL years
+        let totalSent1 = 0;
+        let totalInterviews1 = 0;
+        validYears.forEach(yr => {
+          const k = `${yr}-${m}-1`;
+          if (bucketMap[k]) {
+            totalSent1 += bucketMap[k].sent;
+            totalInterviews1 += bucketMap[k].interviews;
+          }
+        });
+        const avgSent1 = Number((totalSent1 / yearSpan).toFixed(1));
+        const avgInterviews1 = Number((totalInterviews1 / yearSpan).toFixed(1));
+        const rate1 = totalSent1 > 0 ? Math.round((totalInterviews1 / totalSent1) * 100) : 0;
+
+        const p1Id = pointIndex++;
+        result.push({
+          id: p1Id,
+          isAllTimeAverage: true,
+          allTimeMetric,
+          yearSpan,
+          yearsSpanLabel,
+          monthIndex: m,
+          half: 1,
+          monthName,
+          fullMonthName,
+          periodLabel: `${monthName} (16-fin)`,
+          fullPeriodLabel: `${fullMonthName} 16-fin`,
+          halfLabel: t.halfMonth2 || '2ème quinzaine',
+          sent: allTimeMetric === 'total' ? totalSent1 : avgSent1,
+          interviews: allTimeMetric === 'total' ? totalInterviews1 : avgInterviews1,
+          totalSent: totalSent1,
+          totalInterviews: totalInterviews1,
+          avgSent: avgSent1,
+          avgInterviews: avgInterviews1,
+          conversionRate: rate1
+        });
+      }
+
+      return { velocityData: result, monthTicks: ticks, monthTickMap: tickMap };
+    }
+
+    // Standard fixed period modes: '12m', '6m', '3m' for activeYear
+    let monthsToInclude = [];
+    if (timePeriod === '12m') {
+      for (let m = 0; m < 12; m++) {
+        monthsToInclude.push({ year: activeYear, month: m });
+      }
+    } else if (timePeriod === '6m') {
+      for (let m = 6; m < 12; m++) {
+        monthsToInclude.push({ year: activeYear, month: m });
+      }
+    } else if (timePeriod === '3m') {
+      for (let m = 9; m < 12; m++) {
+        monthsToInclude.push({ year: activeYear, month: m });
       }
     }
 
+    // Now build 2 data points for EVERY month (every 2 weeks)
     const result = [];
-    const monthNamesFr = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-    const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const names = lang === 'en' ? monthNamesEn : monthNamesFr;
+    const ticks = [];
+    const tickMap = {};
 
-    // Iterate through all 13 consecutive months from January (m=0) to January next year (m=12)
-    for (let m = 0; m <= 12; m++) {
-      const currentMonth = new Date(startYear, m, 1);
-      const y = currentMonth.getFullYear();
-      const monthIndex = currentMonth.getMonth(); // 0 to 11
-      const ymStr = `${y}-${String(monthIndex + 1).padStart(2, '0')}`;
-      const label = `${names[monthIndex]} ${String(y).slice(2)}`;
+    let pointIndex = 0;
+    monthsToInclude.forEach(({ year, month }) => {
+      const monthName = names[month];
+      const fullMonthName = fullNames[month];
 
-      const data = monthMap[ymStr] || { sent: 0, responses: 0, interviews: 0, offers: 0, rejections: 0 };
-      const successRate = data.sent > 0 ? Math.round((data.responses / data.sent) * 100) : 0;
+      // Point 1: 1st half (Days 1 to 15)
+      const key0 = `${year}-${month}-0`;
+      const data0 = bucketMap[key0] || { sent: 0, interviews: 0 };
+      const rate0 = data0.sent > 0 ? Math.round((data0.interviews / data0.sent) * 100) : 0;
+
+      const p0Id = pointIndex++;
+      ticks.push(p0Id);
+      tickMap[p0Id] = monthName;
 
       result.push({
-        ym: ymStr,
-        month: label,
-        sent: data.sent,
-        responses: data.responses,
-        interviews: data.interviews,
-        offers: data.offers,
-        rejections: data.rejections,
-        replyRatio: successRate,
-        successRate: successRate
+        id: p0Id,
+        isAllTimeAverage: false,
+        year,
+        monthIndex: month,
+        half: 0,
+        monthName,
+        fullMonthName,
+        periodLabel: `${names[month]} 1-15, ${year}`,
+        fullPeriodLabel: `${fullNames[month]} 1-15, ${year}`,
+        halfLabel: t.halfMonth1 || '1ère quinzaine',
+        sent: data0.sent,
+        interviews: data0.interviews,
+        totalSent: data0.sent,
+        totalInterviews: data0.interviews,
+        avgSent: data0.sent,
+        avgInterviews: data0.interviews,
+        conversionRate: rate0
       });
-    }
 
-    return result;
-  }, [applications, lang]);
+      // Point 2: 2nd half (Days 16 to end of month)
+      const key1 = `${year}-${month}-1`;
+      const data1 = bucketMap[key1] || { sent: 0, interviews: 0 };
+      const rate1 = data1.sent > 0 ? Math.round((data1.interviews / data1.sent) * 100) : 0;
 
-  // Calculate unified maximum scale for the count metrics on the left Y-axis
+      const p1Id = pointIndex++;
+      result.push({
+        id: p1Id,
+        isAllTimeAverage: false,
+        year,
+        monthIndex: month,
+        half: 1,
+        monthName,
+        fullMonthName,
+        periodLabel: `${names[month]} 16-fin, ${year}`,
+        fullPeriodLabel: `${fullNames[month]} 16-fin, ${year}`,
+        halfLabel: t.halfMonth2 || '2ème quinzaine',
+        sent: data1.sent,
+        interviews: data1.interviews,
+        totalSent: data1.sent,
+        totalInterviews: data1.interviews,
+        avgSent: data1.sent,
+        avgInterviews: data1.interviews,
+        conversionRate: rate1
+      });
+    });
+
+    return { velocityData: result, monthTicks: ticks, monthTickMap: tickMap };
+  }, [applications, lang, selectedYear, timePeriod, allTimeMetric, t]);
+
+  // Calculate unified maximum scale for the 2 count metrics on the left Y-axis
   const maxVelocityValue = useMemo(() => {
     if (!velocityData || velocityData.length === 0) return 5;
     let max = 0;
     velocityData.forEach(d => {
       if (d.sent > max) max = d.sent;
-      if (d.responses > max) max = d.responses;
+      if (d.interviews > max) max = d.interviews;
     });
-    return Math.max(max + 1, 5);
+    return Math.max(Math.ceil(max) + 1, 4);
   }, [velocityData]);
 
   // 2. PLATFORM BAR CHART DATA (Keep platform analysis, but no table -> bar chart)
@@ -487,44 +657,100 @@ export const DetailedStatsView = ({
     setSelectedSource('ALL');
   };
 
-  // Custom Velocity Tooltip
-  const CustomVelocityTooltip = ({ active, payload, label }) => {
+  // Custom Dot renderers for the 2 lines
+  const renderInterviewDot = (props) => {
+    const { cx, cy, payload } = props;
+    if (!cx || !cy) return null;
+    return <circle key={`dot-interview-${payload.id}`} cx={cx} cy={cy} r={3.5} fill="#8b5cf6" stroke="#fff" strokeWidth={1.5} />;
+  };
+
+  const renderSentDot = (props) => {
+    const { cx, cy, payload } = props;
+    if (!cx || !cy) return null;
+    return <circle key={`dot-sent-${payload.id}`} cx={cx} cy={cy} r={3.5} fill="#2563eb" stroke="#fff" strokeWidth={1.5} />;
+  };
+
+  // Custom Velocity Tooltip (bi-weekly details with conversion rate and total stats)
+  const CustomVelocityTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
+      const isAllTime = Boolean(data.isAllTimeAverage);
+
       return (
-        <div className="bg-white dark:bg-gray-800 p-3.5 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-xs 2xl:text-sm space-y-1.5 z-50">
-          <p className="font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-1 flex items-center justify-between gap-4">
-            <span>{data.month}</span>
-            <span className="text-[11px] font-mono font-normal text-gray-500 dark:text-gray-400">{data.ym}</span>
-          </p>
-          <div className="space-y-1 pt-0.5">
-            <div className="flex items-center justify-between gap-4 text-blue-600 dark:text-blue-400 font-semibold">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
-                {t.appsSent || 'Candidatures envoyées'} :
+        <div className="bg-white dark:bg-gray-800 p-3.5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 text-xs 2xl:text-sm space-y-2.5 z-50 min-w-[230px]">
+          <div className="border-b border-gray-100 dark:border-gray-700/80 pb-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold text-gray-900 dark:text-white text-sm">
+                {data.fullPeriodLabel || data.periodLabel}
               </span>
-              <span className="font-mono font-bold text-gray-900 dark:text-white">{data.sent}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4 text-emerald-600 dark:text-emerald-400 font-semibold">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                {t.responsesReceived || 'Réponses reçues'} :
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                {isAllTime ? (lang === 'en' ? 'Al Time average' : 'Moyenne All-Time') : data.halfLabel}
               </span>
-              <span className="font-mono font-bold text-gray-900 dark:text-white">{data.responses}</span>
             </div>
-            <div className="flex items-center justify-between gap-4 text-purple-600 dark:text-purple-400 font-semibold border-t border-gray-100 dark:border-gray-700/60 pt-1 mt-0.5">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block" />
-                {t.successRate || 'Taux de succès'} :
-              </span>
-              <span className="font-mono font-bold text-purple-600 dark:text-purple-300">{data.successRate}%</span>
-            </div>
-            {(data.interviews > 0 || data.offers > 0 || data.rejections > 0) && (
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 pl-4 pt-0.5">
-                ({data.interviews} {t.interviews?.toLowerCase() || 'entretiens'}, {data.offers} {t.offersReceived?.toLowerCase() || 'offres'}, {data.rejections} {t.rejections?.toLowerCase() || 'refus'})
+            {isAllTime && data.yearsSpanLabel && (
+              <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+                {data.yearsSpanLabel}
               </p>
             )}
           </div>
+
+          {/* TOTAL STATS FOR THIS POINT */}
+          <div className="bg-blue-50/50 dark:bg-blue-950/20 p-2.5 rounded-xl space-y-1.5 border border-blue-100/80 dark:border-blue-900/40">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+              {t.totalStatsForPoint || (lang === 'en' ? 'Total stats for this point' : 'Statistiques totales du point')}
+            </div>
+            {visibleLines.sent && (
+              <div className="flex items-center justify-between gap-4 text-blue-700 dark:text-blue-300 font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-600 inline-block shrink-0" />
+                  {t.totalSentLabel || (lang === 'en' ? 'Total Sent' : 'Total envoyées')} :
+                </span>
+                <span className="font-mono font-bold text-gray-900 dark:text-white">{data.totalSent}</span>
+              </div>
+            )}
+            {visibleLines.interviews && (
+              <div className="flex items-center justify-between gap-4 text-purple-700 dark:text-purple-300 font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-purple-600 inline-block shrink-0" />
+                  {t.totalInterviewsLabel || (lang === 'en' ? 'Total Interviews' : 'Total entretiens')} :
+                </span>
+                <span className="font-mono font-bold text-gray-900 dark:text-white">{data.totalInterviews}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-4 text-gray-600 dark:text-gray-300 border-t border-blue-100 dark:border-blue-900/40 pt-1">
+              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+                {lang === 'en' ? 'Conversion Rate' : "Taux d'entretien"} :
+              </span>
+              <span className={`font-mono font-bold text-xs ${data.conversionRate > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`}>
+                {data.conversionRate}%
+              </span>
+            </div>
+          </div>
+
+          {/* ALL-TIME AVERAGE FOR THIS POINT (in All Time mode) */}
+          {isAllTime && (
+            <div className="space-y-1.5 pt-0.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                {t.allTimeAverageForPoint || (lang === 'en' ? 'All-Time Average / year' : 'Moyenne annuelle')}
+              </div>
+              {visibleLines.sent && (
+                <div className="flex items-center justify-between gap-4 text-blue-600 dark:text-blue-400 text-xs font-medium">
+                  <span>{t.avgSentLabel || (lang === 'en' ? 'Avg. Sent' : 'Moyenne envoyées')} :</span>
+                  <span className="font-mono font-bold text-gray-900 dark:text-white">
+                    {data.avgSent} <span className="text-[10px] font-normal text-gray-400">/ {lang === 'en' ? 'yr' : 'an'}</span>
+                  </span>
+                </div>
+              )}
+              {visibleLines.interviews && (
+                <div className="flex items-center justify-between gap-4 text-purple-600 dark:text-purple-400 text-xs font-medium">
+                  <span>{t.avgInterviewsLabel || (lang === 'en' ? 'Avg. Interviews' : 'Moyenne entretiens')} :</span>
+                  <span className="font-mono font-bold text-gray-900 dark:text-white">
+                    {data.avgInterviews} <span className="text-[10px] font-normal text-gray-400">/ {lang === 'en' ? 'yr' : 'an'}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       );
     }
@@ -682,68 +908,152 @@ export const DetailedStatsView = ({
         </div>
       </div>
 
-      {/* 2. DUAL-AXIS LINE GRAPH: APPLICATION VELOCITY */}
+      {/* 2. DUAL-AXIS / VELOCITY GRAPH: APPLICATION VELOCITY */}
       <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-100 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
           <div>
             <div className="flex items-center gap-2.5">
               <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
                 <TrendingUp size={18} />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                {t.appVelocity || 'Vélocité des candidatures (Timeline & Réponses)'}
+                {t.appVelocity || 'Vélocité des candidatures'}
               </h3>
             </div>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {t.appVelocitySubtitle || 'Évolution dans le temps : volume de candidatures envoyées vs volume de réponses reçues (entretiens et refus).'}
+              {timePeriod === 'all'
+                ? (lang === 'en'
+                    ? `Bi-weekly trends: Al Time average ${velocityData[0]?.yearsSpanLabel ? `(${velocityData[0].yearsSpanLabel})` : ''} with total stats for each point.`
+                    : `Tendances par quinzaine : moyenne All-Time ${velocityData[0]?.yearsSpanLabel ? `(${velocityData[0].yearsSpanLabel})` : ''} avec statistiques totales pour chaque point.`)
+                : (t.appVelocitySubtitle || 'Évolution dans le temps : volume de candidatures envoyées vs entretiens obtenus.')}
             </p>
           </div>
 
-          <div className="flex items-center flex-wrap gap-2 sm:gap-3 text-xs font-semibold">
-            {/* Toggle Applications Sent */}
-            <button
-              type="button"
-              onClick={() => toggleLine('sent')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
-                visibleLines.sent
-                  ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 shadow-2xs'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 opacity-60 hover:opacity-100'
-              }`}
-              title={visibleLines.sent ? 'Cliquer pour masquer' : 'Cliquer pour afficher'}
-            >
-              <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.sent ? 'bg-blue-600' : 'bg-gray-400'}`} />
-              <span className={!visibleLines.sent ? 'line-through' : ''}>{t.appsSent || 'Candidatures envoyées'}</span>
-            </button>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-semibold">
+            {/* Time Period Selector */}
+            <div className="inline-flex items-center bg-gray-100 dark:bg-gray-700/80 p-1 rounded-xl border border-gray-200 dark:border-gray-600/70">
+              <button
+                type="button"
+                onClick={() => setTimePeriod('12m')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  timePeriod === '12m'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                {t.period12M || '12 mois'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimePeriod('6m')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  timePeriod === '6m'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                {t.period6M || '6 mois'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimePeriod('3m')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  timePeriod === '3m'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                {t.period3M || '3 mois'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTimePeriod('all')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  timePeriod === 'all'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                {t.periodAll || 'Al Time average'}
+              </button>
+            </div>
 
-            {/* Toggle Responses Received */}
-            <button
-              type="button"
-              onClick={() => toggleLine('responses')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
-                visibleLines.responses
-                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 shadow-2xs'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 opacity-60 hover:opacity-100'
-              }`}
-              title={visibleLines.responses ? 'Cliquer pour masquer' : 'Cliquer pour afficher'}
-            >
-              <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.responses ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-              <span className={!visibleLines.responses ? 'line-through' : ''}>{t.responsesReceived || 'Réponses reçues'}</span>
-            </button>
+            {/* In Al Time average mode: Toggle plotting Average vs Total stats */}
+            {timePeriod === 'all' && (
+              <div className="inline-flex items-center bg-gray-100 dark:bg-gray-700/80 p-1 rounded-xl border border-gray-200 dark:border-gray-600/70">
+                <button
+                  type="button"
+                  onClick={() => setAllTimeMetric('avg')}
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    allTimeMetric === 'avg'
+                      ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                  title={lang === 'en' ? 'Plot average on graph' : 'Tracer la moyenne sur le graphique'}
+                >
+                  {t.viewAverage || (lang === 'en' ? 'Average' : 'Moyenne')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAllTimeMetric('total')}
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    allTimeMetric === 'total'
+                      ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                  title={lang === 'en' ? 'Plot total stats on graph' : 'Tracer les totaux sur le graphique'}
+                >
+                  {t.viewTotal || 'Total'}
+                </button>
+              </div>
+            )}
 
-            {/* Toggle Success Rate */}
-            <button
-              type="button"
-              onClick={() => toggleLine('successRate')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
-                visibleLines.successRate
-                  ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700 shadow-2xs'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 opacity-60 hover:opacity-100'
-              }`}
-              title={visibleLines.successRate ? 'Cliquer pour masquer' : 'Cliquer pour afficher'}
-            >
-              <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.successRate ? 'bg-purple-500' : 'bg-gray-400'}`} />
-              <span className={!visibleLines.successRate ? 'line-through' : ''}>{t.successRate || 'Taux de succès'} (%)</span>
-            </button>
+            {/* Year Selector if multiple years exist */}
+            {availableYears.length > 1 && timePeriod !== 'all' && (
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="bg-gray-100 dark:bg-gray-700/80 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600/70 rounded-xl px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                aria-label={t.selectYear || 'Année'}
+              >
+                {availableYears.map(yr => (
+                  <option key={yr} value={yr}>{yr}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Line Toggles: Exactly 2 lines (Applications sent and Interviews) */}
+            <div className="flex items-center gap-1.5 pl-1 border-l border-gray-200 dark:border-gray-700">
+              {/* Toggle Applications Sent */}
+              <button
+                type="button"
+                onClick={() => toggleLine('sent')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
+                  visibleLines.sent
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 shadow-2xs'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 opacity-60 hover:opacity-100'
+                }`}
+                title={visibleLines.sent ? 'Cliquer pour masquer' : 'Cliquer pour afficher'}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.sent ? 'bg-blue-600' : 'bg-gray-400'}`} />
+                <span className={!visibleLines.sent ? 'line-through' : ''}>{t.appsSent || 'Candidatures envoyées'}</span>
+              </button>
+
+              {/* Toggle Interviews */}
+              <button
+                type="button"
+                onClick={() => toggleLine('interviews')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
+                  visibleLines.interviews
+                    ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700 shadow-2xs'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 opacity-60 hover:opacity-100'
+                }`}
+                title={visibleLines.interviews ? 'Cliquer pour masquer' : 'Cliquer pour afficher'}
+              >
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.interviews ? 'bg-purple-600' : 'bg-gray-400'}`} />
+                <span className={!visibleLines.interviews ? 'line-through' : ''}>{t.interviewsCountLabel || t.interviews || 'Entretiens'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -753,34 +1063,24 @@ export const DetailedStatsView = ({
               <LineChart data={velocityData} margin={{ top: 15, right: 15, left: -10, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-gray-700/60" vertical={false} />
                 <XAxis 
-                  dataKey="month" 
+                  dataKey="id" 
+                  ticks={monthTicks}
+                  tickFormatter={(id) => monthTickMap[id] || ''}
                   interval={0}
                   tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} 
                   axisLine={{ stroke: '#cbd5e1' }}
                   tickLine={{ stroke: '#cbd5e1' }}
                   dy={4}
                   minTickGap={0}
-                  padding={{ left: 10, right: 10 }}
+                  padding={{ left: 16, right: 16 }}
                 />
-                {(visibleLines.sent || visibleLines.responses) && (
+                {(visibleLines.sent || visibleLines.interviews) && (
                   <YAxis 
                     yAxisId="left"
                     domain={[0, maxVelocityValue]}
-                    allowDecimals={false}
+                    allowDecimals={timePeriod === 'all' && allTimeMetric === 'avg'}
                     tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
                     axisLine={{ stroke: '#cbd5e1' }}
-                    tickLine={false}
-                  />
-                )}
-                {visibleLines.successRate && (
-                  <YAxis 
-                    yAxisId="right"
-                    orientation="right"
-                    domain={[0, 100]}
-                    ticks={[0, 25, 50, 75, 100]}
-                    tickFormatter={(val) => `${val}%`}
-                    tick={{ fill: '#a855f7', fontSize: 12, fontWeight: 500 }}
-                    axisLine={{ stroke: '#d8b4fe' }}
                     tickLine={false}
                   />
                 )}
@@ -792,34 +1092,21 @@ export const DetailedStatsView = ({
                     dataKey="sent"
                     name={t.appsSent || 'Candidatures envoyées'}
                     stroke="#2563eb"
-                    strokeWidth={3.5}
-                    dot={{ r: 4.5, fill: '#2563eb', strokeWidth: 2, stroke: '#fff' }}
-                    activeDot={{ r: 7, strokeWidth: 2, stroke: '#fff' }}
+                    strokeWidth={3}
+                    dot={renderSentDot}
+                    activeDot={{ r: 6.5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 )}
-                {visibleLines.responses && (
+                {visibleLines.interviews && (
                   <Line
                     yAxisId="left"
                     type="monotone"
-                    dataKey="responses"
-                    name={t.responsesReceived || 'Réponses reçues'}
-                    stroke="#10b981"
-                    strokeWidth={3.5}
-                    dot={{ r: 4.5, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
-                    activeDot={{ r: 7, strokeWidth: 2, stroke: '#fff' }}
-                  />
-                )}
-                {visibleLines.successRate && (
-                  <Line
-                    yAxisId="right"
-                    type="monotone"
-                    dataKey="successRate"
-                    name={`${t.successRate || 'Taux de succès'} (%)`}
-                    stroke="#a855f7"
+                    dataKey="interviews"
+                    name={t.interviewsCountLabel || t.interviews || 'Entretiens'}
+                    stroke="#8b5cf6"
                     strokeWidth={3}
-                    strokeDasharray="4 4"
-                    dot={{ r: 4.5, fill: '#a855f7', strokeWidth: 2, stroke: '#fff' }}
-                    activeDot={{ r: 7, strokeWidth: 2, stroke: '#fff' }}
+                    dot={renderInterviewDot}
+                    activeDot={{ r: 6.5, strokeWidth: 2, stroke: '#fff' }}
                   />
                 )}
               </LineChart>
@@ -827,7 +1114,7 @@ export const DetailedStatsView = ({
           </div>
         ) : (
           <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
-            {t.noDataForVelocity || 'Ajoutez des candidatures avec des dates valides pour visualiser la courbe de vélocité.'}
+            {t.noVelocityData || 'Ajoutez des candidatures avec des dates valides pour visualiser la courbe de vélocité.'}
           </div>
         )}
       </div>

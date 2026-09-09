@@ -811,9 +811,10 @@ export async function importJobFromUrl(
   // 2. Secondary Strategy: Direct client-side Jina Reader proxy fallback
   if (!rawExtractedText || rawExtractedText.length < 50) {
     try {
-      const proxyUrl = `https://r.jina.ai/${encodeURIComponent(formattedUrl)}`;
+      const proxyUrl = `https://r.jina.ai/${formattedUrl}`;
       const response = await fetch(proxyUrl, {
-        headers: { Accept: 'text/plain' }
+        headers: { Accept: 'text/plain' },
+        signal: AbortSignal.timeout ? AbortSignal.timeout(12000) : undefined
       });
       if (response.ok) {
         const body = await response.text();
@@ -822,7 +823,7 @@ export async function importJobFromUrl(
         }
       }
     } catch (clientErr) {
-      console.warn('Client Jina fetch warning:', clientErr);
+      console.warn('Client Jina fetch notice:', clientErr);
     }
   }
 

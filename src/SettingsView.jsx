@@ -11,8 +11,15 @@ import {
   Eye, 
   EyeOff, 
   Key,
-  ShieldCheck
+  ShieldCheck,
+  Terminal,
+  RotateCcw,
+  Save,
+  FileText,
+  Mail,
+  Info
 } from 'lucide-react';
+import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
 
 export default function SettingsView({
   t,
@@ -30,10 +37,44 @@ export default function SettingsView({
   showDevStudio,
   handleToggleDevStudio,
   onOpenResetConfirm,
-  resetSuccessNotice
+  onOpenDemoConfirm,
+  resetSuccessNotice,
+  masterCvPrompt,
+  setMasterCvPrompt,
+  masterLetterPrompt,
+  setMasterLetterPrompt,
+  onRestoreMasterCvPrompt,
+  onRestoreMasterLetterPrompt
 }) {
   const [showKey, setShowKey] = useState(false);
   const [savedKeyNotice, setSavedKeyNotice] = useState(false);
+
+  // Master Prompt editor state
+  const [activePromptTab, setActivePromptTab] = useState('cv'); // 'cv' or 'letter'
+  const [promptSavedNotice, setPromptSavedNotice] = useState(false);
+  const [promptRestoredNotice, setPromptRestoredNotice] = useState(false);
+  const [showPromptRestoreConfirm, setShowPromptRestoreConfirm] = useState(false);
+
+  const isCvPromptModified = (masterCvPrompt || '').trim() !== DEFAULT_MASTER_CV_PROMPT.trim();
+  const isLetterPromptModified = (masterLetterPrompt || '').trim() !== DEFAULT_MASTER_LETTER_PROMPT.trim();
+
+  const handleSavePrompt = () => {
+    setPromptSavedNotice(true);
+    setPromptRestoredNotice(false);
+    setTimeout(() => setPromptSavedNotice(false), 2500);
+  };
+
+  const handleRestorePrompt = () => {
+    if (activePromptTab === 'cv') {
+      if (onRestoreMasterCvPrompt) onRestoreMasterCvPrompt();
+    } else {
+      if (onRestoreMasterLetterPrompt) onRestoreMasterLetterPrompt();
+    }
+    setShowPromptRestoreConfirm(false);
+    setPromptRestoredNotice(true);
+    setPromptSavedNotice(false);
+    setTimeout(() => setPromptRestoredNotice(false), 2500);
+  };
 
   const handleKeyChange = (val, setter) => {
     setter(val);
@@ -264,6 +305,200 @@ export default function SettingsView({
         )}
       </div>
 
+      {/* 1b. MASTER AI PROMPT CONFIGURATION & RESTORE */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 p-5 sm:p-6 transition-colors space-y-5">
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
+              <Terminal size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                  {t.masterPromptConfigTitle || (lang === 'en' ? 'Master AI Prompts (System Instructions)' : 'Prompt Maître de l\'IA (Instructions Système)')}
+                </h3>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  (activePromptTab === 'cv' ? isCvPromptModified : isLetterPromptModified)
+                    ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
+                }`}>
+                  {(activePromptTab === 'cv' ? isCvPromptModified : isLetterPromptModified)
+                    ? (t.masterPromptModifiedBadge || (lang === 'en' ? 'Customized' : 'Personnalisé'))
+                    : (t.masterPromptDefaultBadge || (lang === 'en' ? 'Default' : 'Par défaut'))}
+                </span>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 max-w-2xl">
+                {t.masterPromptConfigSubtitle || (lang === 'en' ? 'Customize the core instructions sent to the AI when generating resumes and cover letters, with the option to restore the original baseline at any time.' : 'Personnalisez les directives fondamentales envoyées à l\'IA lors de la génération de CV et de lettres de motivation, avec option de réinitialisation aux valeurs d\'usine.')}
+              </p>
+            </div>
+          </div>
+
+          {/* Prompt Tabs Switcher */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700/80 p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setActivePromptTab('cv');
+                setShowPromptRestoreConfirm(false);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activePromptTab === 'cv'
+                  ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <FileText size={13} />
+              <span>{t.masterPromptCvTab || (lang === 'en' ? 'Master Resume Prompt' : 'Prompt Maître CV')}</span>
+              {isCvPromptModified && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Modified" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActivePromptTab('letter');
+                setShowPromptRestoreConfirm(false);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                activePromptTab === 'letter'
+                  ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <Mail size={13} />
+              <span>{t.masterPromptLetterTab || (lang === 'en' ? 'Master Cover Letter Prompt' : 'Prompt Maître Lettre')}</span>
+              {isLetterPromptModified && <span className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Modified" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Dynamic Variables Helper Banner */}
+        <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl space-y-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-900 dark:text-indigo-200">
+            <Info size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <span>{t.masterPromptVariablesTitle || (lang === 'en' ? 'Available Dynamic Variables:' : 'Variables disponibles injectées automatiquement :')}</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
+            {activePromptTab === 'cv' ? (
+              <>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{companyName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{roleName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{jobDescription}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateEmail}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidatePhone}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateLocation}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateMasterCV}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{languageDirective}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{densityInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{modificationInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{keywordInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{customInstructions}"}</span>
+              </>
+            ) : (
+              <>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{companyName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{roleName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{jobDescription}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateMasterCV}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateMasterLetter}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{languageDirective}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{toneInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{customInstructions}"}</span>
+              </>
+            )}
+          </div>
+          <p className="text-[11px] text-indigo-800 dark:text-indigo-300 leading-relaxed">
+            {t.masterPromptVariablesHelp || (lang === 'en' ? 'Keep tags enclosed in curly braces {variableName} to ensure candidate and job data are injected dynamically.' : 'Conservez les balises entre accolades {nomVariable} pour que les données du candidat et de l\'offre soient injectées.')}
+          </p>
+        </div>
+
+        {/* Textarea for Editing Prompt */}
+        <div className="space-y-2">
+          <textarea
+            rows={14}
+            value={activePromptTab === 'cv' ? (masterCvPrompt || '') : (masterLetterPrompt || '')}
+            onChange={(e) => {
+              if (activePromptTab === 'cv') {
+                if (setMasterCvPrompt) setMasterCvPrompt(e.target.value);
+              } else {
+                if (setMasterLetterPrompt) setMasterLetterPrompt(e.target.value);
+              }
+            }}
+            placeholder={activePromptTab === 'cv' ? DEFAULT_MASTER_CV_PROMPT : DEFAULT_MASTER_LETTER_PROMPT}
+            className="w-full p-3.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/70 dark:bg-gray-900/60 dark:text-gray-100 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none leading-relaxed transition-all shadow-inner resize-y"
+            spellCheck={false}
+          />
+        </div>
+
+        {/* Action Controls & Notices */}
+        <div className="flex items-center justify-between flex-wrap gap-3 pt-2">
+          <div className="flex items-center gap-2">
+            {/* Save Button */}
+            <button
+              type="button"
+              onClick={handleSavePrompt}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <Save size={15} />
+              <span>{t.masterPromptSaveBtn || (lang === 'en' ? 'Save Prompt Changes' : 'Enregistrer les modifications du prompt')}</span>
+            </button>
+
+            {/* Restore Confirmation Dialog or Button */}
+            {showPromptRestoreConfirm ? (
+              <div className="flex items-center gap-2 p-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl animate-in fade-in">
+                <span className="text-[11px] font-semibold text-rose-700 dark:text-rose-300 px-2">
+                  {lang === 'en' ? 'Confirm restore to original?' : 'Confirmer la restauration originale ?'}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRestorePrompt}
+                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-colors"
+                >
+                  {lang === 'en' ? 'Yes, restore' : 'Oui, restaurer'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPromptRestoreConfirm(false)}
+                  className="px-2 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-medium rounded-lg cursor-pointer transition-colors"
+                >
+                  {t.resetCancelBtn || (lang === 'en' ? 'Cancel' : 'Annuler')}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowPromptRestoreConfirm(true)}
+                disabled={activePromptTab === 'cv' ? !isCvPromptModified : !isLetterPromptModified}
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                  (activePromptTab === 'cv' ? isCvPromptModified : isLetterPromptModified)
+                    ? 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    : 'border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60'
+                }`}
+                title={t.masterPromptResetConfirm}
+              >
+                <RotateCcw size={14} />
+                <span>{t.masterPromptResetBtn || (lang === 'en' ? 'Restore Original Prompt' : 'Restaurer le prompt d\'origine')}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Feedback Notices */}
+          <div>
+            {promptSavedNotice && (
+              <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5 animate-in fade-in">
+                <CheckCircle size={14} />
+                <span>{t.masterPromptSavedNotice || (lang === 'en' ? 'Master prompt successfully saved!' : 'Prompt maître enregistré avec succès !')}</span>
+              </div>
+            )}
+            {promptRestoredNotice && (
+              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1.5 animate-in fade-in">
+                <RotateCcw size={14} />
+                <span>{t.masterPromptRestoredNotice || (lang === 'en' ? 'Original master prompt successfully restored!' : 'Prompt maître restauré avec succès à sa version d\'origine !')}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* 2. DEV STUDIO SETTINGS */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 p-5 sm:p-6 transition-colors">
         <div className="flex items-center justify-between flex-wrap gap-4">
@@ -316,7 +551,34 @@ export default function SettingsView({
         </div>
       </div>
 
-      {/* 3. DANGER ZONE / RESET */}
+      {/* 3. MODE DEMO */}
+      <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-2xl p-5 sm:p-6 transition-colors">
+        <div className="flex items-center gap-2.5 mb-2">
+          <div className="p-2 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-xl">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <h3 className="font-bold text-base text-amber-900 dark:text-amber-200">
+              {t.demoConfirmTitle || (lang === 'en' ? 'Demo Environment (John DEMO)' : 'Environnement de Démo (John DEMO)')}
+            </h3>
+          </div>
+        </div>
+        
+        <p className="text-xs text-amber-800 dark:text-amber-300 mb-4 max-w-2xl leading-relaxed">
+          {t.demoConfirmSubtitle || (lang === 'en' ? 'Quickly populate the app with 200 applications across 3 years, the complete profile of John DEMO, and tailored CVs in the library.' : 'Remplissez instantanément l\'application avec 200 candidatures sur 3 ans, le profil complet de John DEMO et plusieurs CVs stylisés dans la bibliothèque.')}
+        </p>
+
+        <button
+          type="button"
+          onClick={onOpenDemoConfirm}
+          className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-2"
+        >
+          <Sparkles size={16} />
+          <span>{t.demoConfirmBtn || (lang === 'en' ? 'Load Demo Data (200 applications)' : 'Charger la démo (200 candidatures)')}</span>
+        </button>
+      </div>
+
+      {/* 4. DANGER ZONE / RESET */}
       <div className="bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 rounded-2xl p-5 sm:p-6 transition-colors">
         <div className="flex items-center gap-2.5 mb-2">
           <div className="p-2 bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl">

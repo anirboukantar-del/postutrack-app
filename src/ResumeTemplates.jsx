@@ -155,6 +155,7 @@ export function ResumeRenderer({
   profile,
   template = 'rendercv',
   accentColorHex = '#2563eb',
+  accentColor,
   density = 'normal',
   showPhoto = true,
   photoSize = 'md',
@@ -165,6 +166,7 @@ export function ResumeRenderer({
 }) {
   if (!cv) return null;
 
+  const activeColorHex = accentColorHex || accentColor || '#2563eb';
   const displayName = cv.fullName || profile?.fullName || (lang === 'en' ? 'Candidate' : 'Candidat');
   const displayLocation = cv.location || profile?.location;
   const displayEmail = cv.email || profile?.email;
@@ -285,7 +287,8 @@ export function ResumeRenderer({
               <img 
                 src={photoUrl} 
                 alt={displayName} 
-                className={`${photoSizeClasses.rendercv} rounded-full object-cover border border-gray-300 shadow-2xs shrink-0`} 
+                className={`${photoSizeClasses.rendercv} rounded-full object-cover object-top border border-gray-300 shadow-2xs shrink-0`} 
+                referrerPolicy="no-referrer"
               />
             )}
             <div>
@@ -321,7 +324,7 @@ export function ResumeRenderer({
                     </div>
                     <div className="italic text-[12px] mb-0.5 text-gray-800">{exp.role}</div>
                     <ul className="list-disc list-inside text-[11.5px] space-y-0.5 pl-1 text-gray-900">
-                      {exp.achievements?.map((ach, i) => <li key={i} className="leading-snug">{ach}</li>)}
+                      {(exp.achievements || exp.highlights)?.map((ach, i) => <li key={i} className="leading-snug">{ach}</li>)}
                     </ul>
                   </div>
                 ))}
@@ -339,11 +342,11 @@ export function ResumeRenderer({
                 {cv.education.map((edu, idx) => (
                   <div key={idx} className="cv-section-item cv-education-item">
                     <div className="flex justify-between items-baseline mb-0.5">
-                      <strong className="text-[12.5px]">{edu.school}</strong>
-                      <span className="text-[11.5px] text-gray-700">{edu.year}</span>
+                      <strong className="text-[12.5px]">{edu.school || edu.institution}</strong>
+                      <span className="text-[11.5px] text-gray-700">{edu.year || edu.period}</span>
                     </div>
                     <div className="italic text-[12px] text-gray-800">{edu.degree}</div>
-                    {edu.description && <p className="text-[11.5px] text-gray-700 mt-0.5 leading-snug">{edu.description}</p>}
+                    {(edu.description || edu.details) && <p className="text-[11.5px] text-gray-700 mt-0.5 leading-snug">{edu.description || edu.details}</p>}
                   </div>
                 ))}
               </div>
@@ -439,8 +442,9 @@ export function ResumeRenderer({
               <img 
                 src={photoUrl} 
                 alt={displayName} 
-                className={`${photoSizeClasses.azurill} rounded-2xl object-cover shadow-xs border shrink-0`} 
+                className={`${photoSizeClasses.azurill} rounded-2xl object-cover object-top shadow-xs border shrink-0`} 
                 style={{ borderColor: accentColorHex }}
+                referrerPolicy="no-referrer"
               />
             )}
           </div>
@@ -473,7 +477,7 @@ export function ResumeRenderer({
                     </div>
                     <div className="text-[12px] font-medium text-slate-700 mb-0.5">{exp.role}</div>
                     <ul className="list-disc list-inside space-y-0.5 text-[11.5px] text-slate-600 pl-1">
-                      {exp.achievements?.map((ach, i) => (
+                      {(exp.achievements || exp.highlights)?.map((ach, i) => (
                         <li key={i} className="leading-snug">{ach}</li>
                       ))}
                     </ul>
@@ -497,12 +501,12 @@ export function ResumeRenderer({
                 {cv.education.map((edu, idx) => (
                   <div key={idx} className="relative pl-3 border-l-2 cv-section-item cv-education-item" style={{ borderColor: `${accentColorHex}40` }}>
                     <div className="flex justify-between items-baseline flex-wrap gap-1">
-                      <span className="font-bold text-[12px] text-slate-900">{edu.school}</span>
-                      <span className="text-[11px] font-semibold" style={{ color: accentColorHex }}>{edu.year}</span>
+                      <span className="font-bold text-[12px] text-slate-900">{edu.school || edu.institution}</span>
+                      <span className="text-[11px] font-semibold" style={{ color: accentColorHex }}>{edu.year || edu.period}</span>
                     </div>
                     <div className="text-[11.5px] text-slate-700 font-medium">{edu.degree}</div>
-                    {edu.description && (
-                      <p className="text-[11px] text-slate-600 leading-snug mt-0.5">{edu.description}</p>
+                    {(edu.description || edu.details) && (
+                      <p className="text-[11px] text-slate-600 leading-snug mt-0.5">{edu.description || edu.details}</p>
                     )}
                   </div>
                 ))}
@@ -591,8 +595,9 @@ export function ResumeRenderer({
                 <img
                   src={photoUrl}
                   alt={displayName}
-                  className={`${photoSizeClasses.bronzor} rounded-2xl object-cover shadow-xs border`}
+                  className={`${photoSizeClasses.bronzor} rounded-2xl object-cover object-top shadow-xs border`}
                   style={{ borderColor: accentColorHex }}
+                  referrerPolicy="no-referrer"
                 />
               </div>
             )}
@@ -700,7 +705,7 @@ export function ResumeRenderer({
                       </div>
                       <div className="text-[11.5px] font-medium text-slate-700 mb-0.5">{exp.company}</div>
                       <ul className="space-y-0.5 text-[11px] text-slate-600">
-                        {exp.achievements?.map((ach, i) => (
+                        {(exp.achievements || exp.highlights)?.map((ach, i) => (
                           <li key={i} className="leading-snug pl-1.5 border-l border-slate-200">
                             {ach}
                           </li>
@@ -728,11 +733,11 @@ export function ResumeRenderer({
                       />
                       <div className="flex justify-between items-baseline flex-wrap gap-1">
                         <span className="font-bold text-[12px] text-slate-900">{edu.degree}</span>
-                        <span className="text-[11px] font-semibold" style={{ color: accentColorHex }}>{edu.year}</span>
+                        <span className="text-[11px] font-semibold" style={{ color: accentColorHex }}>{edu.year || edu.period}</span>
                       </div>
-                      <div className="text-[11.5px] text-slate-700 font-medium">{edu.school}</div>
-                      {edu.description && (
-                        <p className="text-[10.5px] text-slate-600 leading-snug mt-0.5">{edu.description}</p>
+                      <div className="text-[11.5px] text-slate-700 font-medium">{edu.school || edu.institution}</div>
+                      {(edu.description || edu.details) && (
+                        <p className="text-[10.5px] text-slate-600 leading-snug mt-0.5">{edu.description || edu.details}</p>
                       )}
                     </div>
                   ))}
@@ -778,7 +783,8 @@ export function ResumeRenderer({
               <img 
                 src={photoUrl} 
                 alt={displayName} 
-                className={`${photoSizeClasses.dittox} rounded-xl object-cover shadow-xs border border-slate-300 shrink-0`} 
+                className={`${photoSizeClasses.dittox} rounded-xl object-cover object-top shadow-xs border border-slate-300 shrink-0`} 
+                referrerPolicy="no-referrer"
               />
             )}
             <div>
@@ -822,7 +828,7 @@ export function ResumeRenderer({
                     <span className="text-[11px] font-mono text-slate-500">{exp.period}</span>
                   </div>
                   <ul className="space-y-0.5 text-[11.5px] text-slate-700 pl-3">
-                    {exp.achievements?.map((ach, i) => (
+                    {(exp.achievements || exp.highlights)?.map((ach, i) => (
                       <li key={i} className="leading-snug list-disc">
                         {ach}
                       </li>
@@ -844,10 +850,10 @@ export function ResumeRenderer({
               {cv.education.map((edu, idx) => (
                 <div key={idx} className="flex justify-between items-baseline flex-wrap gap-1 cv-section-item cv-education-item">
                   <div>
-                    <span className="font-bold text-[12px] text-slate-900">{edu.school}</span>
+                    <span className="font-bold text-[12px] text-slate-900">{edu.school || edu.institution}</span>
                     <span className="text-[11.5px] text-slate-600"> — {edu.degree}</span>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-500">{edu.year}</span>
+                  <span className="text-[11px] font-mono text-slate-500">{edu.year || edu.period}</span>
                 </div>
               ))}
             </div>
