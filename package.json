@@ -1,7 +1,7 @@
 {
   "name": "postutrack-app",
   "private": true,
-  "version": "0.5.1",
+  "version": "0.5.2",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -20,7 +20,8 @@
     "lucide-react": "^0.300.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.11.4",

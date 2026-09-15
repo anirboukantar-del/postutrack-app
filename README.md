@@ -1,4 +1,4 @@
-# PostuTrack (v0.5.1)
+# PostuTrack (v0.5.2)
 
 PostuTrack is a desktop and web application designed to organize, track, and optimize internship and job applications. It integrates artificial intelligence to dynamically tailor your master resume and cover letter for each specific job posting, visualize detailed metrics across the calendar year, and simulate hiring market trends.
 

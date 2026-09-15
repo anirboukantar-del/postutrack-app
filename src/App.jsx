@@ -35,6 +35,9 @@ import {
   Key,
   ArrowRight,
   ArrowLeft,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
   Check,
   Eye,
   EyeOff,
@@ -78,6 +81,7 @@ import { CreditsView } from './CreditsView';
 import { DetailedStatsView } from './DetailedStatsView';
 import SettingsView from './SettingsView';
 import CVLibrary from './CVLibrary';
+import ImportApplicationsModal from './ImportApplicationsModal';
 import { getDemoProfile, generateDemoApplications, getDemoCvLibrary } from './demoData';
 import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
 import { buildPromptWithTemplate } from './promptBuilder';
@@ -100,6 +104,7 @@ export const SOURCE_KEYS = [
   'Email direct',
   'Cooptation',
   'Candidature Spontanée',
+  'Inconnue',
   'Autre'
 ];
 
@@ -262,11 +267,14 @@ const getSourceLabel = (src, t) => {
     case 'Candidature Spontanée':
     case 'Cold Outreach':
       return t.sourceSpontaneous;
+    case 'Inconnue':
+    case 'Unknown':
+      return t.sourceUnknown || 'Inconnue';
     case 'Autre':
     case 'Other':
       return t.sourceOther;
     default:
-      return src || 'Workday';
+      return src || (t.sourceUnknown || 'Inconnue');
   }
 };
 
@@ -310,6 +318,9 @@ const getSourceBadgeStyle = (src) => {
     case 'Candidature Spontanée':
     case 'Cold Outreach':
       return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800';
+    case 'Inconnue':
+    case 'Unknown':
+      return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
     default:
       return 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
   }
@@ -2400,14 +2411,111 @@ export default function App() {
     });
   };
 
-  // Applications Search & Filter States
+  // Applications Search, Filter & Sort States
   const [appSearchQuery, setAppSearchQuery] = useState('');
   const [appStatusFilter, setAppStatusFilter] = useState('all');
   const [appContractFilter, setAppContractFilter] = useState('all');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importSuccessNotice, setImportSuccessNotice] = useState(null);
 
-  // Filtered applications list
+  const handleImportApplicationsComplete = ({ importedApps, mode, fileName, count }) => {
+    if (!importedApps || !importedApps.length) return;
+
+    if (mode === 'replace') {
+      setApplications(autoApplyGhostStatus(importedApps).updated);
+    } else {
+      // Merge mode: append new and update matching apps without losing existing ones
+      setApplications(prev => {
+        const existingKeyMap = new Map();
+        prev.forEach(app => {
+          const key = `${(app.company || '').trim().toLowerCase()}|${(app.role || '').trim().toLowerCase()}`;
+          existingKeyMap.set(key, app);
+        });
+
+        const newApps = [];
+        const updatedList = prev.map(app => {
+          const key = `${(app.company || '').trim().toLowerCase()}|${(app.role || '').trim().toLowerCase()}`;
+          const importedMatch = importedApps.find(imp => {
+            const impKey = `${(imp.company || '').trim().toLowerCase()}|${(imp.role || '').trim().toLowerCase()}`;
+            return impKey === key;
+          });
+          if (importedMatch) {
+            return {
+              ...app,
+              ...importedMatch,
+              id: app.id // retain existing stable ID
+            };
+          }
+          return app;
+        });
+
+        importedApps.forEach(imp => {
+          const key = `${(imp.company || '').trim().toLowerCase()}|${(imp.role || '').trim().toLowerCase()}`;
+          if (!existingKeyMap.has(key)) {
+            newApps.push(imp);
+          }
+        });
+
+        const combined = [...newApps, ...updatedList];
+        return autoApplyGhostStatus(combined).updated;
+      });
+    }
+
+    setImportSuccessNotice({
+      count,
+      fileName,
+      mode
+    });
+    setTimeout(() => setImportSuccessNotice(null), 5000);
+  };
+  const [appSortField, setAppSortField] = useState(() => {
+    try {
+      return localStorage.getItem('postutrack_app_sort_field') || 'date';
+    } catch (e) {
+      return 'date';
+    }
+  });
+  const [appSortOrder, setAppSortOrder] = useState(() => {
+    try {
+      return localStorage.getItem('postutrack_app_sort_order') || 'desc';
+    } catch (e) {
+      return 'desc';
+    }
+  });
+
+  const handleSortChange = (field) => {
+    if (appSortField === field) {
+      const nextOrder = appSortOrder === 'asc' ? 'desc' : 'asc';
+      setAppSortOrder(nextOrder);
+      try {
+        localStorage.setItem('postutrack_app_sort_order', nextOrder);
+      } catch (e) {}
+    } else {
+      setAppSortField(field);
+      const defaultOrder = field === 'date' ? 'desc' : 'asc';
+      setAppSortOrder(defaultOrder);
+      try {
+        localStorage.setItem('postutrack_app_sort_field', field);
+        localStorage.setItem('postutrack_app_sort_order', defaultOrder);
+      } catch (e) {}
+    }
+  };
+
+  const handleSortSelectChange = (combinedValue) => {
+    const [field, order] = combinedValue.split('-');
+    if (field) {
+      setAppSortField(field);
+      try { localStorage.setItem('postutrack_app_sort_field', field); } catch (e) {}
+    }
+    if (order) {
+      setAppSortOrder(order);
+      try { localStorage.setItem('postutrack_app_sort_order', order); } catch (e) {}
+    }
+  };
+
+  // Filtered and Sorted applications list
   const filteredApplications = useMemo(() => {
-    return applications.filter(app => {
+    const list = applications.filter(app => {
       // Search query filter (matches company, role, platform/source, contract type, notes, date, status label)
       if (appSearchQuery.trim()) {
         const q = appSearchQuery.toLowerCase().trim();
@@ -2448,7 +2556,68 @@ export default function App() {
 
       return true;
     });
-  }, [applications, appSearchQuery, appStatusFilter, appContractFilter, t]);
+
+    list.sort((a, b) => {
+      let comparison = 0;
+      switch (appSortField) {
+        case 'company': {
+          const compA = (a.company || '').trim();
+          const compB = (b.company || '').trim();
+          comparison = compA.localeCompare(compB, lang, { sensitivity: 'base', numeric: true });
+          break;
+        }
+        case 'role': {
+          const roleA = (a.role || '').trim();
+          const roleB = (b.role || '').trim();
+          comparison = roleA.localeCompare(roleB, lang, { sensitivity: 'base', numeric: true });
+          break;
+        }
+        case 'source': {
+          const srcA = getSourceLabel(a.source || '', t).trim();
+          const srcB = getSourceLabel(b.source || '', t).trim();
+          comparison = srcA.localeCompare(srcB, lang, { sensitivity: 'base', numeric: true });
+          break;
+        }
+        case 'type': {
+          const typeA = getContractLabel(a.type || '', t).trim();
+          const typeB = getContractLabel(b.type || '', t).trim();
+          comparison = typeA.localeCompare(typeB, lang, { sensitivity: 'base', numeric: true });
+          break;
+        }
+        case 'status': {
+          const statA = getStatusLabel(a.status || '', t).trim();
+          const statB = getStatusLabel(b.status || '', t).trim();
+          comparison = statA.localeCompare(statB, lang, { sensitivity: 'base', numeric: true });
+          break;
+        }
+        case 'date':
+        default: {
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          if (isNaN(dateA) && isNaN(dateB)) comparison = 0;
+          else if (isNaN(dateA)) comparison = -1;
+          else if (isNaN(dateB)) comparison = 1;
+          else comparison = dateA - dateB;
+          break;
+        }
+      }
+
+      // Secondary fallback sorting: date descending, then ID descending
+      if (comparison === 0) {
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        if (!isNaN(dateA) && !isNaN(dateB) && dateA !== dateB) {
+          comparison = dateA - dateB;
+        } else {
+          comparison = (a.id || 0) - (b.id || 0);
+        }
+      }
+
+      return appSortOrder === 'desc' ? -comparison : comparison;
+    });
+
+    return list;
+  }, [applications, appSearchQuery, appStatusFilter, appContractFilter, appSortField, appSortOrder, t, lang]);
 
   // AI Letter States
   const [generationMode, setGenerationMode] = useState('cv'); // 'cv' or 'letter'
@@ -3513,7 +3682,7 @@ ${aiResult.coverLetter}`;
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.5.1
+            v0.5.2
           </span>
         </h1>
       </div>
@@ -3622,7 +3791,7 @@ ${aiResult.coverLetter}`;
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.5.1
+                v0.5.2
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -4027,6 +4196,15 @@ ${aiResult.coverLetter}`;
                 </div>
                 <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full sm:w-auto">
                   <button 
+                    type="button"
+                    onClick={() => setIsImportModalOpen(true)} 
+                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    title={t.importApplicationsModalTitle || "Importer des candidatures (Excel, CSV, JSON)"}
+                  >
+                    <Upload size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                    <span>{t.importApplicationsBtn || "Importer"}</span>
+                  </button>
+                  <button 
                     onClick={handleExportCSV} 
                     className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
                     title={t.exportDataTooltip}
@@ -4104,14 +4282,58 @@ ${aiResult.coverLetter}`;
                     </select>
                   </div>
 
-                  {/* Reset Filters button if any filter is active */}
-                  {(appSearchQuery || appStatusFilter !== 'all' || appContractFilter !== 'all') && (
+                  {/* Sort Order Selector */}
+                  <div className="flex items-center gap-1 flex-1 sm:flex-none">
+                    <div className="relative flex-1 sm:flex-none">
+                      <select
+                        value={`${appSortField}-${appSortOrder}`}
+                        onChange={(e) => handleSortSelectChange(e.target.value)}
+                        className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200 font-medium cursor-pointer shadow-2xs"
+                        title={t.sortBy || "Trier par"}
+                        aria-label={t.sortBy || "Trier par"}
+                      >
+                        <option value="date-desc">{t.sortByDateDesc || "Date (récente d'abord)"}</option>
+                        <option value="date-asc">{t.sortByDateAsc || "Date (ancienne d'abord)"}</option>
+                        <option value="company-asc">{t.sortByCompanyAsc || "Entreprise (A - Z)"}</option>
+                        <option value="company-desc">{t.sortByCompanyDesc || "Entreprise (Z - A)"}</option>
+                        <option value="role-asc">{t.sortByRoleAsc || "Poste (A - Z)"}</option>
+                        <option value="role-desc">{t.sortByRoleDesc || "Poste (Z - A)"}</option>
+                        <option value="source-asc">{t.sortByPlatformAsc || "Plateforme (A - Z)"}</option>
+                        <option value="source-desc">{t.sortByPlatformDesc || "Plateforme (Z - A)"}</option>
+                        <option value="type-asc">{t.sortByContractAsc || "Contrat (A - Z)"}</option>
+                        <option value="status-asc">{t.sortByStatusAsc || "Statut"}</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextOrder = appSortOrder === 'asc' ? 'desc' : 'asc';
+                        setAppSortOrder(nextOrder);
+                        try { localStorage.setItem('postutrack_app_sort_order', nextOrder); } catch (e) {}
+                      }}
+                      className="p-2 text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                      title={appSortOrder === 'asc' ? (t.sortAscending || "Ordre croissant") : (t.sortDescending || "Ordre décroissant")}
+                      aria-label={appSortOrder === 'asc' ? (t.sortAscending || "Ordre croissant") : (t.sortDescending || "Ordre décroissant")}
+                    >
+                      {appSortOrder === 'asc' ? <ArrowUp size={15} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={15} className="text-blue-600 dark:text-blue-400" />}
+                    </button>
+                  </div>
+
+                  {/* Reset Filters button if any filter or custom sort is active */}
+                  {(appSearchQuery || appStatusFilter !== 'all' || appContractFilter !== 'all' || appSortField !== 'date' || appSortOrder !== 'desc') && (
                     <button
                       type="button"
                       onClick={() => {
                         setAppSearchQuery('');
                         setAppStatusFilter('all');
                         setAppContractFilter('all');
+                        setAppSortField('date');
+                        setAppSortOrder('desc');
+                        try {
+                          localStorage.setItem('postutrack_app_sort_field', 'date');
+                          localStorage.setItem('postutrack_app_sort_order', 'desc');
+                        } catch (e) {}
                       }}
                       className="px-2.5 sm:px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors flex items-center gap-1 cursor-pointer shrink-0"
                       title={t.clearFilters || "Effacer"}
@@ -4129,6 +4351,26 @@ ${aiResult.coverLetter}`;
                   )}
                 </div>
               </div>
+
+              {/* Import Feedback Banner */}
+              {importSuccessNotice && (
+                <div className="mx-3 sm:mx-4 mt-3 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-xl text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <span>
+                      <strong>{importSuccessNotice.count}</strong> {t.importSuccessNotification || "candidatures importées avec succès !"}
+                      {importSuccessNotice.fileName && <span className="opacity-75 text-2xs ml-1 font-mono">({importSuccessNotice.fileName})</span>}
+                    </span>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setImportSuccessNotice(null)}
+                    className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 p-1 rounded-md cursor-pointer"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+              )}
 
               {/* Mobile Card List (< 640px) */}
               <div className="block sm:hidden divide-y divide-gray-100 dark:divide-gray-700/80">
@@ -4213,12 +4455,102 @@ ${aiResult.coverLetter}`;
                 <table className="w-full table-fixed text-left border-collapse text-xs md:text-sm">
                   <thead>
                     <tr className="bg-gray-100/70 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs uppercase tracking-wider border-b dark:border-gray-700">
-                      <th className="w-[20%] px-3 py-2.5 font-semibold truncate">{t.company}</th>
-                      <th className="w-[27%] px-3 py-2.5 font-semibold truncate">{t.role}</th>
-                      <th className="w-[15%] px-2 py-2.5 font-semibold truncate">{t.platformHeader || t.source}</th>
-                      <th className="w-[13%] px-2 py-2.5 font-semibold truncate">{t.contractHeader || t.contract}</th>
-                      <th className="w-[11%] px-2 py-2.5 font-semibold truncate">{t.dateHeader || t.date}</th>
-                      <th className="w-[10%] px-2 py-2.5 font-semibold truncate">{t.statusHeader || t.status}</th>
+                      <th 
+                        onClick={() => handleSortChange('company')}
+                        className={`w-[20%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'company' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        title={`${t.sortBy || 'Trier par'} ${t.company}`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t.company}</span>
+                          <span className="shrink-0">
+                            {appSortField === 'company' ? (
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortChange('role')}
+                        className={`w-[27%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'role' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        title={`${t.sortBy || 'Trier par'} ${t.role}`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t.role}</span>
+                          <span className="shrink-0">
+                            {appSortField === 'role' ? (
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortChange('source')}
+                        className={`w-[15%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'source' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        title={`${t.sortBy || 'Trier par'} ${t.platformHeader || t.source}`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t.platformHeader || t.source}</span>
+                          <span className="shrink-0">
+                            {appSortField === 'source' ? (
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortChange('type')}
+                        className={`w-[13%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'type' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        title={`${t.sortBy || 'Trier par'} ${t.contractHeader || t.contract}`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t.contractHeader || t.contract}</span>
+                          <span className="shrink-0">
+                            {appSortField === 'type' ? (
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortChange('date')}
+                        className={`w-[11%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'date' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        title={`${t.sortBy || 'Trier par'} ${t.dateHeader || t.date}`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t.dateHeader || t.date}</span>
+                          <span className="shrink-0">
+                            {appSortField === 'date' ? (
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </span>
+                        </div>
+                      </th>
+                      <th 
+                        onClick={() => handleSortChange('status')}
+                        className={`w-[10%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'status' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        title={`${t.sortBy || 'Trier par'} ${t.statusHeader || t.status}`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="truncate">{t.statusHeader || t.status}</span>
+                          <span className="shrink-0">
+                            {appSortField === 'status' ? (
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                            ) : (
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            )}
+                          </span>
+                        </div>
+                      </th>
                       <th className="w-[4%] px-2 py-2.5 text-center font-semibold truncate">{t.actions}</th>
                     </tr>
                   </thead>
@@ -4938,6 +5270,15 @@ ${aiResult.coverLetter}`;
                       <Download size={15} />
                       {t.exportCSVBtn}
                     </button>
+                    <button 
+                      type="button" 
+                      onClick={() => setIsImportModalOpen(true)} 
+                      className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
+                      title={t.importApplicationsModalTitle || "Importer des candidatures (Excel, CSV, JSON)"}
+                    >
+                      <Upload size={15} />
+                      {t.importApplicationsBtn || "Importer"} (Excel, CSV, JSON)
+                    </button>
                     <label className="cursor-pointer px-4 py-2 bg-white border border-amber-300 text-amber-700 dark:bg-gray-800 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-gray-700 rounded-lg text-sm font-medium hover:bg-amber-100/50 shadow-xs transition-colors flex items-center gap-1.5">
                       <Upload size={15} />
                       {t.importBackupBtn}
@@ -5023,6 +5364,16 @@ ${aiResult.coverLetter}`;
           setIsAddModalOpen(false);
           setEditingApplication(null);
         }}
+      />
+
+      {/* Modal d'import de candidatures (Excel, CSV, TSV, JSON) */}
+      <ImportApplicationsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportComplete={handleImportApplicationsComplete}
+        existingApplications={applications}
+        t={t}
+        lang={lang}
       />
 
       {/* Modal de Confirmation de Réinitialisation Complète */}
