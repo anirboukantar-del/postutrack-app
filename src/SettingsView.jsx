@@ -19,6 +19,7 @@ import {
   Mail,
   Info
 } from 'lucide-react';
+import { BookOpen, HelpCircle, ExternalLink } from 'lucide-react';
 import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
 
 export default function SettingsView({
@@ -44,7 +45,8 @@ export default function SettingsView({
   masterLetterPrompt,
   setMasterLetterPrompt,
   onRestoreMasterCvPrompt,
-  onRestoreMasterLetterPrompt
+  onRestoreMasterLetterPrompt,
+  onOpenTutorial
 }) {
   const [showKey, setShowKey] = useState(false);
   const [savedKeyNotice, setSavedKeyNotice] = useState(false);
@@ -149,14 +151,54 @@ export default function SettingsView({
           <span>{t.apiKeyPrivacyNote}</span>
         </div>
 
+        {/* Beginner Guide Button & Callout */}
+        <div className="flex items-center justify-between flex-wrap sm:flex-nowrap gap-3 p-3.5 bg-gradient-to-r from-amber-500/10 via-amber-400/10 to-orange-500/10 dark:from-amber-500/15 dark:to-orange-500/15 border border-amber-300/80 dark:border-amber-600/50 rounded-xl">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-lg shrink-0">
+              <BookOpen size={18} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-900 dark:text-white">
+                  {lang === 'en' ? 'Need a 100% Free Gemini API Key?' : 'Besoin d\'une Clé API 100% Gratuite ?'}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
+                  {lang === 'en' ? 'Beginner Guide' : 'Guide Débutant'}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5">
+                {lang === 'en'
+                  ? 'Step-by-step tutorial on creating a free key on Google AI Studio & adding it to PostuTrack.'
+                  : 'Tutoriel pas-à-pas pour créer votre clé gratuite sur Google AI Studio et l\'ajouter à PostuTrack.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpenTutorial}
+            className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-98 text-white font-bold rounded-xl text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+          >
+            <Sparkles size={14} />
+            <span>{lang === 'en' ? "I don't have an API key" : "Je n'ai pas de clé API"}</span>
+          </button>
+        </div>
+
         {/* API Key Input */}
         <div className="space-y-3">
           {selectedAiModel === 'gemini' && (
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+              <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
                   <Key size={14} className="text-blue-600" />
                   <span>{t.geminiKeyLabel}</span>
+                  <button
+                    type="button"
+                    onClick={onOpenTutorial}
+                    className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-semibold flex items-center gap-0.5 cursor-pointer ml-1"
+                  >
+                    <span>({lang === 'en' ? 'Beginner Guide' : 'Guide débutant'} ↗)</span>
+                  </button>
                 </label>
                 <button
                   type="button"

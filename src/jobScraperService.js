@@ -287,16 +287,26 @@ async function scrapeDirectFromWeb({
   contractType = 'all',
   jobLimit = 100,
   isRemote = false,
+  hoursOld = 168,
   onProgress = () => {}
 }) {
   const candidatePool = [];
   const seenUrls = new Set();
   const seenTitles = new Set();
   const kwList = Array.isArray(keywords) && keywords.length > 0 ? keywords : ['Developer'];
-  const maxPoolTarget = 5000;
+  const periodHours = hoursOld || 168;
+  const cutoffTime = Date.now() - (periodHours * 3600 * 1000);
+
+  function isDateWithinPeriod(dateStr) {
+    if (!dateStr || dateStr === 'Récent' || dateStr === 'Recent') return true;
+    const parsed = Date.parse(dateStr);
+    if (isNaN(parsed)) return true;
+    return parsed >= cutoffTime;
+  }
 
   function addJobToPool(job) {
     if (!job || !job.job_url) return;
+    if (job.date_posted && !isDateWithinPeriod(job.date_posted)) return;
     const urlKey = job.job_url.trim().toLowerCase();
     const titleKey = `${(job.title || '').trim().toLowerCase()}___${(job.company || '').trim().toLowerCase()}`;
     
@@ -306,22 +316,22 @@ async function scrapeDirectFromWeb({
     candidatePool.push(job);
   }
 
-  onProgress('Recherche multi-plateformes étendue (analyse des flux d\'offres réelles)...');
+  onProgress(`Recherche de toutes les offres de la période (${periodHours}h) sur les flux publics...`);
 
-  // 1. Fetch from LinkedIn Guest Search API (live real job postings)
+  // 1. Fetch from LinkedIn Guest Search API with time period filter (live real job postings)
   try {
-    onProgress('Consultation du flux LinkedIn Jobs...');
+    onProgress('Consultation du flux LinkedIn Jobs (période sélectionnée)...');
     const queryTerms = [...kwList];
     if (contractType && !['all', 'any', 'tous', 'all_types'].includes(contractType.toLowerCase())) {
       kwList.forEach(k => queryTerms.push(`${k} ${contractType}`));
     }
 
-    for (const qTerm of queryTerms.slice(0, 3)) {
-      if (candidatePool.length >= maxPoolTarget) break;
-      for (const startOffset of [0, 10, 20, 30]) {
-        if (candidatePool.length >= maxPoolTarget) break;
+    const linkedInTpr = periodHours * 3600;
+
+    for (const qTerm of queryTerms.slice(0, 4)) {
+      for (const startOffset of [0, 10, 20, 30, 40, 50]) {
         try {
-          const liUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(qTerm)}&location=${encodeURIComponent(location)}&start=${startOffset}`;
+          const liUrl = `https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords=${encodeURIComponent(qTerm)}&location=${encodeURIComponent(location)}&start=${startOffset}&f_TPR=r${linkedInTpr}`;
           const res = await fetch(liUrl, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
@@ -390,280 +400,72 @@ async function scrapeDirectFromWeb({
     console.warn('LinkedIn search step skipped:', liErr);
   }
 
-  // 2. Fetch from Arbeitnow Public Job API (live multi-pages)
-  try {
-    onProgress('Consultation du flux Arbeitnow (offres réelles)...');
-    for (let page = 1; page <= 5; page++) {
-      if (candidatePool.length >= maxPoolTarget) break;
-      const pageUrl = page === 1 ? 'https://www.arbeitnow.com/api/job-board-api' : `https://www.arbeitnow.com/api/job-board-api?page=${page}`;
-      const arbeitRes = await fetch(pageUrl);
-      if (!arbeitRes.ok) break;
+  // 2. Fetch from Welcome to the Jungle Algolia API (if selected)
+  if (sites.includes('wttj')) {
+    try {
+      onProgress('Consultation du flux Welcome to the Jungle (période sélectionnée)...');
+      const wttjRes = await fetch('https://csekhvms53-dsn.algolia.net/1/indexes/wk_cms_jobs_production/query', {
+        method: 'POST',
+        headers: {
+          'x-algolia-application-id': 'CSEKHVMS53',
+          'x-algolia-api-key': '4bd8f6215d0cc52b26430765769e65a0',
+          'Referer': 'https://www.welcometothejungle.com/',
+          'Origin': 'https://www.welcometothejungle.com',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          query: kwList.join(' '),
+          hitsPerPage: 40
+        })
+      });
 
-      const data = await arbeitRes.json();
-      if (Array.isArray(data.data) && data.data.length > 0) {
-        const searchTerms = kwList.map(k => normalizeText(k));
-        data.data.forEach(item => {
-          const title = item.title || '';
-          const desc = item.description || '';
-          const itemLoc = item.location || '';
-          const fullNorm = normalizeText(`${title} ${desc} ${itemLoc}`);
+      if (wttjRes.ok) {
+        const wttjData = await wttjRes.json();
+        const hits = Array.isArray(wttjData.hits) ? wttjData.hits : [];
+        hits.forEach(h => {
+          if (h.published_at && !isDateWithinPeriod(h.published_at)) return;
+          const org = h.organization || {};
+          const orgSlug = org.slug || '';
+          const jobSlug = h.slug || '';
+          const jobUrl = orgSlug && jobSlug
+            ? `https://www.welcometothejungle.com/fr/companies/${orgSlug}/jobs/${jobSlug}`
+            : `https://www.welcometothejungle.com/fr/jobs?query=${encodeURIComponent(h.name || kwList[0])}`;
 
-          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
-            if (fullNorm.includes(st)) return true;
-            const syns = KEYWORD_SYNONYMS[st] || [];
-            return syns.some(syn => fullNorm.includes(normalizeText(syn)));
-          });
+          const contractRaw = h.contract_type || '';
+          let cType = 'CDI';
+          if (contractRaw === 'INTERNSHIP') cType = 'Stage';
+          else if (contractRaw === 'APPRENTICESHIP') cType = 'Alternance';
+          else if (contractRaw === 'FREELANCE') cType = 'Freelance';
+          else if (contractRaw === 'TEMPORARY') cType = 'CDD';
+          else cType = classifyContract(h.name || '', h.description || '', contractRaw);
 
-          if (matchesKw) {
-            const jobUrl = item.url || `https://www.arbeitnow.com/jobs/${item.slug}`;
-            const cType = classifyContract(title, desc, item.job_types?.[0]);
-            addJobToPool({
-              id: `arbeit_${item.slug || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-              title: item.title,
-              company: item.company_name || 'Entreprise',
-              location: item.location || (item.remote ? '100% Télétravail' : location),
-              site: 'Arbeitnow',
-              job_url: jobUrl,
-              description: item.description?.replace(/<[^>]+>/g, ' ').slice(0, 2500) || '',
-              salary: 'Non spécifié',
-              date_posted: new Date(item.created_at * 1000).toISOString().split('T')[0] || 'Récent',
-              is_remote: Boolean(item.remote),
-              contract: cType,
-              job_type: cType,
-              matched_keyword: kwList[0]
-            });
+          let salStr = 'Non spécifié';
+          if (h.salary_minimum && h.salary_maximum) {
+            salStr = `${h.salary_minimum} - ${h.salary_maximum} ${h.salary_currency || 'EUR'}`;
+          } else if (h.salary_minimum) {
+            salStr = `À partir de ${h.salary_minimum} ${h.salary_currency || 'EUR'}`;
           }
+
+          addJobToPool({
+            id: `wttj_${h.objectID || Math.random().toString(36).substring(2, 8)}`,
+            title: h.name || 'Poste',
+            company: org.name || 'Entreprise WTTJ',
+            location: h.offices?.[0]?.city || location,
+            site: 'Welcome to the Jungle',
+            job_url: jobUrl,
+            description: h.profile || h.description || `Offre Welcome to the Jungle : ${h.name} chez ${org.name}.`,
+            salary: salStr,
+            date_posted: h.published_at ? h.published_at.slice(0, 10) : 'Récent',
+            is_remote: h.remote === 'FULLTIME' || h.remote === 'PARTIAL',
+            contract: cType,
+            job_type: cType,
+            matched_keyword: kwList[0]
+          });
         });
       }
+    } catch (wttjErr) {
+      console.warn('WTTJ API step skipped:', wttjErr);
     }
-  } catch (apiErr) {
-    console.warn('Arbeitnow API step skipped:', apiErr);
-  }
-
-  // 3. Fetch from The Muse Public Jobs API
-  try {
-    onProgress('Consultation du flux The Muse...');
-    for (let page = 1; page <= 3; page++) {
-      const museRes = await fetch(`https://www.themuse.com/api/public/jobs?page=${page}`);
-      if (museRes.ok) {
-        const museData = await museRes.json();
-        if (Array.isArray(museData.results)) {
-          const searchTerms = kwList.map(k => normalizeText(k));
-          museData.results.forEach(item => {
-            const title = item.name || '';
-            const desc = item.contents || '';
-            const fullNorm = normalizeText(`${title} ${desc}`);
-
-            const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
-              if (fullNorm.includes(st)) return true;
-              const syns = KEYWORD_SYNONYMS[st] || [];
-              return syns.some(syn => fullNorm.includes(normalizeText(syn)));
-            });
-
-            if (matchesKw) {
-              const locName = item.locations?.[0]?.name || location;
-              const cType = classifyContract(title, desc, item.type);
-              addJobToPool({
-                id: `muse_${item.id}_${Math.random().toString(36).substring(2, 6)}`,
-                title: title,
-                company: item.company?.name || 'Entreprise',
-                location: locName,
-                site: 'The Muse',
-                job_url: item.refs?.landing_page || `https://www.themuse.com/jobs/${item.id}`,
-                description: desc.replace(/<[^>]+>/g, ' ').slice(0, 2500),
-                salary: 'Non spécifié',
-                date_posted: item.publication_date ? item.publication_date.split('T')[0] : 'Récent',
-                is_remote: locName.toLowerCase().includes('remote') || isRemote,
-                contract: cType,
-                job_type: cType,
-                matched_keyword: kwList[0]
-              });
-            }
-          });
-        }
-      }
-    }
-  } catch (museErr) {
-    console.warn('The Muse API step skipped:', museErr);
-  }
-
-  // 4. Fetch from Remotive Public API (live remote jobs)
-  try {
-    onProgress('Consultation du flux Remotive...');
-    const remotiveRes = await fetch('https://remotive.com/api/remote-jobs?limit=100');
-    if (remotiveRes.ok) {
-      const data = await remotiveRes.json();
-      if (Array.isArray(data.jobs)) {
-        const searchTerms = kwList.map(k => normalizeText(k));
-        data.jobs.forEach(item => {
-          const title = item.title || '';
-          const desc = item.description || '';
-          const fullNorm = normalizeText(`${title} ${desc}`);
-
-          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
-            if (fullNorm.includes(st)) return true;
-            const syns = KEYWORD_SYNONYMS[st] || [];
-            return syns.some(syn => fullNorm.includes(normalizeText(syn)));
-          });
-
-          if (matchesKw) {
-            const cType = classifyContract(title, desc, item.job_type);
-            addJobToPool({
-              id: `remotive_${item.id || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-              title: item.title,
-              company: item.company_name || 'Entreprise',
-              location: item.candidate_required_location || 'Remote / Worldwide',
-              site: 'Remotive',
-              job_url: item.url || '',
-              description: item.description?.replace(/<[^>]+>/g, ' ').slice(0, 2500) || '',
-              salary: item.salary || 'Non spécifié',
-              date_posted: item.publication_date ? item.publication_date.split('T')[0] : 'Récent',
-              is_remote: true,
-              contract: cType,
-              job_type: cType,
-              matched_keyword: kwList[0]
-            });
-          }
-        });
-      }
-    }
-  } catch (remotiveErr) {
-    console.warn('Remotive API step skipped:', remotiveErr);
-  }
-
-  // 5. Fetch from Jobicy Public API
-  try {
-    onProgress('Consultation du flux Jobicy...');
-    const jobicyRes = await fetch('https://jobicy.com/api/v2/remote-jobs?count=100');
-    if (jobicyRes.ok) {
-      const data = await jobicyRes.json();
-      if (Array.isArray(data.jobs)) {
-        const searchTerms = kwList.map(k => normalizeText(k));
-        data.jobs.forEach(item => {
-          const title = item.jobTitle || '';
-          const desc = item.jobDescription || '';
-          const fullNorm = normalizeText(`${title} ${desc}`);
-
-          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
-            if (fullNorm.includes(st)) return true;
-            const syns = KEYWORD_SYNONYMS[st] || [];
-            return syns.some(syn => fullNorm.includes(normalizeText(syn)));
-          });
-
-          if (matchesKw) {
-            const cType = classifyContract(title, desc, item.jobType?.[0]);
-            addJobToPool({
-              id: `jobicy_${item.id || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-              title: item.jobTitle,
-              company: item.companyName || 'Entreprise',
-              location: item.jobGeo || 'Remote / Worldwide',
-              site: 'Jobicy',
-              job_url: item.url || '',
-              description: item.jobDescription?.replace(/<[^>]+>/g, ' ').slice(0, 2500) || '',
-              salary: item.annualSalaryMin ? `${item.annualSalaryMin} - ${item.annualSalaryMax || ''} ${item.salaryCurrency || 'USD'}` : 'Non spécifié',
-              date_posted: item.pubDate ? new Date(item.pubDate).toISOString().split('T')[0] : 'Récent',
-              is_remote: true,
-              contract: cType,
-              job_type: cType,
-              matched_keyword: kwList[0]
-            });
-          }
-        });
-      }
-    }
-  } catch (jobicyErr) {
-    console.warn('Jobicy API step skipped:', jobicyErr);
-  }
-
-  // 6. Fetch from Himalayas Public Jobs API
-  try {
-    onProgress('Consultation du flux Himalayas...');
-    const himalayasRes = await fetch('https://himalayas.app/jobs/api?limit=100');
-    if (himalayasRes.ok) {
-      const data = await himalayasRes.json();
-      if (Array.isArray(data.jobs)) {
-        const searchTerms = kwList.map(k => normalizeText(k));
-        data.jobs.forEach(item => {
-          const title = item.title || '';
-          const desc = item.description || '';
-          const fullNorm = normalizeText(`${title} ${desc}`);
-
-          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
-            if (fullNorm.includes(st)) return true;
-            const syns = KEYWORD_SYNONYMS[st] || [];
-            return syns.some(syn => fullNorm.includes(normalizeText(syn)));
-          });
-
-          if (matchesKw) {
-            const cType = classifyContract(title, desc, item.employmentType);
-            addJobToPool({
-              id: `himalayas_${item.slug || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-              title: item.title,
-              company: item.companyName || 'Entreprise',
-              location: item.locationRestrictions?.join(', ') || 'Worldwide / Remote',
-              site: 'Himalayas',
-              job_url: item.applicationLink || `https://himalayas.app/companies/${item.companySlug}/jobs/${item.slug}`,
-              description: item.description?.replace(/<[^>]+>/g, ' ').slice(0, 2500) || '',
-              salary: item.minSalary ? `${item.minSalary} - ${item.maxSalary || ''} ${item.currency || 'USD'}` : 'Non spécifié',
-              date_posted: item.publishedAt ? item.publishedAt.split('T')[0] : 'Récent',
-              is_remote: true,
-              contract: cType,
-              job_type: cType,
-              matched_keyword: kwList[0]
-            });
-          }
-        });
-      }
-    }
-  } catch (himaErr) {
-    console.warn('Himalayas API step skipped:', himaErr);
-  }
-
-  // 7. Fetch from RemoteOK Public API
-  try {
-    onProgress('Consultation du flux RemoteOK...');
-    const remoteokRes = await fetch('https://remoteok.com/api');
-    if (remoteokRes.ok) {
-      const data = await remoteokRes.json();
-      if (Array.isArray(data)) {
-        const searchTerms = kwList.map(k => normalizeText(k));
-        data.slice(1, 100).forEach(item => {
-          const title = item.position || '';
-          const desc = item.description || '';
-          const fullNorm = normalizeText(`${title} ${desc}`);
-
-          const matchesKw = searchTerms.length === 0 || searchTerms.some(st => {
-            if (fullNorm.includes(st)) return true;
-            const syns = KEYWORD_SYNONYMS[st] || [];
-            return syns.some(syn => fullNorm.includes(normalizeText(syn)));
-          });
-
-          if (matchesKw) {
-            const cType = classifyContract(title, desc, '');
-            const jobUrl = item.url || (item.id ? `https://remoteok.com/remote-jobs/${item.id}` : '');
-            if (jobUrl) {
-              addJobToPool({
-                id: `remoteok_${item.id || Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-                title: item.position,
-                company: item.company || 'Entreprise',
-                location: item.location || '100% Télétravail',
-                site: 'RemoteOK',
-                job_url: jobUrl,
-                description: item.description?.replace(/<[^>]+>/g, ' ').slice(0, 2500) || '',
-                salary: item.salary || 'Non spécifié',
-                date_posted: item.date ? item.date.slice(0, 10) : 'Récent',
-                is_remote: true,
-                contract: cType,
-                job_type: cType,
-                matched_keyword: kwList[0]
-              });
-            }
-          }
-        });
-      }
-    }
-  } catch (rokErr) {
-    console.warn('RemoteOK API step skipped:', rokErr);
   }
 
   // Score all candidate real offers
@@ -706,23 +508,25 @@ export async function executeJobScrape({
   contractType = 'all',
   jobType = null,
   isRemote = false,
-  hoursOld = null,
+  hoursOld = 168,
   onProgress = () => {}
 }) {
   const keywordsList = Array.isArray(keywords) && keywords.length > 0
     ? keywords
     : [searchTerm || 'Software Engineer'];
 
+  const periodHours = hoursOld || 168;
+
   const payload = {
     keywords: keywordsList,
     search_term: keywordsList[0],
     location: location.trim() || 'Paris, France',
-    results_wanted: 5000,
+    results_wanted: 1000,
     sites,
     contract_type: contractType,
     job_type: jobType,
     is_remote: isRemote,
-    hours_old: hoursOld
+    hours_old: periodHours
   };
 
   // Step 1: Try relative /api/scrape-jobs (JobSpy backend)
@@ -798,6 +602,7 @@ export async function executeJobScrape({
     contractType,
     jobLimit,
     isRemote,
+    hoursOld: periodHours,
     onProgress
   });
 

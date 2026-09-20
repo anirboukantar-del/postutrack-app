@@ -1,7 +1,7 @@
 {
   "name": "postutrack-app",
   "private": true,
-  "version": "0.5.2",
+  "version": "0.5.3",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
@@ -21,6 +21,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "recharts": "^3.10.1",
+    "ts-jobspy": "^3.0.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

@@ -223,7 +223,13 @@ export function mapRowToApplication(row, index = 0) {
   ]);
   const responseDate = normalizeDate(rawResponseDate);
 
-  // 8. Determine final Status based on explicit status, rejection date, or default to Ghosted
+  // 8. Interview Date (explicit or from responseDate if interview status)
+  const rawInterviewDate = findValueByKeys(row, [
+    'interview date', 'date entretien', 'date d entretien', 'date d\'entretien', 'date interview', 'interview_date'
+  ]);
+  const explicitInterviewDate = normalizeDate(rawInterviewDate);
+
+  // 9. Determine final Status based on explicit status, rejection date, or default to Ghosted
   let finalStatus = status;
   if (!finalStatus) {
     // If no status was provided: check if there is a rejection date
@@ -235,17 +241,20 @@ export function mapRowToApplication(row, index = 0) {
     }
   }
 
-  // 9. URL
+  const isInterviewOrOffer = ['Entretien', 'Interview', 'Offre', 'Offer'].includes(finalStatus);
+  const interviewDate = explicitInterviewDate || (isInterviewOrOffer ? (responseDate || '') : '');
+
+  // 10. URL
   const url = findValueByKeys(row, [
     'listing url', 'lien de l offre', 'lien de loffre', 'url', 'link', 'lien', 'job url', 'offer url'
   ]);
 
-  // 10. Location
+  // 11. Location
   const location = findValueByKeys(row, [
     'location', 'lieu', 'ville', 'city', 'adresse', 'address', 'pays', 'country', 'region'
   ]);
 
-  // 11. Notes
+  // 12. Notes
   const notes = findValueByKeys(row, [
     'notes', 'note', 'commentaires', 'commentaire', 'comments', 'comment', 'remarques', 'description', 'details'
   ]);
@@ -258,6 +267,7 @@ export function mapRowToApplication(row, index = 0) {
     customSource: customSource || '',
     date,
     responseDate: responseDate || '',
+    interviewDate: interviewDate || '',
     status: finalStatus,
     type,
     location: location || '',

@@ -37,6 +37,59 @@ import {
 } from 'lucide-react';
 import { STATUS_KEYS, CONTRACT_KEYS, SOURCE_KEYS, isApplicationGhosted } from './App';
 
+/**
+ * Returns the Date object representing when the application status changed to "interview".
+ * Prioritizes:
+ * 1. Explicit app.interviewDate
+ * 2. If status is Entretien/Offer: responseDate (status change date) or statusModifiedAt
+ * 3. Fallback to app.date if legacy entry has no status change date recorded.
+ */
+export const getInterviewStatusDate = (app) => {
+  if (!app) return null;
+  if (app.interviewDate) {
+    const d = new Date(app.interviewDate);
+    if (!isNaN(d.getTime())) return d;
+  }
+  const isInterviewOrOffer = ['Entretien', 'Interview', 'Offre', 'Offer'].includes(app.status);
+  if (isInterviewOrOffer) {
+    const dateStr = app.interviewDate || app.statusChangeDate || app.responseDate || app.statusModifiedAt || app.date;
+    if (dateStr) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  return null;
+};
+
+/**
+ * Checks if a source string represents an unknown / unspecified platform.
+ */
+export const isUnknownSource = (source, t = {}) => {
+  if (!source) return true;
+  const s = String(source).trim().toLowerCase();
+  const unknownSet = new Set([
+    'inconnue',
+    'inconnu',
+    'unknown',
+    'non précisé',
+    'non précisée',
+    'non spécifié',
+    'non spécifiée',
+    'n/a',
+    'na',
+    'none',
+    'sans',
+    'sans source',
+    'undefined',
+    'null',
+    '?'
+  ]);
+  if (t && t.sourceUnknown) {
+    unknownSet.add(String(t.sourceUnknown).trim().toLowerCase());
+  }
+  return unknownSet.has(s);
+};
+
 export const DetailedStatsView = ({
   applications = [],
   t = {},
@@ -65,7 +118,7 @@ export const DetailedStatsView = ({
   // For 'all' (Al Time average) mode: plot 'avg' (average) or 'total' (cumulative) on the line
   const [allTimeMetric, setAllTimeMetric] = useState('avg');
 
-  // Available Years in applications
+  // Available Years in applications (both application dates and interview status change dates)
   const availableYears = useMemo(() => {
     if (!applications || applications.length === 0) return [new Date().getFullYear()];
     const yearsSet = new Set();
@@ -73,6 +126,10 @@ export const DetailedStatsView = ({
       if (a.date) {
         const d = new Date(a.date);
         if (!isNaN(d.getTime())) yearsSet.add(d.getFullYear());
+      }
+      const intDate = getInterviewStatusDate(a);
+      if (intDate) {
+        yearsSet.add(intDate.getFullYear());
       }
     });
     const arr = Array.from(yearsSet).sort((a, b) => b - a);
@@ -82,9 +139,17 @@ export const DetailedStatsView = ({
   // Selected year (defaults to the most frequent/latest year with data)
   const [selectedYear, setSelectedYear] = useState(() => {
     if (!applications || applications.length === 0) return new Date().getFullYear();
-    const years = applications
-      .map(a => a.date ? new Date(a.date).getFullYear() : null)
-      .filter(y => y && !isNaN(y));
+    const years = [];
+    applications.forEach(a => {
+      if (a.date) {
+        const d = new Date(a.date);
+        if (!isNaN(d.getTime())) years.push(d.getFullYear());
+      }
+      const intDate = getInterviewStatusDate(a);
+      if (intDate) {
+        years.push(intDate.getFullYear());
+      }
+    });
     if (years.length === 0) return new Date().getFullYear();
     const counts = {};
     years.forEach(y => { counts[y] = (counts[y] || 0) + 1; });
@@ -192,26 +257,41 @@ export const DetailedStatsView = ({
     const names = lang === 'en' ? monthNamesEn : monthNamesFr;
     const fullNames = lang === 'en' ? fullMonthNamesEn : fullMonthNamesFr;
 
-    // Bucket applications by `${year}-${monthIndex}-${half}`
+    // Bucket applications by `${year}-${monthIndex}-${half}`:
+    // - "sent": placed on the date the application was sent (app.date)
+    // - "interviews": placed according to when the status changed to "interview"
     const bucketMap = {};
 
-    applications.forEach(app => {
-      if (!app.date) return;
-      const d = new Date(app.date);
-      if (isNaN(d.getTime())) return;
-      const y = d.getFullYear();
-      const m = d.getMonth();
-      const day = d.getDate();
-      const half = day <= 15 ? 0 : 1;
-      const key = `${y}-${m}-${half}`;
-
+    const getOrCreateBucket = (key) => {
       if (!bucketMap[key]) {
         bucketMap[key] = { sent: 0, interviews: 0 };
       }
-      bucketMap[key].sent += 1;
+      return bucketMap[key];
+    };
 
-      if (['Entretien', 'Interview', 'Offre', 'Offer'].includes(app.status)) {
-        bucketMap[key].interviews += 1;
+    applications.forEach(app => {
+      // 1. Sent point: placed on application date
+      if (app.date) {
+        const d = new Date(app.date);
+        if (!isNaN(d.getTime())) {
+          const y = d.getFullYear();
+          const m = d.getMonth();
+          const day = d.getDate();
+          const half = day <= 15 ? 0 : 1;
+          const sentKey = `${y}-${m}-${half}`;
+          getOrCreateBucket(sentKey).sent += 1;
+        }
+      }
+
+      // 2. Interview point: placed according to when status changed to "interview"
+      const intDate = getInterviewStatusDate(app);
+      if (intDate) {
+        const y = intDate.getFullYear();
+        const m = intDate.getMonth();
+        const day = intDate.getDate();
+        const half = day <= 15 ? 0 : 1;
+        const interviewKey = `${y}-${m}-${half}`;
+        getOrCreateBucket(interviewKey).interviews += 1;
       }
     });
 
@@ -219,11 +299,13 @@ export const DetailedStatsView = ({
 
     // For 'all' ("Al Time average"): aggregate across ALL historical years into the 12 calendar months (24 bi-weekly points)
     if (timePeriod === 'all') {
-      const validYears = Array.from(new Set(
-        applications
-          .map(a => a.date ? new Date(a.date).getFullYear() : null)
-          .filter(y => y && !isNaN(y))
-      )).sort((a, b) => a - b);
+      const validYears = Array.from(new Set([
+        ...applications.map(a => a.date ? new Date(a.date).getFullYear() : null),
+        ...applications.map(a => {
+          const d = getInterviewStatusDate(a);
+          return d ? d.getFullYear() : null;
+        })
+      ].filter(y => y && !isNaN(y)))).sort((a, b) => a - b);
 
       const minYear = validYears.length > 0 ? validYears[0] : new Date().getFullYear();
       const maxYear = validYears.length > 0 ? validYears[validYears.length - 1] : minYear;
@@ -253,7 +335,7 @@ export const DetailedStatsView = ({
         });
         const avgSent0 = Number((totalSent0 / yearSpan).toFixed(1));
         const avgInterviews0 = Number((totalInterviews0 / yearSpan).toFixed(1));
-        const rate0 = totalSent0 > 0 ? Math.round((totalInterviews0 / totalSent0) * 100) : 0;
+        const rate0 = totalSent0 > 0 ? Math.round((totalInterviews0 / totalSent0) * 100) : (totalInterviews0 > 0 ? 100 : 0);
 
         const p0Id = pointIndex++;
         ticks.push(p0Id);
@@ -293,7 +375,7 @@ export const DetailedStatsView = ({
         });
         const avgSent1 = Number((totalSent1 / yearSpan).toFixed(1));
         const avgInterviews1 = Number((totalInterviews1 / yearSpan).toFixed(1));
-        const rate1 = totalSent1 > 0 ? Math.round((totalInterviews1 / totalSent1) * 100) : 0;
+        const rate1 = totalSent1 > 0 ? Math.round((totalInterviews1 / totalSent1) * 100) : (totalInterviews1 > 0 ? 100 : 0);
 
         const p1Id = pointIndex++;
         result.push({
@@ -351,7 +433,7 @@ export const DetailedStatsView = ({
       // Point 1: 1st half (Days 1 to 15)
       const key0 = `${year}-${month}-0`;
       const data0 = bucketMap[key0] || { sent: 0, interviews: 0 };
-      const rate0 = data0.sent > 0 ? Math.round((data0.interviews / data0.sent) * 100) : 0;
+      const rate0 = data0.sent > 0 ? Math.round((data0.interviews / data0.sent) * 100) : (data0.interviews > 0 ? 100 : 0);
 
       const p0Id = pointIndex++;
       ticks.push(p0Id);
@@ -380,7 +462,7 @@ export const DetailedStatsView = ({
       // Point 2: 2nd half (Days 16 to end of month)
       const key1 = `${year}-${month}-1`;
       const data1 = bucketMap[key1] || { sent: 0, interviews: 0 };
-      const rate1 = data1.sent > 0 ? Math.round((data1.interviews / data1.sent) * 100) : 0;
+      const rate1 = data1.sent > 0 ? Math.round((data1.interviews / data1.sent) * 100) : (data1.interviews > 0 ? 100 : 0);
 
       const p1Id = pointIndex++;
       result.push({
@@ -423,7 +505,11 @@ export const DetailedStatsView = ({
     const map = {};
 
     applications.forEach(app => {
-      const src = app.source || 'Workday';
+      const rawSrc = app.source ? String(app.source).trim() : '';
+      if (!rawSrc || isUnknownSource(rawSrc, t)) {
+        return; // Don't show "unknown" / irrelevant platform bars
+      }
+      const src = rawSrc;
       if (!map[src]) {
         map[src] = {
           source: src,
@@ -482,7 +568,7 @@ export const DetailedStatsView = ({
     // Sort by total applications descending
     list.sort((a, b) => b.total - a.total);
     return list;
-  }, [applications]);
+  }, [applications, t]);
 
   // Highlights for Platforms
   const platformHighlights = useMemo(() => {
@@ -1062,7 +1148,7 @@ export const DetailedStatsView = ({
         {velocityData.length > 0 ? (
           <div className="h-72 sm:h-80 2xl:h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={velocityData} margin={{ top: 15, right: 15, left: -10, bottom: 10 }}>
+              <LineChart data={velocityData} margin={{ top: 15, right: 15, left: 0, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-gray-700/60" vertical={false} />
                 <XAxis 
                   dataKey="id" 
@@ -1081,9 +1167,10 @@ export const DetailedStatsView = ({
                     yAxisId="left"
                     domain={[0, maxVelocityValue]}
                     allowDecimals={timePeriod === 'all' && allTimeMetric === 'avg'}
-                    tick={{ fill: '#64748b', fontSize: 12, fontWeight: 500 }}
+                    tick={false}
                     axisLine={{ stroke: '#cbd5e1' }}
                     tickLine={false}
+                    width={10}
                   />
                 )}
                 <Tooltip content={<CustomVelocityTooltip />} />

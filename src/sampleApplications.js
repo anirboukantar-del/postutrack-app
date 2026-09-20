@@ -148,6 +148,7 @@ export const generateYearOfExampleApplications = () => {
         role,
         date: appDateStr,
         responseDate: responseDateStr,
+        interviewDate: (status === 'Entretien' || status === 'Offre') ? responseDateStr : '',
         source,
         status,
         type: contract,

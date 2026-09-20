@@ -66,7 +66,8 @@ import {
   Pencil,
   BarChart2,
   Search,
-  Library
+  Library,
+  BookOpen
 } from 'lucide-react';
 import { translations } from './i18n';
 import HiringWeatherSection from './HiringWeather';
@@ -82,6 +83,8 @@ import { DetailedStatsView } from './DetailedStatsView';
 import SettingsView from './SettingsView';
 import CVLibrary from './CVLibrary';
 import ImportApplicationsModal from './ImportApplicationsModal';
+import NoApiKeyModal from './NoApiKeyModal';
+import ApiKeyTutorialView from './ApiKeyTutorialView';
 import { getDemoProfile, generateDemoApplications, getDemoCvLibrary } from './demoData';
 import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
 import { buildPromptWithTemplate } from './promptBuilder';
@@ -166,8 +169,8 @@ export const autoApplyGhostStatus = (apps) => {
 };
 
 const DEFAULT_APPLICATIONS = [
-  { id: 1, company: 'Google', role: 'Software Engineer', date: '2026-08-01', responseDate: '2026-08-08', source: 'Workday', status: 'Entretien', type: 'CDI', url: 'https://careers.google.com' },
-  { id: 2, company: 'Datadog', role: 'Frontend Engineer', date: '2026-08-04', responseDate: '2026-08-11', source: 'Greenhouse', status: 'Offre', type: 'CDI', url: 'https://www.welcometothejungle.com' },
+  { id: 1, company: 'Google', role: 'Software Engineer', date: '2026-08-01', responseDate: '2026-08-08', interviewDate: '2026-08-08', source: 'Workday', status: 'Entretien', type: 'CDI', url: 'https://careers.google.com' },
+  { id: 2, company: 'Datadog', role: 'Frontend Engineer', date: '2026-08-04', responseDate: '2026-08-11', interviewDate: '2026-08-11', source: 'Greenhouse', status: 'Offre', type: 'CDI', url: 'https://www.welcometothejungle.com' },
   { id: 3, company: 'Doctolib', role: 'Fullstack Developer', date: '2026-08-07', responseDate: '2026-08-12', source: 'SmartRecruiters', status: 'Refusé', type: 'CDI', url: 'https://fr.indeed.com' },
   { id: 4, company: 'Mirakl', role: 'React Engineer', date: '2026-08-10', responseDate: '', source: 'LinkedIn', status: 'Postulé', type: 'CDI', url: '' },
   { id: 5, company: 'Qonto', role: 'Product Engineer', date: '2026-08-15', responseDate: '', source: 'Lever', status: 'Postulé', type: 'CDI', url: '' }
@@ -539,6 +542,8 @@ function AddApplicationModal({
     setIsConfirmingDelete(false);
     if (editingApp) {
       const isKnown = SOURCE_KEYS.includes(editingApp.source);
+      const isInterview = ['Entretien', 'Interview'].includes(editingApp.status);
+      const isOffer = ['Offre', 'Offer'].includes(editingApp.status);
       setFormData({
         company: editingApp.company || '',
         role: editingApp.role || '',
@@ -546,6 +551,7 @@ function AddApplicationModal({
         customSource: isKnown ? '' : (editingApp.source || ''),
         date: editingApp.date || new Date().toISOString().split('T')[0],
         responseDate: editingApp.responseDate || '',
+        interviewDate: editingApp.interviewDate || ((isInterview || isOffer) ? (editingApp.responseDate || editingApp.statusModifiedAt || '') : ''),
         status: editingApp.status || 'Postulé',
         type: editingApp.type || 'CDI',
         location: editingApp.location || '',
@@ -560,6 +566,7 @@ function AddApplicationModal({
         customSource: '',
         date: new Date().toISOString().split('T')[0],
         responseDate: '',
+        interviewDate: '',
         status: 'Postulé',
         type: 'CDI',
         location: '',
@@ -577,11 +584,16 @@ function AddApplicationModal({
 
   const handleStatusChange = (newStatus) => {
     const isAnswered = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(newStatus);
+    const isInterview = ['Entretien', 'Interview'].includes(newStatus);
+    const isOffer = ['Offre', 'Offer'].includes(newStatus);
     const todayStr = new Date().toISOString().split('T')[0];
     setFormData(prev => ({
       ...prev,
       status: newStatus,
-      responseDate: isAnswered ? (prev.status !== newStatus ? todayStr : (prev.responseDate || todayStr)) : ''
+      responseDate: isAnswered ? (prev.status !== newStatus ? todayStr : (prev.responseDate || todayStr)) : '',
+      interviewDate: isInterview 
+        ? (prev.status !== newStatus ? todayStr : (prev.interviewDate || prev.responseDate || todayStr))
+        : (isOffer ? (prev.interviewDate || prev.responseDate || todayStr) : prev.interviewDate)
     }));
   };
 
@@ -592,12 +604,19 @@ function AddApplicationModal({
       : formData.source;
 
     const isAnswered = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(formData.status);
+    const isInterview = ['Entretien', 'Interview'].includes(formData.status);
+    const isOffer = ['Offre', 'Offer'].includes(formData.status);
     const todayStr = new Date().toISOString().split('T')[0];
+
+    const finalInterviewDate = isInterview
+      ? (formData.responseDate || formData.interviewDate || todayStr)
+      : (isOffer ? (formData.interviewDate || formData.responseDate || todayStr) : (formData.interviewDate || ''));
 
     const payload = {
       ...formData,
       source: finalSource,
       responseDate: isAnswered ? (formData.responseDate || todayStr) : '',
+      interviewDate: finalInterviewDate,
       statusModifiedAt: todayStr
     };
 
@@ -952,7 +971,8 @@ function OnboardingStartingPage({
   setCustomApiUrl,
   onComplete,
   onSkip,
-  processFile
+  processFile,
+  onOpenTutorial
 }) {
   const [activeStep, setActiveStep] = useState(1);
   const [showApiKey, setShowApiKey] = useState(false);
@@ -1349,7 +1369,7 @@ function OnboardingStartingPage({
               </div>
 
               {/* Extracted Profile Details Preview */}
-              <div className="p-5 bg-slate-50 dark:bg-gray-750 border border-slate-200 dark:border-gray-700 rounded-2xl space-y-4">
+              <div className="p-5 bg-slate-50 dark:bg-gray-700/60 border border-slate-200 dark:border-gray-700 rounded-2xl space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
                     {t.onboardingExtractedProfileTitle}
@@ -1584,7 +1604,7 @@ function OnboardingStartingPage({
                   className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
                     selectedAiModel === 'gemini'
                       ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-750'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -1604,7 +1624,7 @@ function OnboardingStartingPage({
                   className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     selectedAiModel === 'openai'
                       ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-750'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -1624,7 +1644,7 @@ function OnboardingStartingPage({
                   className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     selectedAiModel === 'anthropic'
                       ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-750'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -1644,7 +1664,7 @@ function OnboardingStartingPage({
                   className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                     selectedAiModel === 'other'
                       ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-750'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -1661,26 +1681,29 @@ function OnboardingStartingPage({
                 </div>
               </div>
 
-              {/* Free Gemini Helper Banner */}
+              {/* Free Gemini Helper Banner & Beginner Guide Link */}
               {selectedAiModel === 'gemini' && (
-                <div className="p-4 bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl flex items-center justify-between flex-wrap gap-3">
-                  <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-indigo-900 dark:text-indigo-300">
+                <div className="p-4 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl flex items-center justify-between flex-wrap gap-3">
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
                       {t.onboardingFreeGeminiHelp}
                     </p>
-                    <p className="text-[11px] text-indigo-700 dark:text-indigo-400">
-                      {lang === 'en' ? 'Click below to open Google AI Studio and generate your free key in 1 click.' : 'Cliquez ci-dessous pour ouvrir Google AI Studio et créer votre clé gratuite en 1 clic.'}
+                    <p className="text-[11px] text-indigo-700 dark:text-indigo-300/80">
+                      {lang === 'en' ? 'Follow our quick step-by-step beginner guide to generate your free key in 30 seconds.' : 'Consultez notre tutoriel pas-à-pas pour créer votre clé gratuite en 30 secondes.'}
                     </p>
                   </div>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => openExternalLink("https://aistudio.google.com/app/apikey", e)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
-                  >
-                    {t.onboardingGetFreeGeminiBtn}
-                  </a>
+                  <div className="flex items-center flex-wrap gap-2">
+                    {onOpenTutorial && (
+                      <button
+                        type="button"
+                        onClick={onOpenTutorial}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+                      >
+                        <Sparkles size={13} />
+                        <span>{lang === 'en' ? "I don't have an API key" : "Je n'ai pas de clé API"}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -1789,13 +1812,25 @@ function OnboardingStartingPage({
 
               {/* Navigation & Launch */}
               <div className="pt-4 flex items-center justify-between flex-wrap gap-4 border-t border-gray-100 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setActiveStep(2)}
-                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-1.5"
-                >
-                  <ArrowLeft size={14} /> {t.onboardingPrevBtn}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveStep(2)}
+                    className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <ArrowLeft size={14} /> {t.onboardingPrevBtn}
+                  </button>
+                  {onOpenTutorial && (
+                    <button
+                      type="button"
+                      onClick={onOpenTutorial}
+                      className="px-3.5 py-2.5 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <BookOpen size={14} />
+                      <span>{lang === 'en' ? 'Beginner Guide' : 'Guide Débutant'}</span>
+                    </button>
+                  )}
+                </div>
 
                 <button
                   type="button"
@@ -1865,6 +1900,8 @@ export default function App() {
       return 'onboarding';
     }
   });
+
+  const [tutorialPreviousTab, setTutorialPreviousTab] = useState('settings');
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingApplication, setEditingApplication] = useState(null);
@@ -2252,6 +2289,50 @@ export default function App() {
   const [customApiUrl, setCustomApiUrl] = useState(() => {
     try { return localStorage.getItem('postutrack_custom_api_url') || ''; } catch (e) { return ''; }
   });
+
+  // Check if an AI key is installed across providers
+  const hasInstalledApiKey = Boolean(
+    (apiKey && apiKey.trim()) ||
+    (openAiKey && openAiKey.trim()) ||
+    (anthropicKey && anthropicKey.trim()) ||
+    (customApiUrl && customApiUrl.trim())
+  );
+
+  const [isNoKeyModalDismissed, setIsNoKeyModalDismissed] = useState(false);
+
+  // Clear any previously persisted dismissal in storage so it always pops up at every launch when no API key exists
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('postutrack_no_key_modal_dismissed');
+      localStorage.removeItem('postutrack_no_key_modal_dismissed');
+    } catch (e) {}
+  }, []);
+
+  const handleDismissNoKeyModal = () => {
+    setIsNoKeyModalDismissed(true);
+  };
+
+  const handleGoToSettingsFromNoKeyModal = () => {
+    handleDismissNoKeyModal();
+    if (activeTab === 'onboarding') {
+      setIsOnboardingCompleted(true);
+      try {
+        localStorage.setItem('postutrack_onboarding_completed', 'true');
+      } catch (e) {}
+    }
+    setActiveTab('settings');
+  };
+
+  const handleOpenTutorialFromNoKeyModal = () => {
+    handleDismissNoKeyModal();
+    if (activeTab === 'onboarding') {
+      setIsOnboardingCompleted(true);
+      try {
+        localStorage.setItem('postutrack_onboarding_completed', 'true');
+      } catch (e) {}
+    }
+    setActiveTab('api-tutorial');
+  };
 
   // Master AI Prompts states (Customizable with restore capability)
   const [masterCvPrompt, setMasterCvPrompt] = useState(() => {
@@ -3102,6 +3183,8 @@ ${aiResult.coverLetter}`;
 
   const handleInlineStatusChange = (appId, newStatus) => {
     const isAnswered = ['Entretien', 'Interview', 'Offre', 'Offer', 'Refusé', 'Rejected'].includes(newStatus);
+    const isInterview = ['Entretien', 'Interview'].includes(newStatus);
+    const isOffer = ['Offre', 'Offer'].includes(newStatus);
     const todayStr = new Date().toISOString().split('T')[0];
     setApplications(prev => prev.map(item => {
       if (item.id !== appId) return item;
@@ -3109,7 +3192,10 @@ ${aiResult.coverLetter}`;
         ...item,
         status: newStatus,
         responseDate: isAnswered ? todayStr : '',
-        statusModifiedAt: todayStr
+        statusModifiedAt: todayStr,
+        interviewDate: isInterview 
+          ? todayStr 
+          : (isOffer ? (item.interviewDate || todayStr) : item.interviewDate)
       };
     }));
   };
@@ -3682,7 +3768,7 @@ ${aiResult.coverLetter}`;
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.5.2
+            v0.5.3
           </span>
         </h1>
       </div>
@@ -3791,7 +3877,7 @@ ${aiResult.coverLetter}`;
             <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.5.2
+                v0.5.3
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -4017,6 +4103,10 @@ ${aiResult.coverLetter}`;
               onComplete={handleCompleteOnboarding}
               onSkip={handleSkipOnboarding}
               processFile={processFile}
+              onOpenTutorial={() => {
+                setTutorialPreviousTab('onboarding');
+                setActiveTab('api-tutorial');
+              }}
             />
           )}
 
@@ -4159,7 +4249,7 @@ ${aiResult.coverLetter}`;
                 setActiveTab('tailor');
               }}
               onUpdateStatus={(appId, newStatus) => {
-                updateApplicationStatus(appId, newStatus);
+                handleInlineStatusChange(appId, newStatus);
               }}
               formatExternalUrl={formatExternalUrl}
             />
@@ -5322,6 +5412,23 @@ ${aiResult.coverLetter}`;
               setMasterLetterPrompt={setMasterLetterPrompt}
               onRestoreMasterCvPrompt={handleRestoreMasterCvPrompt}
               onRestoreMasterLetterPrompt={handleRestoreMasterLetterPrompt}
+              onOpenTutorial={() => {
+                setTutorialPreviousTab('settings');
+                setActiveTab('api-tutorial');
+              }}
+            />
+          )}
+
+          {activeTab === 'api-tutorial' && (
+            <ApiKeyTutorialView
+              lang={lang}
+              onBackToSettings={() => setActiveTab(tutorialPreviousTab || 'settings')}
+              onGoToDashboard={() => setActiveTab('dashboard')}
+              backLabel={
+                tutorialPreviousTab === 'onboarding'
+                  ? (lang === 'en' ? 'Back to Setup' : 'Retour à la Configuration')
+                  : (lang === 'en' ? 'Back to Settings' : 'Retour aux Paramètres')
+              }
             />
           )}
 
@@ -5466,6 +5573,15 @@ ${aiResult.coverLetter}`;
           </div>
         </div>
       )}
+
+      {/* Startup No API Key Pop-up */}
+      <NoApiKeyModal
+        isOpen={!hasInstalledApiKey && !isNoKeyModalDismissed}
+        onClose={handleDismissNoKeyModal}
+        onGoToSettings={handleGoToSettingsFromNoKeyModal}
+        onOpenTutorial={handleOpenTutorialFromNoKeyModal}
+        lang={lang}
+      />
 
       {/* Global Download Success Pop-up Notifications */}
       <DownloadToastContainer lang={lang} t={t} />

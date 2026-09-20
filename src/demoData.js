@@ -261,6 +261,7 @@ export const generateDemoApplications = (totalCount = 200) => {
         role,
         date: appDateStr,
         responseDate: responseDateStr,
+        interviewDate: (status === 'Entretien' || status === 'Offre') ? responseDateStr : '',
         source: comp.source,
         status,
         type: comp.type,

@@ -72,7 +72,6 @@ const WORKPLACE_OPTIONS = [
 ];
 
 const FRESHNESS_OPTIONS = [
-  { id: 'all', label: 'Toutes dates', labelEn: 'Anytime' },
   { id: '24h', label: 'Dernières 24h', labelEn: 'Past 24 hours' },
   { id: '3d', label: 'Moins de 3 jours', labelEn: 'Past 3 days' },
   { id: '7d', label: 'Dernière semaine', labelEn: 'Past week' },
@@ -93,7 +92,7 @@ export function JobScraperView({
   const [location, setLocation] = useState('Paris, France');
   const [contractType, setContractType] = useState('all');
   const [workplace, setWorkplace] = useState('all');
-  const [freshness, setFreshness] = useState('all');
+  const [freshness, setFreshness] = useState('7d');
   const [selectedPlatforms, setSelectedPlatforms] = useState(['linkedin', 'indeed', 'wttj', 'glassdoor']);
   const MAX_SHOWN_JOBS = 100;
   const [visibleCount, setVisibleCount] = useState(25);
@@ -273,13 +272,16 @@ export function JobScraperView({
       ? (lang === 'en' ? `${keywordsToSearch.length} distinct keywords (${keywordsToSearch.join(', ')})` : `${keywordsToSearch.length} mots-clés distincts (${keywordsToSearch.join(', ')})`)
       : `"${keywordsToSearch[0]}"`;
 
+    const activeFreshnessObj = FRESHNESS_OPTIONS.find(f => f.id === freshness) || FRESHNESS_OPTIONS[2];
+    const freshnessLabel = lang === 'en' ? activeFreshnessObj.labelEn : activeFreshnessObj.label;
+
     const stepTexts = [
       lang === 'en' 
         ? `Connecting to multi-platform job engine for ${kwSummary}...` 
         : `Connexion au moteur multi-plateformes pour ${kwSummary}...`,
       lang === 'en' 
-        ? `Scanning up to 5,000 offers per platform (${selectedPlatforms.join(', ')})...` 
-        : `Analyse jusqu'à 5 000 offres par plateforme (${selectedPlatforms.join(', ')})...`,
+        ? `Searching all offers posted in the selected period (${freshnessLabel}) across ${selectedPlatforms.join(', ')}...` 
+        : `Recherche de toutes les offres de la période sélectionnée (${freshnessLabel}) sur ${selectedPlatforms.join(', ')}...`,
       lang === 'en' 
         ? 'Extracting descriptions, tags and job metadata...' 
         : 'Extraction des descriptions complètes, mots-clés et métadonnées...',
@@ -296,7 +298,7 @@ export function JobScraperView({
     }, 1800);
 
     try {
-      let hoursOldVal = null;
+      let hoursOldVal = 168;
       if (freshness === '24h') hoursOldVal = 24;
       else if (freshness === '3d') hoursOldVal = 72;
       else if (freshness === '7d') hoursOldVal = 168;
@@ -907,12 +909,14 @@ export function JobScraperView({
                   {scrapingStep}
                 </div>
                 <div className="text-[11px] text-indigo-700 dark:text-indigo-400">
-                  {lang === 'en' ? 'Scanning up to 5,000 live offers per job portal...' : 'Analyse jusqu\'à 5 000 offres par plateforme en direct...'}
+                  {lang === 'en' 
+                    ? `Searching all offers posted within the selected period (${FRESHNESS_OPTIONS.find(f => f.id === freshness)?.labelEn || 'Past week'})...` 
+                    : `Recherche de toutes les offres publiées sur la période (${FRESHNESS_OPTIONS.find(f => f.id === freshness)?.label || 'Dernière semaine'})...`}
                 </div>
               </div>
             </div>
             <div className="text-xs font-semibold text-indigo-800 dark:text-indigo-300">
-              {lang === 'en' ? 'Max 5,000 / site' : 'Max 5 000 / site'}
+              {lang === 'en' ? 'All offers in period' : 'Toutes les offres de la période'}
             </div>
           </div>
         )}

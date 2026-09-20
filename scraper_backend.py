@@ -212,10 +212,27 @@ def calculate_relevance(title, desc, loc, job_is_remote, keywords_list, target_l
 
     return min(99, max(50, relevance_score))
 
-def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, results_wanted=500, requested_sites=None):
+def is_date_within_hours(date_str, hours_old):
+    if not date_str or str(date_str).strip().lower() in ("récent", "recent", ""):
+        return True
+    try:
+        import datetime
+        now = datetime.datetime.now(datetime.timezone.utc)
+        clean = str(date_str).replace("Z", "+00:00").strip()
+        if "T" in clean:
+            dt = datetime.datetime.fromisoformat(clean)
+        else:
+            dt = datetime.datetime.strptime(clean[:10], "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=datetime.timezone.utc)
+        return (now - dt).total_seconds() <= (hours_old * 3600)
+    except Exception:
+        return True
+
+def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, results_wanted=1000, requested_sites=None, hours_old=168):
     """
     Multi-source scraper with LinkedIn guest search, Arbeitnow, Remotive, Jobicy, Himalayas, RemoteOK.
-    Fetches up to results_wanted candidates, ranks them by relevance, and guarantees authentic job data.
+    Fetches all authentic offers posted within the selected period (hours_old), ranks them by relevance.
     """
     records = []
     seen_urls = set()
@@ -229,6 +246,8 @@ def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, r
         t = f"{rec.get('title', '').strip().lower()}___{rec.get('company', '').strip().lower()}"
         if u and (u in seen_urls or t in seen_titles):
             return
+        if rec.get("date_posted") and not is_date_within_hours(rec.get("date_posted"), hours_old):
+            return
         if u:
             seen_urls.add(u)
         seen_titles.add(t)
@@ -240,26 +259,25 @@ def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, r
         'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8'
     }
 
-    # 1. Scraping LinkedIn guest public jobs (live real job postings)
-    # Generate search queries based on keywords and contract type
+    # 1. Scraping LinkedIn guest public jobs with time period filter (f_TPR)
     query_terms = list(keywords_list)
     if contract_type and contract_type.lower() not in ["all", "any", "tous", "all_types"]:
         for kw in keywords_list:
             query_terms.append(f"{kw} {contract_type}")
 
+    tpr_seconds = int(hours_old * 3600)
+
     for q_term in query_terms:
-        if len(records) >= results_wanted:
-            break
-        for start_offset in range(0, 100, 10):
-            if len(records) >= results_wanted:
-                break
+        for start_offset in range(0, 50, 10):
             try:
-                li_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={urllib.parse.quote(q_term)}&location={urllib.parse.quote(location)}&start={start_offset}"
+                li_url = f"https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={urllib.parse.quote(q_term)}&location={urllib.parse.quote(location)}&start={start_offset}&f_TPR=r{tpr_seconds}"
                 req = urllib.request.Request(li_url, headers=browser_headers)
-                with urllib.request.urlopen(req, timeout=5, context=ctx) as resp:
+                with urllib.request.urlopen(req, timeout=4, context=ctx) as resp:
                     if resp.status == 200:
                         html = resp.read().decode('utf-8', errors='ignore')
                         cards = html.split('<li>')
+                        if len(cards) <= 1:
+                            break
                         for c in cards[1:]:
                             title_m = re.search(r'<h3 class=\"base-search-card__title\"[^>]*>\s*(.*?)\s*</h3>', c, re.S)
                             comp_m = re.search(r'<h4 class=\"base-search-card__subtitle\"[^>]*>\s*(?:<a[^>]*>)?\s*(.*?)\s*(?:</a>)?\s*</h4>', c, re.S)
@@ -273,6 +291,9 @@ def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, r
                             
                             urn_m = re.search(r'data-entity-urn=[\"\']urn:li:jobPosting:(\d+)[\"\']', c, re.I)
                             date_m = re.search(r'<time[^>]*datetime=\"([^\"]+)\"', c)
+
+                            if date_m and not is_date_within_hours(date_m.group(1), hours_old):
+                                continue
 
                             if title_m and (link_m or urn_m):
                                 raw_title = title_m.group(1).strip()
@@ -321,70 +342,26 @@ def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, r
             except Exception:
                 pass
 
-    # 2. Query Arbeitnow across multiple pages (pages 1 to 4)
-    if len(records) < results_wanted:
-        try:
-            for page in range(1, 5):
-                if len(records) >= results_wanted:
-                    break
-                page_url = "https://www.arbeitnow.com/api/job-board-api" if page == 1 else f"https://www.arbeitnow.com/api/job-board-api?page={page}"
-                req = urllib.request.Request(
-                    page_url,
-                    headers={"User-Agent": "PostuTrack/1.0", "Accept": "application/json"}
-                )
-                with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
-                    if response.status == 200:
-                        data = json.loads(response.read().decode('utf-8'))
-                        for item in data.get("data", []):
-                            title = item.get("title", "")
-                            desc = item.get("description", "")
-                            job_loc = item.get("location", location)
-                            job_url = item.get("url") or f"https://www.arbeitnow.com/jobs/{item.get('slug', '')}"
-                            
-                            if not job_url:
-                                continue
-
-                            full_text = normalize_text(f"{title} {desc} {job_loc}")
-                            matches_kw = any(normalize_text(k) in full_text for k in keywords_list) or any(normalize_text(k).split()[0] in full_text for k in keywords_list if len(k) > 2)
-                            
-                            if matches_kw:
-                                classified = classify_contract(title, desc, item.get("job_types", ["CDI"])[0] if item.get("job_types") else "CDI")
-                                rel_score = calculate_relevance(title, desc, job_loc, bool(item.get("remote")), keywords_list, location, is_remote, classified, contract_type)
-                                
-                                add_record({
-                                    "id": f"arbeit-{len(records)}-{abs(hash(job_url))}",
-                                    "title": title,
-                                    "company": item.get("company_name", "Entreprise"),
-                                    "location": job_loc if not item.get("remote") else "100% Télétravail",
-                                    "job_url": job_url,
-                                    "site": "Arbeitnow",
-                                    "description": re.sub(r'<[^>]+>', ' ', desc)[:2500],
-                                    "salary": "Non spécifié",
-                                    "date_posted": "Récent",
-                                    "is_remote": bool(item.get("remote")),
-                                    "job_type": classified,
-                                    "contract": classified,
-                                    "matched_keyword": keywords_list[0] if keywords_list else "",
-                                    "relevance_score": rel_score
-                                })
-        except Exception:
-            pass
-
-    # 3. Query Remotive (100 offers)
-    if len(records) < results_wanted:
-        try:
+    # 2. Query Arbeitnow across multiple pages within the period
+    try:
+        for page in range(1, 6):
+            page_url = "https://www.arbeitnow.com/api/job-board-api" if page == 1 else f"https://www.arbeitnow.com/api/job-board-api?page={page}"
             req = urllib.request.Request(
-                "https://remotive.com/api/remote-jobs?limit=100",
+                page_url,
                 headers={"User-Agent": "PostuTrack/1.0", "Accept": "application/json"}
             )
             with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
                 if response.status == 200:
                     data = json.loads(response.read().decode('utf-8'))
-                    for item in data.get("jobs", []):
+                    for item in data.get("data", []):
+                        created_at = item.get("created_at")
+                        if created_at and (time.time() - created_at) > (hours_old * 3600):
+                            continue
+
                         title = item.get("title", "")
                         desc = item.get("description", "")
-                        job_loc = item.get("candidate_required_location", "Remote / France")
-                        job_url = item.get("url", "")
+                        job_loc = item.get("location", location)
+                        job_url = item.get("url") or f"https://www.arbeitnow.com/jobs/{item.get('slug', '')}"
                         
                         if not job_url:
                             continue
@@ -393,118 +370,168 @@ def scrape_with_native_apis(keywords_list, location, contract_type, is_remote, r
                         matches_kw = any(normalize_text(k) in full_text for k in keywords_list) or any(normalize_text(k).split()[0] in full_text for k in keywords_list if len(k) > 2)
                         
                         if matches_kw:
-                            classified = classify_contract(title, desc, item.get("job_type", "CDI"))
-                            rel_score = calculate_relevance(title, desc, job_loc, True, keywords_list, location, is_remote, classified, contract_type)
+                            classified = classify_contract(title, desc, item.get("job_types", ["CDI"])[0] if item.get("job_types") else "CDI")
+                            rel_score = calculate_relevance(title, desc, job_loc, bool(item.get("remote")), keywords_list, location, is_remote, classified, contract_type)
                             
                             add_record({
-                                "id": f"remotive-{len(records)}-{abs(hash(job_url))}",
+                                "id": f"arbeit-{len(records)}-{abs(hash(job_url))}",
                                 "title": title,
                                 "company": item.get("company_name", "Entreprise"),
-                                "location": job_loc,
+                                "location": job_loc if not item.get("remote") else "100% Télétravail",
                                 "job_url": job_url,
-                                "site": "Remotive",
+                                "site": "Arbeitnow",
                                 "description": re.sub(r'<[^>]+>', ' ', desc)[:2500],
-                                "salary": item.get("salary") or "Non spécifié",
-                                "date_posted": item.get("publication_date", "Récent")[:10] if item.get("publication_date") else "Récent",
-                                "is_remote": True,
+                                "salary": "Non spécifié",
+                                "date_posted": "Récent",
+                                "is_remote": bool(item.get("remote")),
                                 "job_type": classified,
                                 "contract": classified,
                                 "matched_keyword": keywords_list[0] if keywords_list else "",
                                 "relevance_score": rel_score
                             })
-        except Exception:
-            pass
+    except Exception:
+        pass
 
-    # 4. Query Jobicy (50 offers)
-    if len(records) < results_wanted:
-        try:
-            req = urllib.request.Request(
-                "https://jobicy.com/api/v2/remote-jobs?count=50",
-                headers={"User-Agent": "PostuTrack/1.0", "Accept": "application/json"}
-            )
-            with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
-                if response.status == 200:
-                    data = json.loads(response.read().decode('utf-8'))
-                    for item in data.get("jobs", []):
-                        title = item.get("jobTitle", "")
-                        desc = item.get("jobDescription", "")
-                        job_loc = item.get("jobGeo", "Remote / France")
-                        job_url = item.get("url", "")
+    # 3. Query Remotive (remote tech jobs in period)
+    try:
+        req = urllib.request.Request(
+            "https://remotive.com/api/remote-jobs?limit=150",
+            headers={"User-Agent": "PostuTrack/1.0", "Accept": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                for item in data.get("jobs", []):
+                    pub_date = item.get("publication_date")
+                    if pub_date and not is_date_within_hours(pub_date, hours_old):
+                        continue
+
+                    title = item.get("title", "")
+                    desc = item.get("description", "")
+                    job_loc = item.get("candidate_required_location", "Remote / France")
+                    job_url = item.get("url", "")
+                    
+                    if not job_url:
+                        continue
+
+                    full_text = normalize_text(f"{title} {desc} {job_loc}")
+                    matches_kw = any(normalize_text(k) in full_text for k in keywords_list) or any(normalize_text(k).split()[0] in full_text for k in keywords_list if len(k) > 2)
+                    
+                    if matches_kw:
+                        classified = classify_contract(title, desc, item.get("job_type", "CDI"))
+                        rel_score = calculate_relevance(title, desc, job_loc, True, keywords_list, location, is_remote, classified, contract_type)
                         
-                        if not job_url:
+                        add_record({
+                            "id": f"remotive-{len(records)}-{abs(hash(job_url))}",
+                            "title": title,
+                            "company": item.get("company_name", "Entreprise"),
+                            "location": job_loc,
+                            "job_url": job_url,
+                            "site": "Remotive",
+                            "description": re.sub(r'<[^>]+>', ' ', desc)[:2500],
+                            "salary": item.get("salary") or "Non spécifié",
+                            "date_posted": item.get("publication_date", "Récent")[:10] if item.get("publication_date") else "Récent",
+                            "is_remote": True,
+                            "job_type": classified,
+                            "contract": classified,
+                            "matched_keyword": keywords_list[0] if keywords_list else "",
+                            "relevance_score": rel_score
+                        })
+    except Exception:
+        pass
+
+    # 4. Query Jobicy
+    try:
+        req = urllib.request.Request(
+            "https://jobicy.com/api/v2/remote-jobs?count=70",
+            headers={"User-Agent": "PostuTrack/1.0", "Accept": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                for item in data.get("jobs", []):
+                    title = item.get("jobTitle", "")
+                    desc = item.get("jobDescription", "")
+                    job_loc = item.get("jobGeo", "Remote / France")
+                    job_url = item.get("url", "")
+                    
+                    if not job_url:
+                        continue
+
+                    full_text = normalize_text(f"{title} {desc} {job_loc}")
+                    matches_kw = any(normalize_text(k) in full_text for k in keywords_list) or any(normalize_text(k).split()[0] in full_text for k in keywords_list if len(k) > 2)
+                    
+                    if matches_kw:
+                        classified = classify_contract(title, desc, item.get("jobType", ["CDI"])[0] if item.get("jobType") else "CDI")
+                        rel_score = calculate_relevance(title, desc, job_loc, True, keywords_list, location, is_remote, classified, contract_type)
+                        
+                        add_record({
+                            "id": f"jobicy-{len(records)}-{abs(hash(job_url))}",
+                            "title": title,
+                            "company": item.get("companyName", "Entreprise"),
+                            "location": job_loc,
+                            "job_url": job_url,
+                            "site": "Jobicy",
+                            "description": re.sub(r'<[^>]+>', ' ', desc)[:2500],
+                            "salary": f"{item.get('annualSalaryMin', '')} - {item.get('annualSalaryMax', '')} {item.get('salaryCurrency', 'USD')}".strip() or "Non spécifié",
+                            "date_posted": "Récent",
+                            "is_remote": True,
+                            "job_type": classified,
+                            "contract": classified,
+                            "matched_keyword": keywords_list[0] if keywords_list else "",
+                            "relevance_score": rel_score
+                        })
+    except Exception:
+        pass
+
+    # 5. Query RemoteOK
+    try:
+        req = urllib.request.Request(
+            "https://remoteok.com/api",
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        )
+        with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode('utf-8'))
+                if isinstance(data, list):
+                    for item in data[1:100]:
+                        item_date = item.get("date")
+                        if item_date and not is_date_within_hours(item_date, hours_old):
+                            continue
+
+                        title = item.get("position", "")
+                        desc = item.get("description", "")
+                        job_loc = item.get("location", "Remote")
+                        job_url = item.get("url") or (f"https://remoteok.com/remote-jobs/{item.get('id')}" if item.get('id') else "")
+                        
+                        if not job_url or not title:
                             continue
 
                         full_text = normalize_text(f"{title} {desc} {job_loc}")
                         matches_kw = any(normalize_text(k) in full_text for k in keywords_list) or any(normalize_text(k).split()[0] in full_text for k in keywords_list if len(k) > 2)
                         
                         if matches_kw:
-                            classified = classify_contract(title, desc, item.get("jobType", ["CDI"])[0] if item.get("jobType") else "CDI")
+                            classified = classify_contract(title, desc, "")
                             rel_score = calculate_relevance(title, desc, job_loc, True, keywords_list, location, is_remote, classified, contract_type)
                             
                             add_record({
-                                "id": f"jobicy-{len(records)}-{abs(hash(job_url))}",
+                                "id": f"remoteok-{len(records)}-{abs(hash(job_url))}",
                                 "title": title,
-                                "company": item.get("companyName", "Entreprise"),
+                                "company": item.get("company", "Entreprise"),
                                 "location": job_loc,
                                 "job_url": job_url,
-                                "site": "Jobicy",
+                                "site": "RemoteOK",
                                 "description": re.sub(r'<[^>]+>', ' ', desc)[:2500],
-                                "salary": f"{item.get('annualSalaryMin', '')} - {item.get('annualSalaryMax', '')} {item.get('salaryCurrency', 'USD')}".strip() or "Non spécifié",
-                                "date_posted": "Récent",
+                                "salary": item.get("salary") or "Non spécifié",
+                                "date_posted": item.get("date", "Récent")[:10] if item.get("date") else "Récent",
                                 "is_remote": True,
                                 "job_type": classified,
                                 "contract": classified,
                                 "matched_keyword": keywords_list[0] if keywords_list else "",
                                 "relevance_score": rel_score
                             })
-        except Exception:
-            pass
-
-    # 5. Query RemoteOK (100 offers)
-    if len(records) < results_wanted:
-        try:
-            req = urllib.request.Request(
-                "https://remoteok.com/api",
-                headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-            )
-            with urllib.request.urlopen(req, timeout=5, context=ctx) as response:
-                if response.status == 200:
-                    data = json.loads(response.read().decode('utf-8'))
-                    if isinstance(data, list):
-                        for item in data[1:80]:
-                            title = item.get("position", "")
-                            desc = item.get("description", "")
-                            job_loc = item.get("location", "Remote")
-                            job_url = item.get("url") or (f"https://remoteok.com/remote-jobs/{item.get('id')}" if item.get('id') else "")
-                            
-                            if not job_url or not title:
-                                continue
-
-                            full_text = normalize_text(f"{title} {desc} {job_loc}")
-                            matches_kw = any(normalize_text(k) in full_text for k in keywords_list) or any(normalize_text(k).split()[0] in full_text for k in keywords_list if len(k) > 2)
-                            
-                            if matches_kw:
-                                classified = classify_contract(title, desc, "")
-                                rel_score = calculate_relevance(title, desc, job_loc, True, keywords_list, location, is_remote, classified, contract_type)
-                                
-                                add_record({
-                                    "id": f"remoteok-{len(records)}-{abs(hash(job_url))}",
-                                    "title": title,
-                                    "company": item.get("company", "Entreprise"),
-                                    "location": job_loc,
-                                    "job_url": job_url,
-                                    "site": "RemoteOK",
-                                    "description": re.sub(r'<[^>]+>', ' ', desc)[:2500],
-                                    "salary": item.get("salary") or "Non spécifié",
-                                    "date_posted": item.get("date", "Récent")[:10] if item.get("date") else "Récent",
-                                    "is_remote": True,
-                                    "job_type": classified,
-                                    "contract": classified,
-                                    "matched_keyword": keywords_list[0] if keywords_list else "",
-                                    "relevance_score": rel_score
-                                })
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     # Sort records: matching requested contract offers first, then by relevance_score descending
     if contract_type and contract_type.lower() not in ["all", "any", "tous", "all_types"]:
@@ -543,21 +570,19 @@ def run_scraper():
         keywords_list = ["Software Engineer"]
 
     location = params.get("location") or "Paris, France"
-    user_requested_limit = int(params.get("results_wanted") or 15)
-    results_wanted = max(100, user_requested_limit)
-    
+    hours_old = int(params.get("hours_old") or 168)
     requested_sites = params.get("sites") or ["linkedin", "indeed", "wttj", "glassdoor"]
     contract_type = params.get("contract_type") or params.get("contract")
     is_remote = bool(params.get("is_remote", False))
 
-    # Fast multi-source scraping engine
+    # Fast multi-source scraping engine: searching all offers in the selected period
     jobs = scrape_with_native_apis(
         keywords_list=keywords_list,
         location=location,
         contract_type=contract_type,
         is_remote=is_remote,
-        results_wanted=results_wanted,
-        requested_sites=requested_sites
+        requested_sites=requested_sites,
+        hours_old=hours_old
     )
 
     print(json.dumps({
