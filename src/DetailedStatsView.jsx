@@ -885,108 +885,119 @@ export const DetailedStatsView = ({
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto animate-in fade-in duration-300">
+    <div className="space-y-6 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto animate-in fade-in duration-300">
       
       {/* Toast Notification */}
       {exportNotice && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-sm font-semibold animate-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-sm font-semibold animate-in slide-in-from-bottom-3 duration-200">
           <Check size={18} className="shrink-0" />
           <span>{exportNotice}</span>
         </div>
       )}
 
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">
+            {t.stats || 'Statistiques & Performance'}
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {t.statsSubtitle || 'Suivi complet de votre vélocité de candidature, taux de retours et performance par plateforme.'}
+          </p>
+        </div>
+      </div>
 
       {/* 1. ALL STATS METRICS GRID (Comprehensive View) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3 sm:gap-4 2xl:gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 sm:gap-3">
         {/* Total Applications */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md transition-all">
-          <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.totalApplications}</span>
-            <div className="p-2 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0">
-              <Briefcase size={16} />
+            <div className="text-blue-600 dark:text-blue-400 shrink-0">
+              <Briefcase size={15} />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
+          <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
         </div>
 
         {/* Interviews */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md transition-all">
-          <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.interviews}</span>
-            <div className="p-2 bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 rounded-xl shrink-0">
-              <Clock size={16} />
+            <div className="text-purple-600 dark:text-purple-400 shrink-0">
+              <Clock size={15} />
             </div>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{interviewsCount}</p>
+            <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{interviewsCount}</p>
             <p className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold mt-0.5">{interviewRate}% {t.interviewRate || 'taux'}</p>
           </div>
         </div>
 
         {/* Offers */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md transition-all">
-          <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.offersReceived}</span>
-            <div className="p-2 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0">
-              <CheckCircle size={16} />
+            <div className="text-emerald-600 dark:text-emerald-400 shrink-0">
+              <CheckCircle size={15} />
             </div>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
+            <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
             <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">{offerRate}% {t.offerRate || 'taux'}</p>
           </div>
         </div>
 
         {/* Rejections */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md transition-all">
-          <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.rejections}</span>
-            <div className="p-2 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl shrink-0">
-              <XCircle size={16} />
+            <div className="text-rose-600 dark:text-rose-400 shrink-0">
+              <XCircle size={15} />
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
+          <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
         </div>
 
         {/* Ghosted */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md transition-all">
-          <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.ghostedCountLabel || 'Ghosté(s)'}</span>
-            <div className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl shrink-0">
-              <Ghost size={16} />
+            <div className="text-slate-500 shrink-0">
+              <Ghost size={15} />
             </div>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{ghostedCount}</p>
+            <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{ghostedCount}</p>
             <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{t.ghostedTooltip || '> 14j sans retour'}</p>
           </div>
         </div>
 
         {/* Reply Rate */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md transition-all">
-          <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.replyRate}</span>
-            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-xl shrink-0">
-              <Percent size={16} />
+            <div className="text-indigo-600 dark:text-indigo-400 shrink-0">
+              <Percent size={15} />
             </div>
           </div>
           <div>
-            <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{overallReplyRate}%</p>
+            <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{overallReplyRate}%</p>
             <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{answeredApps.length} / {totalApplications}</p>
           </div>
         </div>
 
         {/* Average Response Time */}
-        <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-md transition-all">
-          <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.avgResponseTime}</span>
-            <div className="p-2 bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
-              <Timer size={16} />
+            <div className="text-amber-600 dark:text-amber-400 shrink-0">
+              <Timer size={15} />
             </div>
           </div>
           <div>
             {avgResponseDays !== null ? (
-              <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-baseline gap-1">
+              <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-baseline gap-1">
                 {avgResponseDays} <span className="text-xs font-semibold text-gray-500">{t.avgDays || 'j'}</span>
               </p>
             ) : (
@@ -997,17 +1008,12 @@ export const DetailedStatsView = ({
       </div>
 
       {/* 2. DUAL-AXIS / VELOCITY GRAPH: APPLICATION VELOCITY */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-100 dark:border-gray-700">
+      <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
           <div>
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
-                <TrendingUp size={18} />
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                {t.appVelocity || 'Vélocité des candidatures'}
-              </h3>
-            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              {t.appVelocity || 'Vélocité des candidatures'}
+            </h3>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               {timePeriod === 'all'
                 ? (lang === 'en'
@@ -1209,17 +1215,12 @@ export const DetailedStatsView = ({
       </div>
 
       {/* 3. PLATFORM BAR CHART ANALYSIS (Without table) */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-100 dark:border-gray-700">
+      <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400">
-                <Globe size={18} />
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                {t.platformAnalysisChart || 'Performance par Plateforme / ATS'}
-              </h3>
-            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              {t.platformAnalysisChart || 'Performance par Plateforme / ATS'}
+            </h3>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.platformAnalysisChartSubtitle || 'Comparatif visuel du volume de candidatures et des retours par canal.'}
             </p>
@@ -1300,19 +1301,14 @@ export const DetailedStatsView = ({
       </div>
 
       {/* 4. ADVANCED FILTERED APPLICATIONS TABLE & EXPORT */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-5 sm:p-7 shadow-xs border border-gray-100 dark:border-gray-700 space-y-5">
+      <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-4">
         
         {/* Table Header & Export Actions */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400">
-                <FileSpreadsheet size={18} />
-              </div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                {t.filterOffersTitle || 'Tableau & Filtrage des offres'}
-              </h3>
-            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              {t.filterOffersTitle || 'Tableau & Filtrage des offres'}
+            </h3>
             <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t.filterOffersSubtitle || 'Recherchez, filtrez par statut, contrat ou plateforme, et exportez vos données.'}
             </p>
@@ -1346,18 +1342,18 @@ export const DetailedStatsView = ({
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700 space-y-3.5">
+        <div className="p-4 bg-gray-50 dark:bg-zinc-950 rounded-xl border border-gray-200 dark:border-zinc-800 space-y-3.5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             
             {/* Search Bar */}
             <div className="relative">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" />
               <input
                 type="text"
                 placeholder={t.filterSearchPlaceholder || 'Rechercher une entreprise, poste...'}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-md border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600"
               />
             </div>
 
@@ -1366,7 +1362,7 @@ export const DetailedStatsView = ({
               <select
                 value={selectedStatus}
                 onChange={e => setSelectedStatus(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
               >
                 <option value="ALL">{t.filterAllStatuses || 'Tous les statuts'}</option>
                 {STATUS_KEYS.map(status => (
@@ -1382,7 +1378,7 @@ export const DetailedStatsView = ({
               <select
                 value={selectedContract}
                 onChange={e => setSelectedContract(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
               >
                 <option value="ALL">{t.filterAllContracts || 'Tous les contrats'}</option>
                 {CONTRACT_KEYS.map(contract => (
@@ -1398,7 +1394,7 @@ export const DetailedStatsView = ({
               <select
                 value={selectedSource}
                 onChange={e => setSelectedSource(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
               >
                 <option value="ALL">{t.filterAllSources || 'Toutes les plateformes'}</option>
                 {availableSources.map(source => (
@@ -1417,17 +1413,17 @@ export const DetailedStatsView = ({
                 {t.filteredResultsCount ? t.filteredResultsCount.replace('{count}', filteredApplications.length) : `${filteredApplications.length} offre(s)`}
               </span>
               {selectedStatus !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-zinc-200">
                   {selectedStatus}
                 </span>
               )}
               {selectedContract !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-zinc-200">
                   {selectedContract}
                 </span>
               )}
               {selectedSource !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-zinc-200">
                   {selectedSource}
                 </span>
               )}
@@ -1437,7 +1433,7 @@ export const DetailedStatsView = ({
               <button
                 type="button"
                 onClick={resetAllFilters}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                className="text-xs text-blue-600 dark:text-zinc-300 hover:underline flex items-center gap-1 cursor-pointer font-medium"
               >
                 <RotateCcw size={12} />
                 <span>{t.resetFilters || 'Réinitialiser les filtres'}</span>
@@ -1447,10 +1443,10 @@ export const DetailedStatsView = ({
         </div>
 
         {/* The Offers Table */}
-        <div className="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0">
+        <div className="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0 border border-gray-200 dark:border-zinc-800 rounded-md overflow-hidden">
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs uppercase tracking-wider border-b dark:border-gray-700">
+              <tr className="bg-gray-50 dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 text-[11px] sm:text-xs uppercase tracking-wider border-b border-gray-200 dark:border-zinc-800">
                 <th className="p-3 font-semibold">{t.company || 'Entreprise'} & {t.role || 'Poste'}</th>
                 <th className="p-3 font-semibold">{t.contract || 'Contrat'}</th>
                 <th className="p-3 font-semibold">{t.source || 'Plateforme'}</th>
@@ -1459,19 +1455,19 @@ export const DetailedStatsView = ({
                 <th className="p-3 font-semibold">{t.status || 'Statut'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700/80">
+            <tbody className="divide-y divide-gray-100 dark:divide-zinc-800 bg-white dark:bg-zinc-950">
               {filteredApplications.map(app => {
                 const responseDays = getAppResponseDays(app);
                 const isGhosted = isApplicationGhosted(app);
                 const formattedUrl = formatExternalUrl ? formatExternalUrl(app.url) : app.url;
 
                 return (
-                  <tr key={app.id} className="hover:bg-gray-50/70 dark:hover:bg-gray-700/40 transition-colors">
+                  <tr key={app.id} className="hover:bg-gray-50/70 dark:hover:bg-zinc-900/70 transition-colors">
                     
                     {/* Company & Role */}
                     <td className="p-3 font-semibold text-gray-900 dark:text-white">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                        <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs shrink-0">
                           {app.company ? app.company.substring(0, 2).toUpperCase() : 'CO'}
                         </div>
                         <div className="min-w-0">

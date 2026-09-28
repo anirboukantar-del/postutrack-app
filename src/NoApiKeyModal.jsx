@@ -1,13 +1,13 @@
 import React from 'react';
 import {
   Sparkles,
-  Key,
   Settings,
   BookOpen,
   X,
   ShieldCheck,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  Languages
 } from 'lucide-react';
 
 export default function NoApiKeyModal({
@@ -15,6 +15,7 @@ export default function NoApiKeyModal({
   onClose,
   onGoToSettings,
   onOpenTutorial,
+  onToggleLanguage,
   lang = 'fr'
 }) {
   if (!isOpen) return null;
@@ -24,27 +25,41 @@ export default function NoApiKeyModal({
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div 
-        className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200"
+        className="bg-white dark:bg-zinc-950 rounded-md shadow-2xl border border-gray-200 dark:border-zinc-800 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
       >
         {/* Header with decorative background */}
         <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 text-white p-6 sm:p-7">
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/90 transition-colors cursor-pointer"
-            title={isEn ? 'Close' : 'Fermer'}
-          >
-            <X size={18} />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            {onToggleLanguage && (
+              <button
+                type="button"
+                onClick={onToggleLanguage}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 active:scale-95 text-white text-xs font-semibold backdrop-blur-xs transition-all cursor-pointer border border-white/20 select-none shadow-xs"
+                title={isEn ? 'Passer en français' : 'Switch to English'}
+                aria-label={isEn ? 'Passer en français' : 'Switch to English'}
+              >
+                <Languages size={14} className="text-white/90 shrink-0" />
+                <span className="flex items-center gap-1 tracking-wider text-[11px]">
+                  <span className={!isEn ? 'font-bold text-white' : 'text-white/60'}>FR</span>
+                  <span className="text-white/40">/</span>
+                  <span className={isEn ? 'font-bold text-white' : 'text-white/60'}>EN</span>
+                </span>
+              </button>
+            )}
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400/20 text-amber-300 border border-amber-400/30 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
-            <Key size={13} />
-            <span>{isEn ? 'AI Setup Needed' : 'Clé API requise'}</span>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/90 transition-colors cursor-pointer"
+              title={isEn ? 'Close' : 'Fermer'}
+            >
+              <X size={18} />
+            </button>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight pr-24 sm:pr-28">
             {isEn ? 'No AI API Key Detected' : 'Aucune Clé API IA Configurée'}
           </h2>
 

@@ -571,7 +571,7 @@ def run_scraper():
 
     location = params.get("location") or "Paris, France"
     hours_old = int(params.get("hours_old") or 168)
-    requested_sites = params.get("sites") or ["linkedin", "indeed", "wttj", "glassdoor"]
+    requested_sites = params.get("sites") or ["linkedin", "indeed", "wttj", "glassdoor", "jobteaser", "hellowork", "dice", "francetravail"]
     contract_type = params.get("contract_type") or params.get("contract")
     is_remote = bool(params.get("is_remote", False))
 

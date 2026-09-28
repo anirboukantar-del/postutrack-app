@@ -144,10 +144,10 @@ export function ProfilePhotoUploader({
           onClick={() => fileInputRef.current?.click()}
           className={`relative group cursor-pointer w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 transition-all flex items-center justify-center shrink-0 shadow-xs ${
             isDragging 
-              ? 'border-indigo-500 ring-4 ring-indigo-500/20 scale-105' 
+              ? 'border-blue-500 ring-4 ring-blue-500/20 scale-105' 
               : photo 
-              ? 'border-indigo-200 dark:border-indigo-800' 
-              : 'border-dashed border-gray-300 dark:border-gray-600 bg-gray-100/80 dark:bg-gray-750 hover:border-indigo-400'
+              ? 'border-blue-200 dark:border-blue-800' 
+              : 'border-dashed border-gray-300 dark:border-gray-600 bg-gray-100/80 dark:bg-gray-800 hover:border-blue-400'
           }`}
           title={photo ? (t?.changePhotoBtn || 'Changer la photo') : (t?.importPhotoBtn || 'Importer une photo')}
         >
@@ -159,7 +159,7 @@ export function ProfilePhotoUploader({
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
               <Camera size={20} />
             </div>
           )}
@@ -177,7 +177,7 @@ export function ProfilePhotoUploader({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-2.5 py-1.5 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 rounded-lg text-xs font-semibold border border-indigo-200 dark:border-indigo-800/60 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg text-xs font-semibold border border-blue-200 dark:border-blue-800/60 transition-colors cursor-pointer flex items-center gap-1.5"
             >
               <Upload size={13} />
               <span>{photo ? (t?.changePhotoBtn || 'Changer') : (t?.importPhotoBtn || 'Photo')}</span>
@@ -204,7 +204,7 @@ export function ProfilePhotoUploader({
 
   // Default 'card' variant: Prominent card uploader
   return (
-    <div className={`p-4 sm:p-5 bg-slate-50/80 dark:bg-gray-750/70 border border-slate-200 dark:border-gray-700 rounded-2xl transition-all ${className}`}>
+    <div className={`p-4 sm:p-5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl transition-all ${className}`}>
       {/* Hidden file input */}
       <input 
         ref={fileInputRef}
@@ -229,10 +229,10 @@ export function ProfilePhotoUploader({
             onClick={() => fileInputRef.current?.click()}
             className={`relative group cursor-pointer w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden border-2 transition-all flex items-center justify-center shrink-0 shadow-sm ${
               isDragging 
-                ? 'border-indigo-500 ring-4 ring-indigo-500/20 scale-105 bg-indigo-50 dark:bg-indigo-950/40' 
+                ? 'border-blue-500 ring-4 ring-blue-500/20 scale-105 bg-blue-50 dark:bg-blue-950/40' 
                 : photo 
-                ? 'border-indigo-300 dark:border-indigo-700 ring-2 ring-indigo-100 dark:ring-indigo-900/30' 
-                : 'border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-indigo-400 dark:hover:border-indigo-500'
+                ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-100 dark:ring-blue-900/30' 
+                : 'border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500'
             }`}
             title={t?.photoDropTip || 'Glissez une photo ici ou cliquez pour choisir'}
           >
@@ -245,8 +245,8 @@ export function ProfilePhotoUploader({
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 gap-1 text-center px-1">
-                <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-xs">
+              <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 gap-1 text-center px-1">
+                <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-xs">
                   {getInitials(name)}
                 </div>
                 <Camera size={14} className="text-gray-400" />
@@ -255,7 +255,7 @@ export function ProfilePhotoUploader({
 
             {isProcessing && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-2xs flex flex-col items-center justify-center text-white text-xs gap-1">
-                <RefreshCw size={20} className="animate-spin text-indigo-300" />
+                <RefreshCw size={20} className="animate-spin text-blue-300" />
                 <span>{lang === 'en' ? 'Optimizing...' : 'Optimisation...'}</span>
               </div>
             )}
@@ -265,19 +265,19 @@ export function ProfilePhotoUploader({
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
-                <ImageIcon size={16} className="text-indigo-600 dark:text-indigo-400" />
+                <ImageIcon size={16} className="text-blue-600 dark:text-blue-400" />
                 {t?.photoLabel || 'Photo de profil'}
               </h4>
               {photo && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700/50 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
                   <Check size={11} /> {lang === 'en' ? 'Active' : 'Enregistrée'}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-md">
+            <p className="text-xs text-gray-600 dark:text-gray-300 max-w-md">
               {t?.photoSubtitle || 'Formats acceptés : JPG, PNG, WebP (Optimisation et recadrage automatiques)'}
             </p>
-            <p className="text-[11px] text-indigo-600/80 dark:text-indigo-400/80">
+            <p className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">
               {t?.photoDropTip || 'Glissez une photo ici ou cliquez pour choisir'}
             </p>
           </div>
@@ -288,7 +288,7 @@ export function ProfilePhotoUploader({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1 sm:flex-none justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+            className="flex-1 sm:flex-none justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
           >
             <Upload size={14} />
             <span>{photo ? (t?.changePhotoBtn || 'Changer la photo') : (t?.importPhotoBtn || 'Importer une photo')}</span>
@@ -298,7 +298,7 @@ export function ProfilePhotoUploader({
             <button
               type="button"
               onClick={handleRemove}
-              className="px-3 py-2 bg-white dark:bg-gray-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-gray-200 dark:border-gray-600 hover:border-rose-200 dark:hover:border-rose-800 rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-2 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-gray-200 dark:border-gray-700 hover:border-rose-200 dark:hover:border-rose-800 rounded-xl text-xs sm:text-sm font-semibold shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
               title={t?.removePhotoBtn || 'Supprimer la photo'}
             >
               <Trash2 size={14} />

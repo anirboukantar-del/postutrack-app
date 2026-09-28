@@ -63,7 +63,9 @@ export function CreditsView({ t, lang }) {
         : 'Générateur de CV basé sur LaTeX et Typst, inspirant la structuration sémantique et la mise en page optimisée pour les recruteurs.',
       tags: ['LaTeX', 'Typst', 'Resume Engine', 'YAML Schema'],
       icon: <FileCode2 className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />,
-      accentBg: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/60'
+      accentBg: 'bg-indigo-50/70 dark:bg-indigo-950/30 border-indigo-200/90 dark:border-indigo-700/60',
+      btnStyle: 'bg-indigo-600 hover:bg-indigo-700 text-white dark:bg-indigo-600 dark:hover:bg-indigo-500 dark:text-white',
+      dividerColor: 'border-indigo-200/70 dark:border-indigo-800/50'
     },
     {
       id: 'jinaai',
@@ -75,8 +77,10 @@ export function CreditsView({ t, lang }) {
         ? 'Neural search and Reader API empowering fast, clean URL parsing and intelligent job offer extraction without clutter.'
         : 'API Reader et modèles de recherche neuronale permettant d’extraire proprement le contenu des offres d’emploi depuis les URLs (LinkedIn, WTTJ, etc.).',
       tags: ['Reader API', 'Neural Search', 'Job Extraction', 'Web Scraping'],
-      icon: <Sparkles className="w-6 h-6 text-blue-600 dark:text-blue-400" />,
-      accentBg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60'
+      icon: <Sparkles className="w-6 h-6 text-sky-600 dark:text-sky-400" />,
+      accentBg: 'bg-sky-50/70 dark:bg-sky-950/30 border-sky-200/90 dark:border-sky-700/60',
+      btnStyle: 'bg-sky-600 hover:bg-sky-700 text-white dark:bg-sky-600 dark:hover:bg-sky-500 dark:text-white',
+      dividerColor: 'border-sky-200/70 dark:border-sky-800/50'
     },
     {
       id: 'reactiveresume',
@@ -89,7 +93,9 @@ export function CreditsView({ t, lang }) {
         : 'Projet open source de référence pour la création et la composition de CVs modulaires, respectant la vie privée et les normes ATS.',
       tags: ['React', 'Modular CV', 'Open Source', 'Privacy First'],
       icon: <Layers className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />,
-      accentBg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60'
+      accentBg: 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/90 dark:border-emerald-700/60',
+      btnStyle: 'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:text-white',
+      dividerColor: 'border-emerald-200/70 dark:border-emerald-800/50'
     },
     {
       id: 'jobspy',
@@ -102,7 +108,9 @@ export function CreditsView({ t, lang }) {
         : 'Bibliothèque d’agrégation d’offres d’emploi 4-en-1 (LinkedIn, Indeed, Glassdoor, ZipRecruiter) pour automatiser la veille et le sourcing.',
       tags: ['Job Scraper (WIP)', 'LinkedIn', 'Indeed', 'Multi-Search'],
       icon: <Compass className="w-6 h-6 text-amber-600 dark:text-amber-400" />,
-      accentBg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/60'
+      accentBg: 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-200/90 dark:border-amber-700/60',
+      btnStyle: 'bg-amber-600 hover:bg-amber-700 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-white',
+      dividerColor: 'border-amber-200/70 dark:border-amber-800/50'
     }
   ];
 
@@ -111,31 +119,26 @@ export function CreditsView({ t, lang }) {
       {/* SECTION 1: CONTACTS & SOCIALS */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-xl">
-              <UserCheck size={20} />
-            </div>
-            <div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                {lang === 'en' ? 'My Contacts & Social Links' : 'Mes Réseaux & Contacts'}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                {lang === 'en' ? 'Direct channels to reach out and follow development' : 'Mes profils officiels pour échanger, collaborer et suivre les projets'}
-              </p>
-            </div>
+          <div>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              {lang === 'en' ? 'My Contacts & Social Links' : 'Mes Réseaux & Contacts'}
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              {lang === 'en' ? 'Direct channels to reach out and follow development' : 'Mes profils officiels pour échanger, collaborer et suivre les projets'}
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {contacts.map((contact) => (
             <div
               key={contact.id}
-              className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between group"
+              className="p-4 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between group transition-all"
             >
               <div>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-2.5">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 group-hover:scale-105 transition-transform">
+                    <div className="text-gray-800 dark:text-gray-100 group-hover:scale-105 transition-transform shrink-0">
                       {contact.icon}
                     </div>
                     <div>
@@ -153,15 +156,15 @@ export function CreditsView({ t, lang }) {
                 </p>
               </div>
 
-              <div className="pt-4 mt-3 border-t border-gray-100 dark:border-gray-700/60">
+              <div className="pt-3 mt-2 border-t border-gray-200/60 dark:border-gray-700/60">
                 <a
                   href={contact.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => openExternalLink(contact.url, e)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer"
                 >
-                  <ExternalLink size={14} />
+                  <ExternalLink size={13} />
                   <span>{lang === 'en' ? 'Open Profile' : 'Voir le profil'}</span>
                 </a>
               </div>
@@ -173,32 +176,27 @@ export function CreditsView({ t, lang }) {
       {/* SECTION 2: CODE CREDITS */}
       <div className="space-y-4 pt-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-xl">
-              <Code2 size={20} />
-            </div>
-            <div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                {lang === 'en' ? 'Code & Open-Source Credits' : 'Crédits Code & Projets Open Source'}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                {lang === 'en'
-                  ? 'Key repositories, tools, and libraries that provided technical inspiration and power'
-                  : 'Bibliothèques, dépôts et frameworks open source ayant inspiré l’architecture et les fonctionnalités'}
-              </p>
-            </div>
+          <div>
+            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              {lang === 'en' ? 'Code & Open-Source Credits' : 'Crédits Code & Projets Open Source'}
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              {lang === 'en'
+                ? 'Key repositories, tools, and libraries that provided technical inspiration and power'
+                : 'Bibliothèques, dépôts et frameworks open source ayant inspiré l’architecture et les fonctionnalités'}
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {codeCredits.map((item) => (
             <div
               key={item.id}
-              className={`bg-white dark:bg-gray-800 rounded-2xl border ${item.accentBg} p-5 shadow-xs hover:shadow-md transition-all flex flex-col justify-between`}
+              className={`p-4 rounded-lg border ${item.accentBg} flex flex-col justify-between transition-all`}
             >
               <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2.5 rounded-xl bg-white dark:bg-gray-700 shadow-2xs">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="text-gray-700 dark:text-gray-300 shrink-0">
                     {item.icon}
                   </div>
                   <div>
@@ -211,21 +209,21 @@ export function CreditsView({ t, lang }) {
                   </div>
                 </div>
 
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4">
+                <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
                   {item.description}
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-gray-200/60 dark:border-gray-700/60">
+              <div className={`pt-2.5 border-t ${item.dividerColor || 'border-gray-200/60 dark:border-gray-700/60'}`}>
                 <a
                   href={item.webUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => openExternalLink(item.webUrl, e)}
-                  className="w-full inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gray-900 hover:bg-black dark:bg-white dark:hover:bg-gray-100 dark:text-gray-900 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+                  className={`w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 ${item.btnStyle} rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-[0.99]`}
                 >
-                  <Github size={14} />
-                  <span>{lang === 'en' ? 'View on GitHub' : 'Voir sur GitHub'}</span>
+                  <Github size={14} className="shrink-0 text-white" />
+                  <span className="text-white font-semibold">{lang === 'en' ? 'View on GitHub' : 'Voir sur GitHub'}</span>
                 </a>
               </div>
             </div>

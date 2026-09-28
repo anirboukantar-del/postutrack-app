@@ -17,7 +17,9 @@ import {
   Save,
   FileText,
   Mail,
-  Info
+  Info,
+  Download,
+  Upload
 } from 'lucide-react';
 import { BookOpen, HelpCircle, ExternalLink } from 'lucide-react';
 import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
@@ -46,6 +48,9 @@ export default function SettingsView({
   setMasterLetterPrompt,
   onRestoreMasterCvPrompt,
   onRestoreMasterLetterPrompt,
+  onExportProfile,
+  onExportBackup,
+  onImportData,
   onOpenTutorial
 }) {
   const [showKey, setShowKey] = useState(false);
@@ -88,52 +93,40 @@ export default function SettingsView({
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
       
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 p-5 sm:p-6 transition-colors">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl">
-            <Settings size={24} />
-          </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-              {t.settingsTitle || (lang === 'en' ? 'Settings & Preferences' : 'Paramètres & Préférences')}
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-              {t.settingsSubtitle || (lang === 'en' ? 'Manage your AI credentials, developer tools, and local data.' : 'Gérez vos clés d\'IA, vos outils développeur et vos données locales.')}
-            </p>
-          </div>
-        </div>
+      <div className="pb-1">
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+          {t.settingsTitle || (lang === 'en' ? 'Settings & Preferences' : 'Paramètres & Préférences')}
+        </h2>
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+          {t.settingsSubtitle || (lang === 'en' ? 'Manage your AI credentials, developer tools, and local data.' : 'Gérez vos clés d\'IA, vos outils développeur et vos données locales.')}
+        </p>
       </div>
 
       {resetSuccessNotice && (
-        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-sm font-medium flex items-center gap-2.5 animate-in fade-in">
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm font-medium flex items-center gap-2.5 animate-in fade-in">
           <CheckCircle size={20} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{t.resetSuccessNotice}</span>
         </div>
       )}
 
       {/* 1. AI CONFIGURATION */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 p-5 sm:p-6 transition-colors space-y-5">
-        <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 rounded-xl">
-              <Sparkles size={18} />
-            </div>
-            <div>
-              <h3 className="font-bold text-base text-gray-900 dark:text-white">
-                {t.aiConfigTitle || 'Configuration de l\'IA'}
-              </h3>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {lang === 'en' ? 'Active engine for CV & Cover letter generation' : 'Moteur actif pour la génération de CV et lettres'}
-              </span>
-            </div>
+      <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <h3 className="font-bold text-base text-gray-900 dark:text-white">
+              {t.aiConfigTitle || 'Configuration de l\'IA'}
+            </h3>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {lang === 'en' ? 'Active engine for CV & Cover letter generation' : 'Moteur actif pour la génération de CV et lettres'}
+            </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 hidden sm:inline">
+            <label className="text-xs font-semibold text-gray-500 dark:text-zinc-400 hidden sm:inline">
               {lang === 'en' ? 'Provider:' : 'Fournisseur :'}
             </label>
             <select 
-              className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold shadow-xs outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              className="px-3 py-2 border border-gray-200 dark:border-zinc-800 rounded-md text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-white font-semibold shadow-xs outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
               value={selectedAiModel}
               onChange={(e) => setSelectedAiModel(e.target.value)}
             >
@@ -146,42 +139,9 @@ export default function SettingsView({
         </div>
 
         {/* Privacy Note */}
-        <div className="flex items-start gap-2.5 p-3.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 rounded-xl text-xs text-blue-800 dark:text-blue-300">
-          <ShieldCheck size={16} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2.5 p-3.5 bg-gray-50/70 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-md text-xs text-gray-700 dark:text-zinc-300">
+          <ShieldCheck size={16} className="text-blue-600 dark:text-zinc-400 shrink-0 mt-0.5" />
           <span>{t.apiKeyPrivacyNote}</span>
-        </div>
-
-        {/* Beginner Guide Button & Callout */}
-        <div className="flex items-center justify-between flex-wrap sm:flex-nowrap gap-3 p-3.5 bg-gradient-to-r from-amber-500/10 via-amber-400/10 to-orange-500/10 dark:from-amber-500/15 dark:to-orange-500/15 border border-amber-300/80 dark:border-amber-600/50 rounded-xl">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-lg shrink-0">
-              <BookOpen size={18} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-900 dark:text-white">
-                  {lang === 'en' ? 'Need a 100% Free Gemini API Key?' : 'Besoin d\'une Clé API 100% Gratuite ?'}
-                </span>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-amber-400 text-amber-950">
-                  {lang === 'en' ? 'Beginner Guide' : 'Guide Débutant'}
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-600 dark:text-gray-300 mt-0.5">
-                {lang === 'en'
-                  ? 'Step-by-step tutorial on creating a free key on Google AI Studio & adding it to PostuTrack.'
-                  : 'Tutoriel pas-à-pas pour créer votre clé gratuite sur Google AI Studio et l\'ajouter à PostuTrack.'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onOpenTutorial}
-            className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-98 text-white font-bold rounded-xl text-xs sm:text-sm shadow-xs transition-all flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
-          >
-            <Sparkles size={14} />
-            <span>{lang === 'en' ? "I don't have an API key" : "Je n'ai pas de clé API"}</span>
-          </button>
         </div>
 
         {/* API Key Input */}
@@ -197,7 +157,7 @@ export default function SettingsView({
                     onClick={onOpenTutorial}
                     className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-semibold flex items-center gap-0.5 cursor-pointer ml-1"
                   >
-                    <span>({lang === 'en' ? 'Beginner Guide' : 'Guide débutant'} ↗)</span>
+                    <span>({lang === 'en' ? "I don't have an API key" : "Je n'ai pas de clé API"} ↗)</span>
                   </button>
                 </label>
                 <button
@@ -212,7 +172,7 @@ export default function SettingsView({
               <input 
                 type={showKey ? 'text' : 'password'} 
                 placeholder={t.geminiKeyPlaceholder} 
-                className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all" 
                 value={apiKey} 
                 onChange={e => handleKeyChange(e.target.value, setApiKey)} 
               />
@@ -238,7 +198,7 @@ export default function SettingsView({
               <input 
                 type={showKey ? 'text' : 'password'} 
                 placeholder={t.openAiKeyPlaceholder} 
-                className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all" 
                 value={openAiKey} 
                 onChange={e => handleKeyChange(e.target.value, setOpenAiKey)} 
               />
@@ -264,7 +224,7 @@ export default function SettingsView({
               <input 
                 type={showKey ? 'text' : 'password'} 
                 placeholder={t.anthropicKeyPlaceholder} 
-                className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all" 
                 value={anthropicKey} 
                 onChange={e => handleKeyChange(e.target.value, setAnthropicKey)} 
               />
@@ -290,7 +250,7 @@ export default function SettingsView({
               <input 
                 type={showKey ? 'text' : 'password'} 
                 placeholder={t.otherKeyPlaceholder || (lang === 'en' ? 'Paste your API key or Bearer token (leave blank if not required)...' : 'Collez votre clé API personnalisée (laissez vide si non requise)...')} 
-                className="w-full p-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-700 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all" 
                 value={openAiKey} 
                 onChange={e => handleKeyChange(e.target.value, setOpenAiKey)} 
               />
@@ -321,10 +281,10 @@ export default function SettingsView({
             <input 
               type="text" 
               placeholder={t.customApiUrlPlaceholder || "ex: http://localhost:11434/v1, https://openrouter.ai/api/v1, https://api.groq.com/openai/v1..."} 
-              className={`w-full p-3 border rounded-xl bg-white dark:bg-gray-700 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white ${
+              className={`w-full p-3 border rounded-md bg-white dark:bg-zinc-900 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all dark:text-white ${
                 selectedAiModel === 'other' && !customApiUrl.trim()
                   ? 'border-amber-400 dark:border-amber-600 ring-1 ring-amber-400/50'
-                  : 'border-gray-200 dark:border-gray-700'
+                  : 'border-gray-200 dark:border-zinc-800'
               }`} 
               value={customApiUrl} 
               onChange={e => handleKeyChange(e.target.value, setCustomApiUrl)} 
@@ -348,18 +308,14 @@ export default function SettingsView({
       </div>
 
       {/* 1b. MASTER AI PROMPT CONFIGURATION & RESTORE */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 p-5 sm:p-6 transition-colors space-y-5">
-        <div className="flex items-center justify-between flex-wrap gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-xl">
-              <Terminal size={18} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-base text-gray-900 dark:text-white">
-                  {t.masterPromptConfigTitle || (lang === 'en' ? 'Master AI Prompts (System Instructions)' : 'Prompt Maître de l\'IA (Instructions Système)')}
-                </h3>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+      <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-800">
+        <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-base text-gray-900 dark:text-white">
+                {t.masterPromptConfigTitle || (lang === 'en' ? 'Master AI Prompts (System Instructions)' : 'Prompt Maître de l\'IA (Instructions Système)')}
+              </h3>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
                   (activePromptTab === 'cv' ? isCvPromptModified : isLetterPromptModified)
                     ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700'
                     : 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
@@ -373,20 +329,19 @@ export default function SettingsView({
                 {t.masterPromptConfigSubtitle || (lang === 'en' ? 'Customize the core instructions sent to the AI when generating resumes and cover letters, with the option to restore the original baseline at any time.' : 'Personnalisez les directives fondamentales envoyées à l\'IA lors de la génération de CV et de lettres de motivation, avec option de réinitialisation aux valeurs d\'usine.')}
               </p>
             </div>
-          </div>
 
           {/* Prompt Tabs Switcher */}
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700/80 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-zinc-900 p-1 rounded-md border border-gray-200 dark:border-zinc-800">
             <button
               type="button"
               onClick={() => {
                 setActivePromptTab('cv');
                 setShowPromptRestoreConfirm(false);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
                 activePromptTab === 'cv'
-                  ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-white shadow-xs'
+                  : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               <FileText size={13} />
@@ -399,10 +354,10 @@ export default function SettingsView({
                 setActivePromptTab('letter');
                 setShowPromptRestoreConfirm(false);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
                 activePromptTab === 'letter'
-                  ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-xs'
-                  : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-white shadow-xs'
+                  : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               <Mail size={13} />
@@ -413,42 +368,42 @@ export default function SettingsView({
         </div>
 
         {/* Dynamic Variables Helper Banner */}
-        <div className="p-3 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50 rounded-xl space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-indigo-900 dark:text-indigo-200">
-            <Info size={14} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+        <div className="p-3 bg-gray-50/70 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-md space-y-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-gray-800 dark:text-zinc-200">
+            <Info size={14} className="text-blue-600 dark:text-zinc-400 shrink-0" />
             <span>{t.masterPromptVariablesTitle || (lang === 'en' ? 'Available Dynamic Variables:' : 'Variables disponibles injectées automatiquement :')}</span>
           </div>
           <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
             {activePromptTab === 'cv' ? (
               <>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{companyName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{roleName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{jobDescription}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateEmail}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidatePhone}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateLocation}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateMasterCV}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{languageDirective}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{densityInstructions}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{modificationInstructions}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{keywordInstructions}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{customInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{companyName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{roleName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{jobDescription}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateEmail}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidatePhone}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateLocation}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateMasterCV}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{languageDirective}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{densityInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{modificationInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{keywordInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{customInstructions}"}</span>
               </>
             ) : (
               <>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{companyName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{roleName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{jobDescription}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateMasterCV}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{candidateMasterLetter}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{languageDirective}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{toneInstructions}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-gray-800 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">{"{customInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{companyName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{roleName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{jobDescription}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateMasterCV}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateMasterLetter}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{languageDirective}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{toneInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{customInstructions}"}</span>
               </>
             )}
           </div>
-          <p className="text-[11px] text-indigo-800 dark:text-indigo-300 leading-relaxed">
+          <p className="text-[11px] text-gray-600 dark:text-zinc-400 leading-relaxed">
             {t.masterPromptVariablesHelp || (lang === 'en' ? 'Keep tags enclosed in curly braces {variableName} to ensure candidate and job data are injected dynamically.' : 'Conservez les balises entre accolades {nomVariable} pour que les données du candidat et de l\'offre soient injectées.')}
           </p>
         </div>
@@ -466,7 +421,7 @@ export default function SettingsView({
               }
             }}
             placeholder={activePromptTab === 'cv' ? DEFAULT_MASTER_CV_PROMPT : DEFAULT_MASTER_LETTER_PROMPT}
-            className="w-full p-3.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/70 dark:bg-gray-900/60 dark:text-gray-100 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none leading-relaxed transition-all shadow-inner resize-y"
+            className="w-full p-3.5 border border-gray-200 dark:border-zinc-800 rounded-md bg-gray-50/70 dark:bg-zinc-950 dark:text-zinc-100 text-xs font-mono focus:ring-2 focus:ring-zinc-600 outline-none leading-relaxed transition-all shadow-inner resize-y"
             spellCheck={false}
           />
         </div>
@@ -478,7 +433,7 @@ export default function SettingsView({
             <button
               type="button"
               onClick={handleSavePrompt}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Save size={15} />
               <span>{t.masterPromptSaveBtn || (lang === 'en' ? 'Save Prompt Changes' : 'Enregistrer les modifications du prompt')}</span>
@@ -542,25 +497,15 @@ export default function SettingsView({
       </div>
 
       {/* 2. DEV STUDIO SETTINGS */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 p-5 sm:p-6 transition-colors">
+      <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="p-2.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-xl shrink-0 mt-0.5 border border-amber-300 dark:border-amber-700/70">
-              <Code size={20} />
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-gray-900 dark:text-white text-base">
-                  {t.devStudioToggleTitle || 'Dev Studio (Laboratoire CV 0 Token)'}
-                </h3>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
-                  0 Token
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-400 max-w-xl leading-relaxed">
-                {t.devStudioToggleSubtitle || "Activer ou masquer l'onglet Dev Studio dans la barre de navigation pour concevoir et tester vos CVs sans consommer de tokens API."}
-              </p>
-            </div>
+          <div className="space-y-1">
+            <h3 className="font-bold text-gray-900 dark:text-white text-base">
+              {t.devStudioToggleTitle || 'Dev Studio'}
+            </h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 max-w-xl leading-relaxed">
+              {t.devStudioToggleSubtitle || "Activer ou masquer l'onglet Dev Studio dans la barre de navigation pour concevoir et tester vos CVs sans consommer de tokens API."}
+            </p>
           </div>
           
           <div className="flex items-center gap-3 shrink-0 ml-auto sm:ml-0">
@@ -593,58 +538,101 @@ export default function SettingsView({
         </div>
       </div>
 
-      {/* 3. MODE DEMO */}
-      <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 rounded-2xl p-5 sm:p-6 transition-colors">
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className="p-2 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400 rounded-xl">
-            <Sparkles size={20} />
-          </div>
+      {/* 3. SAUVEGARDE & TRANSFERT */}
+      {(onExportProfile || onExportBackup || onImportData) && (
+        <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-3">
           <div>
-            <h3 className="font-bold text-base text-amber-900 dark:text-amber-200">
-              {t.demoConfirmTitle || (lang === 'en' ? 'Demo Environment (John DEMO)' : 'Environnement de Démo (John DEMO)')}
+            <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2">
+              <Download size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span>{t.backupSettingsSectionTitle || (lang === 'en' ? 'Backup & Transfer (Profile, CVs & Keys)' : 'Sauvegarde & Transfert (Profil, CVs & Clés)')}</span>
             </h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 max-w-2xl leading-relaxed">
+              {t.backupSettingsSectionSubtitle || (lang === 'en' ? 'Export or import your profile, CV library, API keys, and all local settings.' : 'Exportez ou importez votre profil, votre bibliothèque de CVs, vos clés API et l\'ensemble de vos paramètres locaux.')}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5 pt-1">
+            {onExportProfile && (
+              <button
+                type="button"
+                onClick={onExportProfile}
+                className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                title={t.exportProfileTooltip}
+              >
+                <Download size={15} />
+                <span>{t.exportProfileBtn || (lang === 'en' ? 'Export Profile & Settings (.json)' : 'Exporter Profil & Paramètres (.json)')}</span>
+              </button>
+            )}
+
+            {onExportBackup && (
+              <button
+                type="button"
+                onClick={onExportBackup}
+                className="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                title={t.exportDataTooltip}
+              >
+                <Download size={15} />
+                <span>{t.exportCompleteBackupBtn || (lang === 'en' ? 'Export Full Backup (.json)' : 'Exporter Sauvegarde Complète (.json)')}</span>
+              </button>
+            )}
+
+            {onImportData && (
+              <label className="cursor-pointer px-3.5 py-2.5 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-gray-800 dark:text-zinc-200 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors flex items-center gap-1.5">
+                <Upload size={15} className="text-gray-600 dark:text-zinc-400" />
+                <span>{t.importBackupBtn || (lang === 'en' ? 'Import Backup / Profile (.json)' : 'Importer Sauvegarde / Profil (.json)')}</span>
+                <input type="file" accept=".json" className="hidden" onChange={onImportData} />
+              </label>
+            )}
           </div>
         </div>
-        
-        <p className="text-xs text-amber-800 dark:text-amber-300 mb-4 max-w-2xl leading-relaxed">
-          {t.demoConfirmSubtitle || (lang === 'en' ? 'Quickly populate the app with 200 applications across 3 years, the complete profile of John DEMO, and tailored CVs in the library.' : 'Remplissez instantanément l\'application avec 200 candidatures sur 3 ans, le profil complet de John DEMO et plusieurs CVs stylisés dans la bibliothèque.')}
-        </p>
+      )}
 
-        <button
-          type="button"
-          onClick={onOpenDemoConfirm}
-          className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-2"
-        >
-          <Sparkles size={16} />
-          <span>{t.demoConfirmBtn || (lang === 'en' ? 'Load Demo Data (200 applications)' : 'Charger la démo (200 candidatures)')}</span>
-        </button>
+      {/* 4. MODE DEMO */}
+      <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-2">
+        <div>
+          <h3 className="font-bold text-base text-gray-900 dark:text-white">
+            {t.demoConfirmTitle || (lang === 'en' ? 'Demo Environment (John DEMO)' : 'Environnement de Démo (John DEMO)')}
+          </h3>
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 max-w-2xl leading-relaxed">
+            {t.demoConfirmSubtitle || (lang === 'en' ? 'Quickly populate the app with 200 applications across 3 years, the complete profile of John DEMO, and tailored CVs in the library.' : 'Remplissez instantanément l\'application avec 200 candidatures sur 3 ans, le profil complet de John DEMO et plusieurs CVs stylisés dans la bibliothèque.')}
+          </p>
+        </div>
+
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={onOpenDemoConfirm}
+            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-2"
+          >
+            <Sparkles size={16} />
+            <span>{t.demoConfirmBtn || (lang === 'en' ? 'Load Demo Data (200 applications)' : 'Charger la démo (200 candidatures)')}</span>
+          </button>
+        </div>
       </div>
 
       {/* 4. DANGER ZONE / RESET */}
-      <div className="bg-rose-50/70 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/60 rounded-2xl p-5 sm:p-6 transition-colors">
-        <div className="flex items-center gap-2.5 mb-2">
-          <div className="p-2 bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-xl">
-            <AlertOctagon size={20} />
-          </div>
-          <div>
-            <h3 className="font-bold text-base text-rose-900 dark:text-rose-200">
-              {t.dangerZoneTitle || 'Zone de Danger / Réinitialisation'}
-            </h3>
-          </div>
+      <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-2">
+        <div className="flex items-center gap-2">
+          <AlertOctagon size={18} className="text-rose-600 dark:text-rose-400 shrink-0" />
+          <h3 className="font-bold text-base text-rose-600 dark:text-rose-400">
+            {t.dangerZoneTitle || 'Zone de Danger / Réinitialisation'}
+          </h3>
         </div>
         
-        <p className="text-xs text-rose-700 dark:text-rose-400 mb-4 max-w-2xl leading-relaxed">
+        <p className="text-xs text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed">
           {t.dangerZoneSubtitle || 'Effacez toutes les données stockées localement pour remettre l\'application à zéro.'}
         </p>
 
-        <button
-          type="button"
-          onClick={onOpenResetConfirm}
-          className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-colors cursor-pointer flex items-center gap-2"
-        >
-          <Trash2 size={16} />
-          <span>{t.resetDataBtn || 'Supprimer les données et réinitialiser'}</span>
-        </button>
+        <div className="pt-1">
+          <button
+            type="button"
+            onClick={onOpenResetConfirm}
+            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-colors cursor-pointer flex items-center gap-2"
+          >
+            <Trash2 size={16} />
+            <span>{t.resetDataBtn || 'Supprimer les données et réinitialiser'}</span>
+          </button>
+        </div>
       </div>
 
     </div>

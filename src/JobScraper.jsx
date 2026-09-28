@@ -50,9 +50,37 @@ export const SUPPORTED_JOB_BOARDS = [
   {
     id: 'glassdoor',
     name: 'Glassdoor',
-    color: 'bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800',
+    color: 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
     dotColor: 'bg-[#0caa41]',
     tag: 'Glassdoor'
+  },
+  {
+    id: 'jobteaser',
+    name: 'JobTeaser',
+    color: 'bg-orange-50 text-orange-800 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800',
+    dotColor: 'bg-[#ff5a00]',
+    tag: 'JobTeaser'
+  },
+  {
+    id: 'hellowork',
+    name: 'HelloWork',
+    color: 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
+    dotColor: 'bg-[#e60050]',
+    tag: 'HelloWork'
+  },
+  {
+    id: 'dice',
+    name: 'Dice',
+    color: 'bg-red-50 text-red-800 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800',
+    dotColor: 'bg-[#cc0000]',
+    tag: 'Dice Tech'
+  },
+  {
+    id: 'francetravail',
+    name: 'France Travail',
+    color: 'bg-indigo-50 text-indigo-800 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800',
+    dotColor: 'bg-[#002b80]',
+    tag: 'France Travail'
   }
 ];
 
@@ -93,7 +121,9 @@ export function JobScraperView({
   const [contractType, setContractType] = useState('all');
   const [workplace, setWorkplace] = useState('all');
   const [freshness, setFreshness] = useState('7d');
-  const [selectedPlatforms, setSelectedPlatforms] = useState(['linkedin', 'indeed', 'wttj', 'glassdoor']);
+  const [selectedPlatforms, setSelectedPlatforms] = useState([
+    'linkedin', 'indeed', 'wttj', 'glassdoor', 'jobteaser', 'hellowork', 'dice', 'francetravail'
+  ]);
   const MAX_SHOWN_JOBS = 100;
   const [visibleCount, setVisibleCount] = useState(25);
 
@@ -335,11 +365,21 @@ export function JobScraperView({
       
       // Format into UI models
       let formatted = rawJobs.map((j, i) => {
-        const platformKey = (j.site || 'LinkedIn').toLowerCase().replace(' ', '_');
-        const board = SUPPORTED_JOB_BOARDS.find(b => b.id === platformKey || (platformKey.includes('wttj') && b.id === 'wttj') || (platformKey.includes('jungle') && b.id === 'wttj')) || {
+        const platformKey = (j.platformId || j.site || 'LinkedIn').toLowerCase().replace(/\s+/g, '_');
+        const board = SUPPORTED_JOB_BOARDS.find(b => 
+          b.id === platformKey ||
+          (platformKey.includes('wttj') && b.id === 'wttj') ||
+          (platformKey.includes('jungle') && b.id === 'wttj') ||
+          (platformKey.includes('teaser') && b.id === 'jobteaser') ||
+          (platformKey.includes('hellowork') && b.id === 'hellowork') ||
+          (platformKey.includes('dice') && b.id === 'dice') ||
+          ((platformKey.includes('francetravail') || platformKey.includes('travail') || platformKey.includes('pole')) && b.id === 'francetravail') ||
+          (platformKey.includes('glassdoor') && b.id === 'glassdoor') ||
+          (platformKey.includes('indeed') && b.id === 'indeed')
+        ) || {
           id: platformKey,
           name: j.site || 'Web',
-          color: 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800 dark:text-gray-200',
+          color: 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-zinc-800 dark:text-gray-200',
           dotColor: 'bg-blue-500'
         };
 
@@ -367,6 +407,14 @@ export function JobScraperView({
             resolvedUrl = `https://www.welcometothejungle.com/fr/jobs?query=${q}`;
           } else if (pName.includes('glassdoor')) {
             resolvedUrl = `https://www.glassdoor.fr/Emploi/france-${q}-emplois-SRCH_IL.0,6_IN86_KO7,${7 + q.length}.htm`;
+          } else if (pName.includes('jobteaser')) {
+            resolvedUrl = `https://www.jobteaser.com/fr/job-offers?q=${q}&location=${locQ}`;
+          } else if (pName.includes('hellowork')) {
+            resolvedUrl = `https://www.hellowork.com/fr-fr/emploi/recherche.html?k=${q}&l=${locQ}`;
+          } else if (pName.includes('dice')) {
+            resolvedUrl = `https://www.dice.com/jobs?q=${q}&location=${locQ}`;
+          } else if (pName.includes('francetravail') || pName.includes('france travail') || pName.includes('pole')) {
+            resolvedUrl = `https://candidat.francetravail.fr/offres/recherche?motsCles=${q}`;
           } else if (pName.includes('arbeitnow')) {
             resolvedUrl = `https://www.arbeitnow.com/jobs?search=${q}`;
           } else if (pName.includes('remotive')) {
@@ -631,7 +679,7 @@ export function JobScraperView({
   };
 
   return (
-    <div className="space-y-6 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto pb-12">
+    <div className="space-y-5 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto pb-12">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-gray-900/95 dark:bg-gray-100/95 text-white dark:text-gray-900 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-md border border-gray-700 dark:border-gray-300 animate-in fade-in slide-in-from-bottom-5 duration-200">
@@ -643,11 +691,22 @@ export function JobScraperView({
         </div>
       )}
 
-      {/* Scraper Controls Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">
+            {lang === 'en' ? 'Job Board & Scraper' : 'Agrégateur & Recherche d\'Offres'}
+          </h2>
+          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {lang === 'en' ? 'Aggregate job postings across top platforms or trigger direct searches.' : 'Agrégez des offres ciblées depuis les plateformes majeures ou lancez vos recherches en direct.'}
+          </p>
+        </div>
+      </div>
 
+      {/* Scraper Controls */}
+      <div className="space-y-4">
         {/* Search & Multi-Keywords Box */}
-        <div className="p-5 sm:p-6 space-y-5 bg-gray-50/50 dark:bg-gray-800/40">
+        <div className="space-y-4">
           {/* Main Keywords Input & Manager */}
           <div className="space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
@@ -673,18 +732,18 @@ export function JobScraperView({
 
             {/* Active Keywords Badges Display */}
             {keywords.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 p-3 bg-white dark:bg-gray-900/80 border border-blue-200/80 dark:border-blue-900/50 rounded-xl shadow-2xs">
+              <div className="flex flex-wrap items-center gap-2 p-3 bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-md shadow-2xs">
                 {keywords.map((kw, idx) => (
                   <span
                     key={`${kw}_${idx}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-800/80 rounded-lg text-xs font-bold shadow-2xs group hover:border-blue-400 transition-all"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 border border-gray-200 dark:border-zinc-800 rounded-md text-xs font-bold shadow-2xs group hover:border-gray-400 dark:hover:border-zinc-700 transition-all"
                   >
                     <Tag size={12} className="text-blue-500 shrink-0" />
                     <span>{kw}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveKeyword(idx)}
-                      className="p-0.5 ml-0.5 text-blue-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/80 rounded transition-colors cursor-pointer"
+                      className="p-0.5 ml-0.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/80 rounded transition-colors cursor-pointer"
                       title={lang === 'en' ? 'Remove this keyword' : 'Supprimer ce mot-clé'}
                     >
                       <X size={13} className="stroke-[2.5]" />
@@ -716,7 +775,7 @@ export function JobScraperView({
                       ? 'Type a keyword (e.g. React, Python, DevOps, Senior)...'
                       : 'Tapez un mot-clé (ex: React, Python, DevOps, Senior)...'
                   }
-                  className="w-full pl-4 pr-10 py-3.5 bg-white dark:bg-gray-900 border-2 border-blue-200 dark:border-blue-900/60 rounded-xl text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-blue-600 dark:focus:border-blue-500 shadow-xs transition-all"
+                  className="w-full pl-4 pr-10 py-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-zinc-500 dark:focus:border-zinc-600 shadow-xs transition-all"
                 />
                 {keywordInput && (
                   <button
@@ -734,7 +793,7 @@ export function JobScraperView({
                 type="button"
                 onClick={() => handleAddKeyword()}
                 disabled={!keywordInput.trim()}
-                className="px-4 py-3.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border-2 border-blue-300 dark:border-blue-700/80 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0 active:scale-95"
+                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-gray-800 dark:text-zinc-200 border border-gray-300 dark:border-zinc-700 rounded-md text-xs sm:text-sm font-bold shadow-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0 active:scale-95"
                 title={lang === 'en' ? 'Add keyword to search list' : 'Ajouter le mot-clé à la liste de recherche'}
               >
                 <Plus size={16} className="stroke-[2.5]" />
@@ -746,7 +805,7 @@ export function JobScraperView({
                 type="button"
                 disabled={isScraping || (!keywords.length && !keywordInput.trim())}
                 onClick={handleLaunchScrape}
-                className="px-5 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0 active:scale-95"
+                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-bold shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0 active:scale-95"
               >
                 {isScraping ? (
                   <>
@@ -764,7 +823,7 @@ export function JobScraperView({
           </div>
 
           {/* Options Grid Under Prompt Box */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2 border-t border-gray-200 dark:border-gray-700/80">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2 border-t border-gray-200 dark:border-zinc-800">
             {/* Location */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
@@ -776,7 +835,7 @@ export function JobScraperView({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Ex: Paris, France / Remote"
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-white"
               />
             </div>
 
@@ -789,7 +848,7 @@ export function JobScraperView({
               <select
                 value={contractType}
                 onChange={(e) => setContractType(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-white"
               >
                 {CONTRACT_OPTIONS.map(c => (
                   <option key={c.id} value={c.id}>
@@ -808,7 +867,7 @@ export function JobScraperView({
               <select
                 value={workplace}
                 onChange={(e) => setWorkplace(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-white"
               >
                 {WORKPLACE_OPTIONS.map(w => (
                   <option key={w.id} value={w.id}>
@@ -827,7 +886,7 @@ export function JobScraperView({
               <select
                 value={freshness}
                 onChange={(e) => setFreshness(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-white"
               >
                 {FRESHNESS_OPTIONS.map(f => (
                   <option key={f.id} value={f.id}>
@@ -1056,10 +1115,7 @@ export function JobScraperView({
 
         {/* Results Table OR Clean Empty State */}
         {scrapedJobs.length === 0 ? (
-          <div className="p-10 text-center space-y-5">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto shadow-inner">
-              <Search size={26} />
-            </div>
+          <div className="p-8 sm:p-10 text-center space-y-3">
             <div className="space-y-1.5">
               <h4 className="text-base font-bold text-gray-900 dark:text-white">
                 {hasSearched
@@ -1141,10 +1197,10 @@ export function JobScraperView({
           </div>
         ) : (
           <div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-100/60 dark:bg-gray-900/60 text-gray-600 dark:text-gray-400 text-[11px] sm:text-xs font-bold uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                  <tr className="bg-gray-100/60 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 text-[11px] sm:text-xs font-bold uppercase tracking-wider border-b border-gray-200 dark:border-zinc-800">
                     <th className="p-3 sm:p-4 w-10 text-center">
                       <input
                         type="checkbox"
@@ -1164,7 +1220,7 @@ export function JobScraperView({
                     <th className="p-3 sm:p-4 text-right">{lang === 'en' ? 'Actions & Transfer' : 'Actions & Transfert'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-xs sm:text-sm">
+                <tbody className="divide-y divide-gray-200 dark:divide-zinc-800 text-xs sm:text-sm bg-white dark:bg-zinc-950">
                   {displayedJobs.map((job) => {
                     const jobKey = `${job.company.toLowerCase().trim()}___${job.title.toLowerCase().trim()}`;
                     const isTransferred = transferredJobKeys.has(jobKey);
@@ -1174,8 +1230,8 @@ export function JobScraperView({
                     return (
                       <tr
                         key={job.id}
-                        className={`hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-colors ${
-                          isSelected ? 'bg-blue-50/60 dark:bg-blue-900/20' : ''
+                        className={`hover:bg-gray-50/60 dark:hover:bg-zinc-900/70 transition-colors ${
+                          isSelected ? 'bg-amber-500/10 dark:bg-zinc-800/80' : ''
                         }`}
                       >
                         {/* Checkbox */}
@@ -1205,8 +1261,8 @@ export function JobScraperView({
                               </span>
                             )}
                             {job.matchedKeyword && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 font-bold text-[10px] border border-blue-200 dark:border-blue-800/70">
-                                <Tag size={9} className="text-blue-500 shrink-0" />
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold text-[10px] border border-gray-200 dark:border-zinc-700">
+                                <Tag size={9} className="text-gray-500 dark:text-zinc-400 shrink-0" />
                                 <span>{job.matchedKeyword}</span>
                               </span>
                             )}

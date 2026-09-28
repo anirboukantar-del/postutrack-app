@@ -103,26 +103,21 @@ export default function ImportApplicationsModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden text-left">
+      <div className="bg-white dark:bg-zinc-950 rounded-md shadow-2xl border border-gray-200 dark:border-zinc-800 max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden text-left">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b dark:border-gray-700 flex justify-between items-center bg-gray-50/70 dark:bg-gray-900/60">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl">
-              <FileUp size={22} />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                {t.importApplicationsModalTitle || "Importer des candidatures"}
-              </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {t.importApplicationsModalSubtitle || "Compatible avec Excel (.xlsx, .xls), CSV, TSV et JSON"}
-              </p>
-            </div>
+        <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-zinc-800 flex justify-between items-center bg-gray-50/70 dark:bg-zinc-900">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+              {t.importApplicationsModalTitle || "Importer des candidatures"}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {t.importApplicationsModalSubtitle || "Compatible avec Excel (.xlsx, .xls), CSV, TSV et JSON"}
+            </p>
           </div>
           <button
             type="button"
             onClick={() => { handleReset(); onClose(); }}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
           >
             <X size={20} />
           </button>
@@ -139,10 +134,10 @@ export default function ImportApplicationsModal({
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                className={`border-2 border-dashed rounded-2xl p-6 sm:p-10 text-center cursor-pointer transition-all ${
+                className={`border-2 border-dashed rounded-md p-6 sm:p-10 text-center cursor-pointer transition-all ${
                   dragActive 
-                    ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/30 ring-4 ring-blue-500/10 scale-[0.99]' 
-                    : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50/50 dark:hover:bg-gray-750'
+                    ? 'border-blue-500 bg-blue-50/60 dark:bg-zinc-900 ring-4 ring-blue-500/10 scale-[0.99]' 
+                    : 'border-gray-300 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-zinc-500 hover:bg-gray-50/50 dark:hover:bg-zinc-900/60'
                 }`}
               >
                 <input
@@ -153,7 +148,7 @@ export default function ImportApplicationsModal({
                   className="hidden"
                 />
 
-                <div className="w-14 h-14 mx-auto mb-3.5 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <div className="mx-auto mb-3 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   {isParsing ? (
                     <RefreshCw className="animate-spin" size={26} />
                   ) : (

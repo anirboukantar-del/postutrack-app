@@ -479,6 +479,333 @@ export async function scrapeAllPlatforms(params: ScrapeParams): Promise<JobRecor
     })());
   }
 
+  // ==========================================
+  // 5. JOBTEASER (if selected)
+  // ==========================================
+  if (requestedSites.has('jobteaser')) {
+    tasks.push((async () => {
+      try {
+        const sitemapUrl = 'https://assets-cf.jobteaser.com/sitemaps/job_ads_sitemap.xml';
+        const res = await fetch(sitemapUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'application/xml,text/xml,*/*'
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+
+        if (res.ok) {
+          const xml = await res.text();
+          // Match all job URLs
+          const urlRegex = /<url>[\s\S]*?<loc>(https:\/\/www\.jobteaser\.com\/(?:fr|en)\/job-offers\/([a-f0-9\-]+)-([^\/<]+))<\/loc>[\s\S]*?(?:<lastmod>([^<]+)<\/lastmod>)?[\s\S]*?<\/url>/g;
+          let match: RegExpExecArray | null;
+          let jtCount = 0;
+
+          const searchTokens = keywordsList.flatMap(k => k.toLowerCase().split(/\s+/)).filter(t => t.length > 2);
+
+          while ((match = urlRegex.exec(xml)) !== null && jtCount < 40) {
+            const fullUrl = match[1];
+            const uuid = match[2];
+            const slug = match[3];
+            const lastMod = match[4] || '';
+
+            if (lastMod) {
+              const pubTime = new Date(lastMod).getTime();
+              if (!isNaN(pubTime) && pubTime < cutoffTime) continue;
+            }
+
+            const slugNorm = slug.toLowerCase().replace(/[-_]+/g, ' ');
+            const matchesQuery = searchTokens.length === 0 || searchTokens.some(tok => slugNorm.includes(tok));
+            if (!matchesQuery) continue;
+
+            // Extract company and title from slug:
+            // Usually formatted as: company-name-role-title-contract
+            const slugParts = slug.split('-');
+            let company = 'Entreprise Partenaire';
+            let title = slugNorm;
+            if (slugParts.length >= 2) {
+              company = slugParts.slice(0, Math.min(2, slugParts.length - 1)).join(' ');
+              company = company.charAt(0).toUpperCase() + company.slice(1);
+              title = slugParts.slice(Math.min(2, slugParts.length - 1)).join(' ');
+              title = title.charAt(0).toUpperCase() + title.slice(1);
+            }
+
+            const contract = classifyContract(title, slugNorm, slugNorm);
+            const relScore = calculateRelevance(title, slugNorm, location, false, keywordsList, location, isRemote, contract, contractType);
+
+            addRecord({
+              id: `jt-${uuid || Math.random().toString(36).substring(2, 8)}`,
+              title: title.length > 5 ? title : `Poste ${searchTerm}`,
+              company,
+              location: location || 'France',
+              job_url: fullUrl,
+              site: 'JobTeaser',
+              platformId: 'jobteaser',
+              description: `Offre JobTeaser : ${title} chez ${company}. Consultez les détails du poste, les compétences requises et postulez directement sur JobTeaser.`,
+              salary: 'Non spécifié',
+              date_posted: lastMod ? lastMod.slice(0, 10) : 'Récent',
+              is_remote: isRemote || slugNorm.includes('remote') || slugNorm.includes('teletravail'),
+              job_type: contract,
+              contract,
+              matched_keyword: keywordsList[0],
+              relevance_score: relScore
+            });
+            jtCount++;
+          }
+        }
+      } catch (jtErr: any) {
+        console.warn('JobTeaser scraping notice:', jtErr?.message || jtErr);
+      }
+    })());
+  }
+
+  // ==========================================
+  // 6. HELLOWORK (if selected)
+  // ==========================================
+  if (requestedSites.has('hellowork')) {
+    tasks.push((async () => {
+      try {
+        const hwUrl = `https://www.hellowork.com/fr-fr/emploi/recherche.html?k=${encodeURIComponent(searchTerm)}&l=${encodeURIComponent(location)}`;
+        const res = await fetch(hwUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8'
+          },
+          signal: AbortSignal.timeout(9000)
+        });
+
+        if (res.ok) {
+          const html = await res.text();
+          const cards = html.split('data-cy="offerTitle"');
+          let hwCount = 0;
+
+          for (let i = 0; i < cards.length - 1 && hwCount < 40; i++) {
+            const chunkBefore = cards[i].slice(-1000);
+            const chunkAfter = cards[i + 1].slice(0, 1000);
+            const fullChunk = `${chunkBefore} data-cy="offerTitle" ${chunkAfter}`;
+
+            const hrefM = fullChunk.match(/href=["'](\/fr-fr\/emplois\/[^"']+)["']/i);
+            const titleM = fullChunk.match(/title=["']([^"']+)["']/i);
+            const ariaM = fullChunk.match(/aria-label=["']([^"']+)["']/i);
+
+            if (!hrefM) continue;
+
+            const decodeHtml = (str: string) => str
+              .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+              .replace(/&amp;/g, '&')
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .trim();
+
+            const rawHref = hrefM[1];
+            const rawTitle = titleM ? decodeHtml(titleM[1]) : '';
+            const ariaLabel = ariaM ? decodeHtml(ariaM[1]) : rawTitle;
+
+            const fullUrl = rawHref.startsWith('http') ? rawHref : `https://www.hellowork.com${rawHref}`;
+
+            let parsedTitle = rawTitle || 'Poste HelloWork';
+            let company = 'Entreprise HelloWork';
+            let jobLoc = location;
+            let salaryStr = 'Non spécifié';
+
+            if (parsedTitle.includes(' - ')) {
+              const parts = parsedTitle.split(' - ');
+              company = parts[parts.length - 1].trim();
+              parsedTitle = parts.slice(0, parts.length - 1).join(' - ').trim();
+            }
+
+            const compMatch = ariaLabel.match(/chez\s+([^,]+)/i);
+            if (compMatch) company = compMatch[1].replace(/super recruteur/i, '').trim();
+
+            const locMatch = ariaLabel.match(/à\s+([^,]+),\s*chez/i);
+            if (locMatch) jobLoc = locMatch[1].trim();
+
+            const salMatch = ariaLabel.match(/salaire de\s+([^,]+)/i);
+            if (salMatch) salaryStr = salMatch[1].trim();
+
+            const isJobRemote = /télétravail|remote/i.test(ariaLabel);
+            const contract = classifyContract(parsedTitle, ariaLabel, ariaLabel);
+            const relScore = calculateRelevance(parsedTitle, ariaLabel, jobLoc, isJobRemote, keywordsList, location, isRemote, contract, contractType);
+
+            const idMatch = rawHref.match(/(\d+)\.html/);
+            const jobId = idMatch ? idMatch[1] : Math.random().toString(36).substring(2, 8);
+
+            addRecord({
+              id: `hw-${jobId}`,
+              title: parsedTitle,
+              company,
+              location: jobLoc,
+              job_url: fullUrl,
+              site: 'HelloWork',
+              platformId: 'hellowork',
+              description: `Offre HelloWork : ${parsedTitle} chez ${company} (${jobLoc}). Contrat : ${contract}. ${salaryStr !== 'Non spécifié' ? 'Rémunération : ' + salaryStr : ''}. Consultez l'annonce complète et postulez en ligne.`,
+              salary: salaryStr,
+              date_posted: 'Récent',
+              is_remote: isJobRemote,
+              job_type: contract,
+              contract,
+              matched_keyword: keywordsList[0],
+              relevance_score: relScore
+            });
+            hwCount++;
+          }
+        }
+      } catch (hwErr: any) {
+        console.warn('HelloWork scraping notice:', hwErr?.message || hwErr);
+      }
+    })());
+  }
+
+  // ==========================================
+  // 7. DICE (if selected)
+  // ==========================================
+  if (requestedSites.has('dice')) {
+    tasks.push((async () => {
+      try {
+        const diceUrl = `https://www.dice.com/jobs?q=${encodeURIComponent(searchTerm)}&location=${encodeURIComponent(location)}`;
+        const res = await fetch(diceUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+          },
+          signal: AbortSignal.timeout(9000)
+        });
+
+        if (res.ok) {
+          const html = await res.text();
+          const cardChunks = html.split('href="/job-detail/');
+          let diceCount = 0;
+
+          for (let i = 1; i < cardChunks.length && diceCount < 35; i++) {
+            const chunk = cardChunks[i];
+            const uuidMatch = chunk.match(/^([a-f0-9\-]+)/);
+            if (!uuidMatch) continue;
+            const uuid = uuidMatch[1];
+
+            // Extract title
+            const titleMatch = chunk.match(/>([^<]+)<\/a><\/div>/) || chunk.match(/>([A-Za-z0-9\s\.\+#\/\-_]{3,60})<\/a>/);
+            const title = titleMatch ? titleMatch[1].trim() : `Tech Position ${searchTerm}`;
+
+            // Extract company
+            const compMatch = chunk.match(/data-testid=["']job-card-company-name["'][^>]*>([^<]+)<\/p>/i) ||
+                             chunk.match(/companyname=([^"&]+)/i);
+            const company = compMatch ? decodeURIComponent(compMatch[1]).replace(/\+/g, ' ').trim() : 'Tech Company';
+
+            // Extract location & date
+            const locMatch = chunk.match(/<p class="[^"]*text-foreground-light[^"]*">([^<]+)<\/p>/i);
+            const locText = locMatch ? locMatch[1].replace(/<!--.*?-->/g, '').trim() : location;
+            const isJobRemote = /remote/i.test(locText) || /remote/i.test(title);
+
+            const directUrl = `https://www.dice.com/job-detail/${uuid}`;
+            const contract = classifyContract(title, chunk.slice(0, 1000), '');
+            const relScore = calculateRelevance(title, locText, locText, isJobRemote, keywordsList, location, isRemote, contract, contractType);
+
+            addRecord({
+              id: `dice-${uuid}`,
+              title,
+              company,
+              location: locText || location,
+              job_url: directUrl,
+              site: 'Dice',
+              platformId: 'dice',
+              description: `Offre Dice Tech : ${title} chez ${company}. Localisation : ${locText}. Opportunité technologique vérifiée, postulez directement sur Dice.`,
+              salary: 'Non spécifié',
+              date_posted: 'Récent',
+              is_remote: isJobRemote,
+              job_type: contract,
+              contract,
+              matched_keyword: keywordsList[0],
+              relevance_score: relScore
+            });
+            diceCount++;
+          }
+        }
+      } catch (diceErr: any) {
+        console.warn('Dice scraping notice:', diceErr?.message || diceErr);
+      }
+    })());
+  }
+
+  // ==========================================
+  // 8. FRANCE TRAVAIL (if selected)
+  // ==========================================
+  if (requestedSites.has('francetravail') || requestedSites.has('france_travail')) {
+    tasks.push((async () => {
+      try {
+        const ftUrl = `https://candidat.francetravail.fr/offres/recherche?motsCles=${encodeURIComponent(searchTerm)}&range=0-39`;
+        const res = await fetch(ftUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en-US;q=0.8'
+          },
+          signal: AbortSignal.timeout(9000)
+        });
+
+        if (res.ok) {
+          const html = await res.text();
+          // Each offer has data-id-offre="ID"
+          const offerRegex = /<li[^>]*data-id-offre=["']([^"']+)["'][^>]*>([\s\S]*?)<\/li>/gi;
+          let match: RegExpExecArray | null;
+          let ftCount = 0;
+
+          while ((match = offerRegex.exec(html)) !== null && ftCount < 40) {
+            const offerId = match[1];
+            const cardHtml = match[2];
+
+            const titleMatch = cardHtml.match(/<span class=["']media-heading-title["']>([\s\S]*?)<\/span>/i);
+            const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : `Offre France Travail ${offerId}`;
+
+            const subtextMatch = cardHtml.match(/<p translate=["']no["'] class=["']subtext["']>([\s\S]*?)<\/p>/i);
+            let company = 'Entreprise Partenaire';
+            let jobLoc = location;
+
+            if (subtextMatch) {
+              const cleanSub = subtextMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+              if (cleanSub.includes(' - ')) {
+                const parts = cleanSub.split(' - ');
+                company = parts[0].trim();
+                jobLoc = parts.slice(1).join(' - ').trim();
+              } else {
+                company = cleanSub;
+              }
+            }
+
+            const descMatch = cardHtml.match(/<p class=["']description["']>([\s\S]*?)<\/p>/i);
+            const desc = descMatch ? descMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() : `Offre France Travail ${title} (${offerId}).`;
+
+            const directUrl = `https://candidat.francetravail.fr/offres/recherche/detail/${offerId}`;
+            const contract = classifyContract(title, desc, cardHtml);
+            const isJobRemote = /télétravail|remote/i.test(`${title} ${desc}`);
+            const relScore = calculateRelevance(title, desc, jobLoc, isJobRemote, keywordsList, location, isRemote, contract, contractType);
+
+            addRecord({
+              id: `ft-${offerId}`,
+              title,
+              company,
+              location: jobLoc || location,
+              job_url: directUrl,
+              site: 'France Travail',
+              platformId: 'francetravail',
+              description: desc,
+              salary: 'Non spécifié',
+              date_posted: 'Récent',
+              is_remote: isJobRemote,
+              job_type: contract,
+              contract,
+              matched_keyword: keywordsList[0],
+              relevance_score: relScore
+            });
+            ftCount++;
+          }
+        }
+      } catch (ftErr: any) {
+        console.warn('France Travail scraping notice:', ftErr?.message || ftErr);
+      }
+    })());
+  }
+
   // Execute all selected platform tasks concurrently
   await Promise.allSettled(tasks);
 
@@ -489,6 +816,10 @@ export async function scrapeAllPlatforms(params: ScrapeParams): Promise<JobRecor
     if (requestedSites.has('indeed') && pId.includes('indeed')) return true;
     if (requestedSites.has('wttj') && (pId.includes('wttj') || pId.includes('jungle'))) return true;
     if (requestedSites.has('glassdoor') && pId.includes('glassdoor')) return true;
+    if (requestedSites.has('jobteaser') && pId.includes('jobteaser')) return true;
+    if (requestedSites.has('hellowork') && pId.includes('hellowork')) return true;
+    if (requestedSites.has('dice') && pId.includes('dice')) return true;
+    if ((requestedSites.has('francetravail') || requestedSites.has('france_travail')) && (pId.includes('francetravail') || pId.includes('france travail') || pId.includes('pole-emploi'))) return true;
     return false;
   });
 

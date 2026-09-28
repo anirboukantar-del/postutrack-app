@@ -1052,12 +1052,65 @@ function OnboardingStartingPage({
         }
 
         if (imported) {
-          // If keys are provided in export, load them
-          if (data.apiKey) setApiKey(data.apiKey);
-          if (data.openAiKey) setOpenAiKey(data.openAiKey);
-          if (data.anthropicKey) setAnthropicKey(data.anthropicKey);
-          if (data.selectedAiModel) setSelectedAiModel(data.selectedAiModel);
-          if (data.customApiUrl !== undefined && setCustomApiUrl) setCustomApiUrl(data.customApiUrl);
+          // 1. Clés d'API IA
+          const geminiKey = data.apiKey ?? data.apiKeys?.apiKey;
+          if (geminiKey && setApiKey) {
+            setApiKey(geminiKey);
+            try { localStorage.setItem('postutrack_apikey', geminiKey); } catch (e) {}
+          }
+          const oaiKey = data.openAiKey ?? data.apiKeys?.openAiKey;
+          if (oaiKey && setOpenAiKey) {
+            setOpenAiKey(oaiKey);
+            try { localStorage.setItem('postutrack_openaikey', oaiKey); } catch (e) {}
+          }
+          const anthroKey = data.anthropicKey ?? data.apiKeys?.anthropicKey;
+          if (anthroKey && setAnthropicKey) {
+            setAnthropicKey(anthroKey);
+            try { localStorage.setItem('postutrack_anthropickey', anthroKey); } catch (e) {}
+          }
+          const customUrl = data.customApiUrl ?? data.settings?.customApiUrl ?? data.apiKeys?.customApiUrl;
+          if (customUrl !== undefined && setCustomApiUrl) {
+            setCustomApiUrl(customUrl);
+            try { localStorage.setItem('postutrack_custom_api_url', customUrl); } catch (e) {}
+          }
+
+          // 2. Bibliothèque CV
+          if (data.cvLibrary && Array.isArray(data.cvLibrary) && setCvLibrary) {
+            setCvLibrary(data.cvLibrary);
+            try { localStorage.setItem('postutrack_cv_library', JSON.stringify(data.cvLibrary)); } catch (e) {}
+          }
+
+          // 3. Paramètres & Préférences
+          const model = data.selectedAiModel ?? data.settings?.selectedAiModel;
+          if (model && setSelectedAiModel) {
+            setSelectedAiModel(model);
+            try { localStorage.setItem('postutrack_aimodel', model); } catch (e) {}
+          }
+          const cvPrompt = data.masterCvPrompt ?? data.settings?.masterCvPrompt;
+          if (cvPrompt !== undefined && setMasterCvPrompt) {
+            setMasterCvPrompt(cvPrompt);
+            try { localStorage.setItem('postutrack_master_cv_prompt', cvPrompt); } catch (e) {}
+          }
+          const letterPrompt = data.masterLetterPrompt ?? data.settings?.masterLetterPrompt;
+          if (letterPrompt !== undefined && setMasterLetterPrompt) {
+            setMasterLetterPrompt(letterPrompt);
+            try { localStorage.setItem('postutrack_master_letter_prompt', letterPrompt); } catch (e) {}
+          }
+          const resTpl = data.selectedResumeTemplate ?? data.settings?.selectedResumeTemplate;
+          if (resTpl && setSelectedResumeTemplate && RESUME_TEMPLATES.some(tpl => tpl.id === resTpl)) {
+            setSelectedResumeTemplate(resTpl);
+            try { localStorage.setItem('postutrack_resume_template', resTpl); } catch (e) {}
+          }
+          const resClr = data.resumeAccentColor ?? data.settings?.resumeAccentColor;
+          if (resClr && setResumeAccentColor) {
+            setResumeAccentColor(resClr);
+            try { localStorage.setItem('postutrack_resume_color', resClr); } catch (e) {}
+          }
+          const resDens = data.resumeDensity ?? data.settings?.resumeDensity;
+          if (resDens && setResumeDensity) {
+            setResumeDensity(resDens);
+            try { localStorage.setItem('postutrack_resume_density', resDens); } catch (e) {}
+          }
 
           setImportNotice(t.onboardingImportProfileSuccess);
           setTimeout(() => setImportNotice(''), 4500);
@@ -2707,6 +2760,32 @@ export default function App() {
   const [isCopied, setIsCopied] = useState(false);
 
   // --- SAUVEGARDE ET EXPORTS AVEC DÉLAIS DE RÉPONSE ---
+  const getFullSettingsSnapshot = () => ({
+    selectedAiModel,
+    customApiUrl,
+    masterCvPrompt,
+    masterLetterPrompt,
+    selectedResumeTemplate,
+    resumeAccentColor,
+    resumeDensity,
+    showResumePhoto,
+    resumePhotoSize,
+    isMultiPageResume,
+    showDevStudio,
+    lang,
+    theme,
+    appSortField,
+    appSortOrder
+  });
+
+  const getFullApiKeysSnapshot = () => ({
+    apiKey,
+    openAiKey,
+    anthropicKey,
+    customApiUrl
+  });
+
+  // Export complet de toutes les données (candidatures, profil, bibliothèque CV, paramètres et clés API)
   const handleExportData = () => {
     // Calcul et enrichissement des candidatures avec les délais de réponse
     const enrichedApplications = applications.map(app => {
@@ -2730,7 +2809,8 @@ export default function App() {
 
     const backup = {
       exportDate: new Date().toISOString(),
-      formatVersion: "2.0",
+      exportType: "postutrack_backup",
+      formatVersion: "2.1",
       analytics: {
         totalApplications: applications.length,
         answeredApplications: responseTimesList.length,
@@ -2739,19 +2819,73 @@ export default function App() {
       applications: enrichedApplications,
       cvLibrary: cvLibrary,
       profile: profile,
+      settings: getFullSettingsSnapshot(),
+      apiKeys: getFullApiKeysSnapshot(),
+      // Top-level backwards compatibility fields
       apiKey: apiKey,
       openAiKey: openAiKey,
       anthropicKey: anthropicKey,
       selectedAiModel: selectedAiModel,
       customApiUrl: customApiUrl,
       masterCvPrompt: masterCvPrompt,
-      masterLetterPrompt: masterLetterPrompt
+      masterLetterPrompt: masterLetterPrompt,
+      selectedResumeTemplate: selectedResumeTemplate,
+      resumeAccentColor: resumeAccentColor,
+      resumeDensity: resumeDensity,
+      showResumePhoto: showResumePhoto,
+      resumePhotoSize: resumePhotoSize,
+      isMultiPageResume: isMultiPageResume,
+      theme: theme,
+      lang: lang
     };
     
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     const filename = `PostuTrack_Backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    notifyDownloadSuccess({
+      filename,
+      fileType: 'json'
+    });
+  };
+
+  // Export spécifique du profil incluant bibliothèque CV, paramètres et clés API
+  const handleExportProfile = () => {
+    const profileBackup = {
+      exportDate: new Date().toISOString(),
+      exportType: "profile_export",
+      formatVersion: "2.1",
+      profile: profile,
+      cvLibrary: cvLibrary,
+      settings: getFullSettingsSnapshot(),
+      apiKeys: getFullApiKeysSnapshot(),
+      // Direct root fields for full cross-compatibility
+      apiKey: apiKey,
+      openAiKey: openAiKey,
+      anthropicKey: anthropicKey,
+      selectedAiModel: selectedAiModel,
+      customApiUrl: customApiUrl,
+      masterCvPrompt: masterCvPrompt,
+      masterLetterPrompt: masterLetterPrompt,
+      selectedResumeTemplate: selectedResumeTemplate,
+      resumeAccentColor: resumeAccentColor,
+      resumeDensity: resumeDensity,
+      showResumePhoto: showResumePhoto,
+      resumePhotoSize: resumePhotoSize,
+      isMultiPageResume: isMultiPageResume,
+      theme: theme,
+      lang: lang
+    };
+
+    const blob = new Blob([JSON.stringify(profileBackup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeName = (profile.fullName || 'Profil').trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `PostuTrack_Profil_${safeName}_${new Date().toISOString().split('T')[0]}.json`;
     a.href = url;
     a.download = filename;
     a.click();
@@ -2823,31 +2957,185 @@ export default function App() {
   };
 
   const handleImportData = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files && e.target.files[0];
     if (!file) return;
     
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const backup = JSON.parse(event.target.result);
+        let importedSomething = false;
+
+        // 1. Candidatures (si présentes)
         if (backup.applications && Array.isArray(backup.applications)) {
           setApplications(autoApplyGhostStatus(backup.applications).updated);
+          importedSomething = true;
         }
+
+        // 2. Bibliothèque de CVs
         if (backup.cvLibrary && Array.isArray(backup.cvLibrary)) {
           setCvLibrary(backup.cvLibrary);
+          try { localStorage.setItem('postutrack_cv_library', JSON.stringify(backup.cvLibrary)); } catch (err) {}
+          importedSomething = true;
         }
-        if (backup.profile) setProfile(backup.profile);
-        if (backup.apiKey) setApiKey(backup.apiKey);
-        if (backup.openAiKey) setOpenAiKey(backup.openAiKey);
-        if (backup.anthropicKey) setAnthropicKey(backup.anthropicKey);
-        if (backup.selectedAiModel) setSelectedAiModel(backup.selectedAiModel);
-        if (backup.customApiUrl !== undefined) setCustomApiUrl(backup.customApiUrl);
-        if (backup.masterCvPrompt !== undefined) setMasterCvPrompt(backup.masterCvPrompt);
-        if (backup.masterLetterPrompt !== undefined) setMasterLetterPrompt(backup.masterLetterPrompt);
-        
-        setSavedNotice(true);
-        setTimeout(() => setSavedNotice(false), 3000);
+
+        // 3. Profil utilisateur
+        if (backup.profile && typeof backup.profile === 'object') {
+          setProfile(prev => ({
+            ...prev,
+            ...backup.profile
+          }));
+          try { localStorage.setItem('postutrack_profile', JSON.stringify(backup.profile)); } catch (err) {}
+          importedSomething = true;
+        } else if (
+          backup.fullName !== undefined || 
+          backup.masterCV !== undefined || 
+          backup.email !== undefined
+        ) {
+          setProfile(prev => ({
+            ...prev,
+            fullName: backup.fullName ?? prev.fullName ?? '',
+            email: backup.email ?? prev.email ?? '',
+            phone: backup.phone ?? prev.phone ?? '',
+            location: backup.location ?? prev.location ?? '',
+            website: backup.website ?? prev.website ?? '',
+            masterCV: backup.masterCV ?? prev.masterCV ?? '',
+            masterLetter: backup.masterLetter ?? prev.masterLetter ?? '',
+            photo: backup.photo ?? prev.photo ?? ''
+          }));
+          importedSomething = true;
+        }
+
+        // 4. Clés d'API IA
+        const geminiKey = backup.apiKey ?? backup.apiKeys?.apiKey;
+        if (geminiKey !== undefined && geminiKey !== null) {
+          setApiKey(geminiKey);
+          try { localStorage.setItem('postutrack_apikey', geminiKey); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const oaiKey = backup.openAiKey ?? backup.apiKeys?.openAiKey;
+        if (oaiKey !== undefined && oaiKey !== null) {
+          setOpenAiKey(oaiKey);
+          try { localStorage.setItem('postutrack_openaikey', oaiKey); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const anthroKey = backup.anthropicKey ?? backup.apiKeys?.anthropicKey;
+        if (anthroKey !== undefined && anthroKey !== null) {
+          setAnthropicKey(anthroKey);
+          try { localStorage.setItem('postutrack_anthropickey', anthroKey); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const customUrl = backup.customApiUrl ?? backup.settings?.customApiUrl ?? backup.apiKeys?.customApiUrl;
+        if (customUrl !== undefined && customUrl !== null) {
+          setCustomApiUrl(customUrl);
+          try { localStorage.setItem('postutrack_custom_api_url', customUrl); } catch (err) {}
+          importedSomething = true;
+        }
+
+        // 5. Paramètres & Préférences
+        const model = backup.selectedAiModel ?? backup.settings?.selectedAiModel;
+        if (model) {
+          setSelectedAiModel(model);
+          try { localStorage.setItem('postutrack_aimodel', model); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const cvPrompt = backup.masterCvPrompt ?? backup.settings?.masterCvPrompt;
+        if (cvPrompt !== undefined && cvPrompt !== null) {
+          setMasterCvPrompt(cvPrompt);
+          try { localStorage.setItem('postutrack_master_cv_prompt', cvPrompt); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const letterPrompt = backup.masterLetterPrompt ?? backup.settings?.masterLetterPrompt;
+        if (letterPrompt !== undefined && letterPrompt !== null) {
+          setMasterLetterPrompt(letterPrompt);
+          try { localStorage.setItem('postutrack_master_letter_prompt', letterPrompt); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const resTemplate = backup.selectedResumeTemplate ?? backup.settings?.selectedResumeTemplate;
+        if (resTemplate && RESUME_TEMPLATES.some(tpl => tpl.id === resTemplate)) {
+          setSelectedResumeTemplate(resTemplate);
+          try { localStorage.setItem('postutrack_resume_template', resTemplate); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const resColor = backup.resumeAccentColor ?? backup.settings?.resumeAccentColor;
+        if (resColor) {
+          setResumeAccentColor(resColor);
+          try { localStorage.setItem('postutrack_resume_color', resColor); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const resDensity = backup.resumeDensity ?? backup.settings?.resumeDensity;
+        if (resDensity) {
+          setResumeDensity(resDensity);
+          try { localStorage.setItem('postutrack_resume_density', resDensity); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const showPhoto = backup.showResumePhoto ?? backup.settings?.showResumePhoto;
+        if (showPhoto !== undefined && showPhoto !== null) {
+          const b = Boolean(showPhoto);
+          setShowResumePhoto(b);
+          try { localStorage.setItem('postutrack_resume_show_photo', String(b)); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const photoSize = backup.resumePhotoSize ?? backup.settings?.resumePhotoSize;
+        if (photoSize) {
+          setResumePhotoSize(photoSize);
+          try { localStorage.setItem('postutrack_resume_photo_size', photoSize); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const multiPage = backup.isMultiPageResume ?? backup.settings?.isMultiPageResume;
+        if (multiPage !== undefined && multiPage !== null) {
+          const b = Boolean(multiPage);
+          setIsMultiPageResume(b);
+          try { localStorage.setItem('postutrack_resume_multipage', String(b)); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const devStudio = backup.showDevStudio ?? backup.settings?.showDevStudio;
+        if (devStudio !== undefined && devStudio !== null) {
+          const b = Boolean(devStudio);
+          setShowDevStudio(b);
+          try { localStorage.setItem('postutrack_show_dev_studio', String(b)); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const th = backup.theme ?? backup.settings?.theme;
+        if (th === 'light' || th === 'dark') {
+          setTheme(th);
+          try { localStorage.setItem('postutrack_theme', th); } catch (err) {}
+          if (th === 'dark') {
+            document.documentElement.classList.add('dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+          }
+          importedSomething = true;
+        }
+
+        const l = backup.lang ?? backup.settings?.lang;
+        if (l === 'fr' || l === 'en') {
+          setLang(l);
+          try { localStorage.setItem('postutrack_lang', l); } catch (err) {}
+          importedSomething = true;
+        }
+
+        if (importedSomething) {
+          setSavedNotice(true);
+          setTimeout(() => setSavedNotice(false), 3000);
+        } else {
+          alert(t.backupInvalidError);
+        }
       } catch (err) {
+        console.error("Erreur import données:", err);
         alert(t.backupInvalidError);
       }
     };
@@ -3754,7 +4042,7 @@ ${aiResult.coverLetter}`;
       case 'scraper': return t.scraper || (lang === 'en' ? 'Job Scraper (WIP)' : "Scraper d'offres (WIP)");
       case 'applications': return t.applications;
       case 'tailor': return t.tailor;
-      case 'dev': return t.devLabTitle || 'Dev Studio — Laboratoire CV (0 Token)';
+      case 'dev': return t.devLabTitle || 'Dev Studio — Laboratoire CV';
       case 'profile': return t.profile;
       case 'settings': return t.settings || (lang === 'en' ? 'Settings' : 'Paramètres');
       case 'credits': return t.credits || 'Crédits & Liens';
@@ -3763,94 +4051,91 @@ ${aiResult.coverLetter}`;
   };
 
   const renderSidebar = () => (
-    <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 h-screen hidden md:flex flex-col sticky top-0 no-print print:hidden transition-colors duration-200 shrink-0 overflow-hidden">
+    <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen hidden md:flex flex-col sticky top-0 no-print print:hidden transition-colors duration-200 shrink-0 overflow-hidden">
       <div className="p-5 xl:p-6 2xl:p-8 shrink-0">
-        <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-blue-400 flex items-center gap-2.5 tracking-tight">
+        <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-white flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-            v0.5.3
+          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-zinc-800 text-blue-700 dark:text-zinc-200 border border-blue-200 dark:border-zinc-700 font-mono tracking-normal shrink-0">
+            v0.5.4
           </span>
         </h1>
       </div>
-      <nav className="flex-1 min-h-0 overflow-y-auto px-3 xl:px-4 py-1 space-y-1.5 xl:space-y-2 custom-scrollbar">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 xl:px-4 py-1 space-y-1 xl:space-y-1.5 custom-scrollbar">
         {(!isOnboardingCompleted || activeTab === 'onboarding') && (
-          <button onClick={() => setActiveTab('onboarding')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-            <Rocket size={20} className="text-indigo-500 shrink-0" /> 
+          <button onClick={() => setActiveTab('onboarding')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-zinc-800 text-indigo-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+            <Rocket size={18} className="text-indigo-500 shrink-0" /> 
             <span className="truncate">{t.onboarding}</span>
           </button>
         )}
-        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <LayoutDashboard size={20} className="text-sky-500 dark:text-sky-400 shrink-0" /> 
+        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+          <LayoutDashboard size={18} className="text-sky-500 dark:text-zinc-300 shrink-0" /> 
           <span className="truncate">{t.dashboard}</span>
         </button>
-        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <UserCheck size={20} className="text-emerald-500 dark:text-emerald-400 shrink-0" /> 
+        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+          <UserCheck size={18} className="text-emerald-500 dark:text-zinc-300 shrink-0" /> 
           <span className="truncate">{t.profile}</span>
         </button>
-        <button onClick={() => setActiveTab('stats')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <BarChart2 size={20} className="text-indigo-500 dark:text-indigo-400 shrink-0" /> 
+        <button onClick={() => setActiveTab('stats')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+          <BarChart2 size={18} className="text-indigo-500 dark:text-zinc-300 shrink-0" /> 
           <span className="truncate">{t.statsTab || t.stats || 'Statistiques'}</span>
         </button>
-        <button onClick={() => setActiveTab('scraper')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <Compass size={20} className="text-cyan-500 dark:text-cyan-400 shrink-0" />
+        <button onClick={() => setActiveTab('scraper')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+          <Compass size={18} className="text-cyan-500 dark:text-zinc-300 shrink-0" />
           <span className="truncate">{t.scraper || (lang === 'en' ? 'Job Scraper (WIP)' : "Scraper d'offres (WIP)")}</span>
         </button>
-        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <ListTodo size={20} className="text-blue-500 dark:text-blue-400 shrink-0" /> 
+        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+          <ListTodo size={18} className="text-blue-500 dark:text-zinc-300 shrink-0" /> 
           <span className="truncate">{t.applications}</span>
         </button>
-        <button onClick={() => setActiveTab('cvLibrary')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'cvLibrary' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+        <button onClick={() => setActiveTab('cvLibrary')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'cvLibrary' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
           <div className="flex items-center gap-3 min-w-0">
-            <Library size={20} className="text-teal-500 dark:text-teal-400 shrink-0" /> 
+            <Library size={18} className="text-teal-500 dark:text-zinc-300 shrink-0" /> 
             <span className="truncate">{t.cvLibrary || 'Bibliothèque CV'}</span>
           </div>
           {cvLibrary.length > 0 && (
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-300 shrink-0">
+            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-teal-100 dark:bg-zinc-700 text-teal-800 dark:text-zinc-200 shrink-0">
               {cvLibrary.length}
             </span>
           )}
         </button>
-        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <Sparkles size={20} className="text-amber-500 dark:text-amber-400 shrink-0" /> 
+        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+          <Sparkles size={18} className="text-amber-500 dark:text-zinc-300 shrink-0" /> 
           <span className="truncate">{t.tailor}</span>
         </button>
         {showDevStudio && (
-          <button onClick={() => setActiveTab('dev')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 font-semibold border border-amber-300/60 dark:border-amber-700/60' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
+          <button onClick={() => setActiveTab('dev')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-zinc-800 text-amber-700 dark:text-white font-semibold border border-amber-300/60 dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
             <div className="flex items-center gap-3 min-w-0">
-              <Code size={20} className="text-orange-500 dark:text-orange-400 shrink-0" />
+              <Code size={18} className="text-orange-500 dark:text-zinc-300 shrink-0" />
               <span className="truncate">{t.dev || 'Dev Studio'}</span>
             </div>
-            <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 shrink-0">
-              0 Token
-            </span>
           </button>
         )}
-        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'settings' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <Settings size={20} className="text-rose-500 dark:text-rose-400 shrink-0" /> 
+        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'settings' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+          <Settings size={18} className="text-rose-500 dark:text-zinc-300 shrink-0" /> 
           <span className="truncate">{t.settings || (lang === 'en' ? 'Settings' : 'Paramètres')}</span>
         </button>
-        <button onClick={() => setActiveTab('credits')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2.5 xl:py-3 2xl:py-3.5 rounded-xl text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 font-semibold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 font-medium'}`}>
-          <Award size={20} className="text-purple-500 dark:text-purple-400 shrink-0" /> 
+        <button onClick={() => setActiveTab('credits')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-zinc-800 text-purple-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
+          <Award size={18} className="text-purple-500 dark:text-zinc-300 shrink-0" /> 
           <span className="truncate">{t.credits || (lang === 'en' ? 'Credits' : 'Crédits')}</span>
         </button>
       </nav>
 
       {/* Sidebar Bottom Profile Card */}
-      <div className="p-3.5 xl:p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/60 shrink-0">
+      <div className="p-3 xl:p-3.5 border-t border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-950 shrink-0">
         <div 
           onClick={() => setActiveTab('profile')}
-          className="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700/70 transition-colors cursor-pointer"
+          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
           title={t.profile}
         >
           {profile.photo ? (
             <img 
               src={profile.photo} 
               alt={profile.fullName || 'User'} 
-              className="w-9 h-9 xl:w-10 xl:h-10 rounded-full object-cover object-top shrink-0 ring-2 ring-indigo-500/30 shadow-2xs" 
+              className="w-8 h-8 xl:w-9 xl:h-9 rounded-md object-cover object-top shrink-0 ring-1 ring-indigo-500/30 shadow-2xs" 
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-9 h-9 xl:w-10 xl:h-10 bg-indigo-600 dark:bg-indigo-500 rounded-full flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs">
+            <div className="w-8 h-8 xl:w-9 xl:h-9 bg-indigo-600 dark:bg-indigo-500 rounded-md flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs">
               {getInitials(profile.fullName)}
             </div>
           )}
@@ -3868,16 +4153,16 @@ ${aiResult.coverLetter}`;
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-gray-900 font-sans flex text-gray-900 dark:text-gray-100 transition-colors duration-200">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-zinc-950 font-sans flex text-gray-900 dark:text-zinc-100 transition-colors duration-200">
       {renderSidebar()}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20 px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 sm:py-4 2xl:py-5 flex justify-between items-center no-print print:hidden transition-colors duration-200">
+        <header className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 sticky top-0 z-20 px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 sm:py-4 2xl:py-5 flex justify-between items-center no-print print:hidden transition-colors duration-200">
           <div className="flex items-center gap-3">
             {/* Mobile Title Icon */}
-            <div className="md:hidden font-extrabold text-blue-600 dark:text-blue-400 text-lg tracking-tight flex items-center gap-1.5">
+            <div className="md:hidden font-extrabold text-blue-600 dark:text-white text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700/60 font-mono tracking-normal shrink-0">
-                v0.5.3
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-zinc-800 text-blue-700 dark:text-zinc-200 border border-blue-200 dark:border-zinc-700 font-mono tracking-normal shrink-0">
+                v0.5.4
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -3885,128 +4170,116 @@ ${aiResult.coverLetter}`;
             </h2>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* BOUTON DEMO */}
-            <button
-              onClick={() => setIsDemoConfirmOpen(true)}
-              type="button"
-              className="flex items-center gap-1.5 px-3 py-1 sm:py-1.5 2xl:py-2 text-xs 2xl:text-sm font-bold rounded-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:via-orange-600 hover:to-amber-700 text-white shadow-xs hover:shadow-md transition-all cursor-pointer shrink-0 border border-amber-300/40 select-none active:scale-95"
-              title={t.demoButtonTooltip || "Charger les données de démonstration (Profil John DEMO, 200 candidatures sur 3 ans, CVs)"}
-              aria-label="Charger les données démo"
-            >
-              <Sparkles size={14} className="text-amber-100 animate-pulse shrink-0" />
-              <span className="tracking-wide">DEMO</span>
-            </button>
-
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* BOUTON GITHUB */}
             <a
               href="https://github.com/anirboukantar-del/postutrack-app"
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => openExternalLink("https://github.com/anirboukantar-del/postutrack-app", e)}
-              className="p-1.5 sm:p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-all flex items-center justify-center cursor-pointer shadow-xs shrink-0"
+              className="p-1.5 sm:p-2 rounded-md border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-900 dark:hover:text-white transition-all flex items-center justify-center cursor-pointer shadow-xs shrink-0"
               title={t.viewOnGithub || "GitHub"}
               aria-label={t.viewOnGithub || "GitHub"}
             >
-              <Github size={18} className="text-gray-800 dark:text-gray-200 shrink-0" />
+              <Github size={18} className="text-gray-800 dark:text-zinc-200 shrink-0" />
             </a>
 
             {/* BOUTON DE CHANGEMENT DE LANGUE (FR / EN) */}
             <button 
               onClick={toggleLanguage} 
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 2xl:py-2 text-xs 2xl:text-sm font-semibold rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all cursor-pointer shadow-xs shrink-0"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 2xl:py-2 text-xs 2xl:text-sm font-semibold rounded-md border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-xs shrink-0"
               title={t.switchLanguage}
               aria-label={t.switchLanguage}
             >
-              <Languages size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              <Languages size={15} className="text-blue-600 dark:text-zinc-200 shrink-0" />
               <span className="flex items-center gap-1 tracking-wider text-[11px] sm:text-xs">
-                <span className={lang === 'fr' ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}>FR</span>
-                <span className="text-gray-300 dark:text-gray-600 text-[10px]">|</span>
-                <span className={lang === 'en' ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}>EN</span>
+                <span className={lang === 'fr' ? 'font-bold text-blue-600 dark:text-white' : 'text-gray-400 dark:text-zinc-500'}>FR</span>
+                <span className="text-gray-300 dark:text-zinc-600 text-[10px]">|</span>
+                <span className={lang === 'en' ? 'font-bold text-blue-600 dark:text-white' : 'text-gray-400 dark:text-zinc-500'}>EN</span>
               </span>
             </button>
 
             {/* BOUTON DU THÈME */}
             <button 
               onClick={toggleTheme} 
-              className="p-1.5 sm:p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors flex items-center justify-center cursor-pointer shrink-0"
+              className="p-1.5 sm:p-2 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-md transition-colors flex items-center justify-center cursor-pointer shrink-0"
               title={t.toggleTheme}
             >
               {theme === 'dark' ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
             </button>
 
             {/* PROFIL AVATAR */}
-            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer bg-blue-50 dark:bg-blue-900/30 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-blue-100 dark:border-gray-700 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors shrink-0">
+            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer bg-blue-50 dark:bg-zinc-800 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md border border-blue-100 dark:border-zinc-700 hover:bg-blue-100 dark:hover:bg-zinc-700 transition-colors shrink-0">
               {profile.photo ? (
                 <img 
                   src={profile.photo} 
                   alt={profile.fullName || 'User'} 
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover object-top shrink-0 ring-1 ring-blue-400" 
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-sm object-cover object-top shrink-0 ring-1 ring-blue-400 dark:ring-zinc-600" 
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shrink-0">
+                <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 dark:bg-zinc-700 rounded-sm flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shrink-0">
                   {getInitials(profile.fullName)}
                 </div>
               )}
-              <span className="text-xs 2xl:text-sm font-semibold text-blue-900 dark:text-blue-300 max-w-[80px] xs:max-w-[120px] sm:max-w-[160px] truncate">{profile.fullName || t.user}</span>
+              <span className="text-xs 2xl:text-sm font-semibold text-blue-900 dark:text-zinc-200 max-w-[80px] xs:max-w-[120px] sm:max-w-[160px] truncate">{profile.fullName || t.user}</span>
             </div>
           </div>
         </header>
 
         {/* Mobile Navigation Tabs */}
-        <div className="md:hidden flex items-center gap-1 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2 py-1.5 overflow-x-auto scrollbar-none no-print print:hidden sticky top-[53px] z-10">
+        <div className="md:hidden flex items-center gap-1 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 py-1.5 overflow-x-auto scrollbar-none no-print print:hidden sticky top-[53px] z-10">
           {(!isOnboardingCompleted || activeTab === 'onboarding') && (
-            <button onClick={() => setActiveTab('onboarding')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
+            <button onClick={() => setActiveTab('onboarding')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
               <Rocket size={14} className="text-indigo-500 shrink-0" />
               <span>{t.onboarding}</span>
             </button>
           )}
-          <button onClick={() => setActiveTab('dashboard')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <LayoutDashboard size={14} className="text-sky-500 dark:text-sky-400 shrink-0" />
+          <button onClick={() => setActiveTab('dashboard')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <LayoutDashboard size={14} className="text-sky-500 dark:text-zinc-300 shrink-0" />
             <span>{t.dashboard}</span>
           </button>
-          <button onClick={() => setActiveTab('profile')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <UserCheck size={14} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
+          <button onClick={() => setActiveTab('profile')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <UserCheck size={14} className="text-emerald-500 dark:text-zinc-300 shrink-0" />
             <span>{t.profile}</span>
           </button>
-          <button onClick={() => setActiveTab('stats')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <BarChart2 size={14} className="text-indigo-500 dark:text-indigo-400 shrink-0" />
+          <button onClick={() => setActiveTab('stats')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <BarChart2 size={14} className="text-indigo-500 dark:text-zinc-300 shrink-0" />
             <span>{t.statsTab || t.stats || 'Statistiques'}</span>
           </button>
-          <button onClick={() => setActiveTab('scraper')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <Compass size={14} className="text-cyan-500 dark:text-cyan-400 shrink-0" />
+          <button onClick={() => setActiveTab('scraper')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs font-bold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <Compass size={14} className="text-cyan-500 dark:text-zinc-300 shrink-0" />
             <span>{t.scraper || (lang === 'en' ? 'Job Scraper (WIP)' : "Scraper d'offres (WIP)")}</span>
           </button>
-          <button onClick={() => setActiveTab('applications')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <ListTodo size={14} className="text-blue-500 dark:text-blue-400 shrink-0" />
+          <button onClick={() => setActiveTab('applications')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <ListTodo size={14} className="text-blue-500 dark:text-zinc-300 shrink-0" />
             <span>{t.applications}</span>
           </button>
-          <button onClick={() => setActiveTab('cvLibrary')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'cvLibrary' ? 'bg-teal-50 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <Library size={14} className="text-teal-500 dark:text-teal-400 shrink-0" />
+          <button onClick={() => setActiveTab('cvLibrary')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'cvLibrary' ? 'bg-teal-50 dark:bg-zinc-800 text-teal-700 dark:text-white shadow-2xs font-bold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <Library size={14} className="text-teal-500 dark:text-zinc-300 shrink-0" />
             <span>{t.cvLibrary || 'Bibliothèque CV'}</span>
             {cvLibrary.length > 0 && (
-              <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full bg-teal-200 dark:bg-teal-800 text-teal-900 dark:text-teal-100 font-bold">
+              <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded bg-teal-200 dark:bg-zinc-700 text-teal-900 dark:text-zinc-200 font-bold">
                 {cvLibrary.length}
               </span>
             )}
           </button>
-          <button onClick={() => setActiveTab('tailor')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <Sparkles size={14} className="text-amber-500 dark:text-amber-400 shrink-0" />
+          <button onClick={() => setActiveTab('tailor')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <Sparkles size={14} className="text-amber-500 dark:text-zinc-300 shrink-0" />
             <span>{t.tailor}</span>
           </button>
           {showDevStudio && (
-            <button onClick={() => setActiveTab('dev')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-amber-900/40 text-amber-600 dark:text-amber-300 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-              <Code size={14} className="text-orange-500 dark:text-orange-400 shrink-0" />
+            <button onClick={() => setActiveTab('dev')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-zinc-800 text-amber-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+              <Code size={14} className="text-orange-500 dark:text-zinc-300 shrink-0" />
               <span>{t.dev || 'Dev Studio'}</span>
             </button>
           )}
-          <button onClick={() => setActiveTab('settings')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'settings' ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <Settings size={14} className="text-rose-500 dark:text-rose-400 shrink-0" />
+          <button onClick={() => setActiveTab('settings')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'settings' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs font-bold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <Settings size={14} className="text-rose-500 dark:text-zinc-300 shrink-0" />
             <span>{t.settings || (lang === 'en' ? 'Settings' : 'Paramètres')}</span>
           </button>
-          <button onClick={() => setActiveTab('credits')} className={`px-3 py-2 text-xs font-semibold rounded-xl whitespace-nowrap flex items-center gap-1.5 min-h-[38px] transition-colors ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300 shadow-2xs font-bold' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}>
-            <Award size={14} className="text-purple-500 dark:text-purple-400 shrink-0" />
+          <button onClick={() => setActiveTab('credits')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-zinc-800 text-purple-600 dark:text-white shadow-2xs font-bold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
+            <Award size={14} className="text-purple-500 dark:text-zinc-300 shrink-0" />
             <span>{t.credits || (lang === 'en' ? 'Credits' : 'Crédits')}</span>
           </button>
         </div>
@@ -4136,23 +4409,23 @@ ${aiResult.coverLetter}`;
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 2xl:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 2xl:gap-4">
                   {/* 1. Total Applications */}
                   <div 
                     onClick={() => setActiveTab('stats')}
-                    className="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer group"
+                    className="p-4 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between hover:border-blue-400 transition-all cursor-pointer group"
                     title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {t.totalApplications}
                       </span>
-                      <div className="p-2.5 bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
-                        <Briefcase className="w-5 h-5" />
+                      <div className="text-blue-600 dark:text-blue-400 shrink-0">
+                        <Briefcase className="w-4 h-4" />
                       </div>
                     </div>
                     <div className="flex items-baseline justify-between mt-1">
-                      <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
+                      <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
                       <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span>{t.stats || 'Détails'}</span>
                         <ArrowRight size={13} />
@@ -4163,19 +4436,19 @@ ${aiResult.coverLetter}`;
                   {/* 2. Rejections */}
                   <div 
                     onClick={() => setActiveTab('stats')}
-                    className="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-lg hover:border-rose-300 dark:hover:border-rose-700 transition-all cursor-pointer group"
+                    className="p-4 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between hover:border-rose-400 transition-all cursor-pointer group"
                     title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
                         {t.rejections}
                       </span>
-                      <div className="p-2.5 bg-rose-50 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
-                        <XCircle className="w-5 h-5" />
+                      <div className="text-rose-600 dark:text-rose-400 shrink-0">
+                        <XCircle className="w-4 h-4" />
                       </div>
                     </div>
                     <div className="flex items-baseline justify-between mt-1">
-                      <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
+                      <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
                       <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span>{t.stats || 'Détails'}</span>
                         <ArrowRight size={13} />
@@ -4186,19 +4459,19 @@ ${aiResult.coverLetter}`;
                   {/* 3. Offers */}
                   <div 
                     onClick={() => setActiveTab('stats')}
-                    className="bg-white dark:bg-gray-800 p-5 sm:p-6 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 flex flex-col justify-between hover:shadow-lg hover:border-emerald-300 dark:hover:border-emerald-700 transition-all cursor-pointer group"
+                    className="p-4 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between hover:border-emerald-400 transition-all cursor-pointer group"
                     title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                         {t.offersReceived}
                       </span>
-                      <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
-                        <CheckCircle className="w-5 h-5" />
+                      <div className="text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <CheckCircle className="w-4 h-4" />
                       </div>
                     </div>
                     <div className="flex items-baseline justify-between mt-1">
-                      <p className="text-3xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
+                      <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
                       <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span>{t.stats || 'Détails'}</span>
                         <ArrowRight size={13} />
@@ -4206,32 +4479,6 @@ ${aiResult.coverLetter}`;
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Action Banner to access Detailed Stats */}
-              <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/30 dark:via-indigo-950/30 dark:to-purple-950/30 border border-blue-200/80 dark:border-blue-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3.5">
-                  <div className="p-3 bg-blue-600 text-white rounded-2xl shadow-xs shrink-0">
-                    <BarChart2 size={24} />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white text-base">
-                      {t.detailedStatsTitle || 'Statistiques & Analyses Détaillées'}
-                    </h4>
-                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5">
-                      {t.appVelocitySubtitle || 'Visualisez la courbe de vélocité de vos candidatures, la performance par plateforme et exportez vos données.'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('stats')}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-xs shrink-0 self-stretch sm:self-auto justify-center"
-                >
-                  <TrendingUp size={16} />
-                  <span>{lang === 'en' ? 'Open Detailed Stats' : 'Accéder aux statistiques'}</span>
-                  <ArrowRight size={15} />
-                </button>
               </div>
             </div>
           )}
@@ -4275,11 +4522,11 @@ ${aiResult.coverLetter}`;
           )}
 
           {activeTab === 'applications' && (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors w-full mx-auto">
-              <div className="p-4 sm:p-5 2xl:p-6 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex justify-between items-start sm:items-center flex-col sm:flex-row gap-3.5 sm:gap-4">
+            <div className="space-y-4 w-full mx-auto">
+              <div className="flex justify-between items-start sm:items-center flex-col sm:flex-row gap-3.5 sm:gap-4 pb-1">
                 <div>
-                  <h3 className="text-base sm:text-lg 2xl:text-xl font-bold text-gray-800 dark:text-white">{t.applications}</h3>
-                  <p className="text-xs 2xl:text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">{t.applications}</h3>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
                     {totalApplications} {t.totalApplications.toLowerCase()} • {answeredApps.length} {t.answered.toLowerCase()}
                     {ghostedCount > 0 ? ` • ${ghostedCount} ${lang === 'en' ? 'ghosted' : 'sans réponse'}` : ''}
                   </p>
@@ -4288,15 +4535,15 @@ ${aiResult.coverLetter}`;
                   <button 
                     type="button"
                     onClick={() => setIsImportModalOpen(true)} 
-                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-zinc-200 rounded-md text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
                     title={t.importApplicationsModalTitle || "Importer des candidatures (Excel, CSV, JSON)"}
                   >
-                    <Upload size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                    <Upload size={15} className="text-blue-600 dark:text-zinc-300 shrink-0" />
                     <span>{t.importApplicationsBtn || "Importer"}</span>
                   </button>
                   <button 
                     onClick={handleExportCSV} 
-                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-zinc-200 rounded-md text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
                     title={t.exportDataTooltip}
                   >
                     <Download size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -4304,7 +4551,7 @@ ${aiResult.coverLetter}`;
                   </button>
                   <button 
                     onClick={() => { setEditingApplication(null); setInitialModalUrl(''); setIsAddModalOpen(true); }} 
-                    className="flex-1 sm:flex-none justify-center px-4 py-2 2xl:px-5 2xl:py-2.5 bg-blue-600 text-white rounded-xl text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-blue-700 transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+                    className="flex-1 sm:flex-none justify-center px-4 py-2 2xl:px-5 2xl:py-2.5 bg-blue-600 text-white rounded-md text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-blue-700 transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
                   >
                     <Plus size={16} className="shrink-0" />
                     <span>{t.newApplication}</span>
@@ -4312,11 +4559,13 @@ ${aiResult.coverLetter}`;
                 </div>
               </div>
 
+              <div className="bg-white dark:bg-zinc-950 rounded-md shadow-xs border border-gray-200 dark:border-zinc-800/80 overflow-hidden transition-colors w-full">
+
               {/* Search & Filter Bar */}
-              <div className="p-3 sm:p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
+              <div className="p-3 sm:p-4 bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
                 {/* Search Input */}
                 <div className="relative flex-1 min-w-0">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-zinc-500">
                     <Search size={15} />
                   </div>
                   <input
@@ -4324,13 +4573,13 @@ ${aiResult.coverLetter}`;
                     value={appSearchQuery}
                     onChange={(e) => setAppSearchQuery(e.target.value)}
                     placeholder={t.searchApplicationsPlaceholder || "Rechercher par entreprise, poste, plateforme, statut..."}
-                    className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 transition-colors shadow-2xs"
+                    className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 transition-colors shadow-2xs"
                   />
                   {appSearchQuery && (
                     <button
                       type="button"
                       onClick={() => setAppSearchQuery('')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
                       title={t.clearFilters || "Effacer"}
                     >
                       <X size={14} />
@@ -4345,7 +4594,7 @@ ${aiResult.coverLetter}`;
                     <select
                       value={appStatusFilter}
                       onChange={(e) => setAppStatusFilter(e.target.value)}
-                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200 font-medium cursor-pointer shadow-2xs"
+                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-700 dark:text-zinc-200 font-medium cursor-pointer shadow-2xs"
                     >
                       <option value="all">{t.allStatuses || "Tous les statuts"}</option>
                       {STATUS_KEYS.map(statusKey => (
@@ -4361,7 +4610,7 @@ ${aiResult.coverLetter}`;
                     <select
                       value={appContractFilter}
                       onChange={(e) => setAppContractFilter(e.target.value)}
-                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200 font-medium cursor-pointer shadow-2xs"
+                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-700 dark:text-zinc-200 font-medium cursor-pointer shadow-2xs"
                     >
                       <option value="all">{t.allContracts || "Tous les contrats"}</option>
                       {CONTRACT_KEYS.map(contractKey => (
@@ -4378,7 +4627,7 @@ ${aiResult.coverLetter}`;
                       <select
                         value={`${appSortField}-${appSortOrder}`}
                         onChange={(e) => handleSortSelectChange(e.target.value)}
-                        className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 dark:text-gray-200 font-medium cursor-pointer shadow-2xs"
+                        className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-700 dark:text-zinc-200 font-medium cursor-pointer shadow-2xs"
                         title={t.sortBy || "Trier par"}
                         aria-label={t.sortBy || "Trier par"}
                       >
@@ -4402,11 +4651,11 @@ ${aiResult.coverLetter}`;
                         setAppSortOrder(nextOrder);
                         try { localStorage.setItem('postutrack_app_sort_order', nextOrder); } catch (e) {}
                       }}
-                      className="p-2 text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                      className="p-2 text-gray-600 dark:text-zinc-300 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 shadow-2xs"
                       title={appSortOrder === 'asc' ? (t.sortAscending || "Ordre croissant") : (t.sortDescending || "Ordre décroissant")}
                       aria-label={appSortOrder === 'asc' ? (t.sortAscending || "Ordre croissant") : (t.sortDescending || "Ordre décroissant")}
                     >
-                      {appSortOrder === 'asc' ? <ArrowUp size={15} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={15} className="text-blue-600 dark:text-blue-400" />}
+                      {appSortOrder === 'asc' ? <ArrowUp size={15} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={15} className="text-blue-600 dark:text-zinc-200" />}
                     </button>
                   </div>
 
@@ -4463,9 +4712,9 @@ ${aiResult.coverLetter}`;
               )}
 
               {/* Mobile Card List (< 640px) */}
-              <div className="block sm:hidden divide-y divide-gray-100 dark:divide-gray-700/80">
+              <div className="block sm:hidden divide-y divide-gray-100 dark:divide-zinc-800/80 bg-white dark:bg-zinc-950">
                 {filteredApplications.map(app => (
-                  <div key={app.id} className="p-4 space-y-2.5 hover:bg-gray-50/80 dark:hover:bg-gray-700/30 transition-colors">
+                  <div key={app.id} className="p-4 space-y-2.5 hover:bg-gray-50/80 dark:hover:bg-zinc-900/70 transition-colors">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
@@ -4476,7 +4725,7 @@ ${aiResult.coverLetter}`;
                               target="_blank" 
                               rel="noopener noreferrer" 
                               onClick={(e) => openExternalLink(app.url, e)}
-                              className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer p-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded transition-colors" 
+                              className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer p-0.5 hover:bg-blue-50 dark:hover:bg-zinc-800 rounded transition-colors" 
                               title={app.url}
                               aria-label={app.url}
                             >
@@ -4493,13 +4742,13 @@ ${aiResult.coverLetter}`;
 
                     <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[10px] font-medium border dark:border-gray-600 shrink-0">
+                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-full text-[10px] font-medium border border-gray-200 dark:border-zinc-700 shrink-0">
                           {getContractLabel(app.type, t)}
                         </span>
                         <span className="text-gray-500 dark:text-gray-400 text-[11px] whitespace-nowrap">{app.date}</span>
                       </div>
                       {getResponseDays(app) !== null && (
-                        <span className="inline-flex items-center whitespace-nowrap text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 shrink-0 gap-1">
+                        <span className="inline-flex items-center whitespace-nowrap text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0 gap-1">
                           <Timer size={10} /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
                         </span>
                       )}
@@ -4513,7 +4762,7 @@ ${aiResult.coverLetter}`;
                         style={{ textAlignLast: 'center', textAlign: 'center' }}
                       >
                         {STATUS_KEYS.map(statusKey => (
-                          <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium text-center">
+                          <option key={statusKey} value={statusKey} className="bg-white dark:bg-zinc-900 text-gray-900 dark:text-gray-100 font-medium text-center">
                             {getStatusLabel(statusKey, t)}
                           </option>
                         ))}
@@ -4523,7 +4772,7 @@ ${aiResult.coverLetter}`;
                         <button 
                           type="button"
                           onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
-                          className="p-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/40 text-gray-700 dark:text-gray-200 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shadow-2xs"
+                          className="p-1.5 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shadow-2xs"
                           title={t.editApplication || t.edit}
                           aria-label={t.editApplication || t.edit}
                         >
@@ -4534,7 +4783,7 @@ ${aiResult.coverLetter}`;
                   </div>
                 ))}
                 {filteredApplications.length === 0 && (
-                  <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+                  <div className="p-8 text-center text-gray-400 dark:text-zinc-500 text-sm">
                     {applications.length === 0 ? t.noApplications : (t.noMatchingApplications || "Aucune candidature ne correspond à vos critères de recherche.")}
                   </div>
                 )}
@@ -4544,99 +4793,99 @@ ${aiResult.coverLetter}`;
               <div className="hidden sm:block w-full overflow-hidden">
                 <table className="w-full table-fixed text-left border-collapse text-xs md:text-sm">
                   <thead>
-                    <tr className="bg-gray-100/70 dark:bg-gray-900 text-gray-600 dark:text-gray-400 text-xs uppercase tracking-wider border-b dark:border-gray-700">
+                    <tr className="bg-gray-100/70 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-zinc-800/80">
                       <th 
                         onClick={() => handleSortChange('company')}
-                        className={`w-[20%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'company' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        className={`w-[20%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'company' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.company}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.company}</span>
                           <span className="shrink-0">
                             {appSortField === 'company' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('role')}
-                        className={`w-[27%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'role' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        className={`w-[27%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'role' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.role}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.role}</span>
                           <span className="shrink-0">
                             {appSortField === 'role' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('source')}
-                        className={`w-[15%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'source' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        className={`w-[15%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'source' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.platformHeader || t.source}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.platformHeader || t.source}</span>
                           <span className="shrink-0">
                             {appSortField === 'source' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('type')}
-                        className={`w-[13%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'type' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        className={`w-[13%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'type' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.contractHeader || t.contract}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.contractHeader || t.contract}</span>
                           <span className="shrink-0">
                             {appSortField === 'type' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('date')}
-                        className={`w-[11%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'date' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        className={`w-[11%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'date' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.dateHeader || t.date}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.dateHeader || t.date}</span>
                           <span className="shrink-0">
                             {appSortField === 'date' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('status')}
-                        className={`w-[10%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-gray-800/80 ${appSortField === 'status' ? 'text-blue-600 dark:text-blue-400 font-bold bg-blue-50/50 dark:bg-blue-950/40' : ''}`}
+                        className={`w-[10%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'status' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.statusHeader || t.status}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.statusHeader || t.status}</span>
                           <span className="shrink-0">
                             {appSortField === 'status' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-blue-400" /> : <ArrowDown size={13} className="text-blue-600 dark:text-blue-400" />
+                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
@@ -4644,9 +4893,9 @@ ${aiResult.coverLetter}`;
                       <th className="w-[4%] px-2 py-2.5 text-center font-semibold truncate">{t.actions}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                  <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80 bg-white dark:bg-zinc-950">
                     {filteredApplications.map(app => (
-                      <tr key={app.id} className="hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition-colors">
+                      <tr key={app.id} className="hover:bg-gray-50/80 dark:hover:bg-zinc-900/70 transition-colors">
                         <td className="w-[20%] px-3 py-2 font-semibold text-gray-900 dark:text-gray-100 overflow-hidden">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="truncate" title={app.company}>{app.company}</span>
@@ -4677,7 +4926,7 @@ ${aiResult.coverLetter}`;
                         </td>
                         <td className="w-[13%] px-2 py-2 overflow-hidden">
                           <div className="min-w-0">
-                            <span className="inline-flex items-center max-w-full px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-[10.5px] font-medium border dark:border-gray-600 truncate" title={getContractLabel(app.type, t)}>
+                            <span className="inline-flex items-center max-w-full px-1.5 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-full text-[10.5px] font-medium border border-gray-200 dark:border-zinc-700 truncate" title={getContractLabel(app.type, t)}>
                               <span className="truncate">{getContractLabel(app.type, t)}</span>
                             </span>
                           </div>
@@ -4700,13 +4949,13 @@ ${aiResult.coverLetter}`;
                               title={getStatusLabel(app.status, t)}
                             >
                               {STATUS_KEYS.map(statusKey => (
-                                <option key={statusKey} value={statusKey} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium text-center">
+                                <option key={statusKey} value={statusKey} className="bg-white dark:bg-zinc-900 text-gray-900 dark:text-gray-100 font-medium text-center">
                                   {getStatusLabel(statusKey, t)}
                                 </option>
                               ))}
                             </select>
                             {getResponseDays(app) !== null && (
-                              <span className="inline-flex items-center text-[9.5px] font-semibold px-1 py-0.2 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 gap-0.5 truncate" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
+                              <span className="inline-flex items-center text-[9.5px] font-semibold px-1 py-0.2 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 gap-0.5 truncate" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
                                 <Timer size={8.5} className="shrink-0" /> {getResponseDays(app)}{lang === 'en' ? 'd' : 'j'}
                               </span>
                             )}
@@ -4716,7 +4965,7 @@ ${aiResult.coverLetter}`;
                           <button 
                             type="button"
                             onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
-                            className="p-1.5 bg-gray-100 hover:bg-blue-50 text-gray-600 hover:text-blue-600 dark:bg-gray-700 dark:hover:bg-blue-900/40 dark:text-gray-300 dark:hover:text-blue-300 rounded-lg text-xs font-medium cursor-pointer transition-colors inline-flex items-center justify-center shadow-2xs"
+                            className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 rounded-lg text-xs font-medium cursor-pointer transition-colors inline-flex items-center justify-center shadow-2xs"
                             title={t.editApplication || t.edit}
                             aria-label={t.editApplication || t.edit}
                           >
@@ -4736,6 +4985,7 @@ ${aiResult.coverLetter}`;
                 </table>
               </div>
             </div>
+            </div>
           )}
 
           {activeTab === 'cvLibrary' && (
@@ -4752,32 +5002,29 @@ ${aiResult.coverLetter}`;
           )}
 
           {activeTab === 'tailor' && (
-            <div className="space-y-6 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
-              <div className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-4 sm:p-6 2xl:p-8 print:hidden transition-colors ${isPrinting ? 'print:hidden' : ''}`}>
-                <div className="flex items-center justify-between mb-5 sm:mb-6 flex-wrap gap-3 sm:gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 sm:p-2.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-xl"><Sparkles className="w-5 h-5 sm:w-6 sm:h-6" /></div>
-                    <div>
-                      <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white">{t.tailor}</h2>
-                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">{t.tailorSubtitle}</p>
-                    </div>
-                  </div>
-                  <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-xl w-full sm:w-auto">
-                    <button 
-                      onClick={() => setGenerationMode('cv')} 
-                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white dark:bg-gray-700 shadow-xs text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                    >
-                      {t.cvMode}
-                    </button>
-                    <button 
-                      onClick={() => setGenerationMode('letter')} 
-                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white dark:bg-gray-700 shadow-xs text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                    >
-                      {t.letterMode}
-                    </button>
-                  </div>
+            <div className="space-y-4 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-1 print:hidden">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">{t.tailor}</h2>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">{t.tailorSubtitle}</p>
                 </div>
+                <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-full sm:w-auto border border-gray-200 dark:border-gray-700">
+                  <button 
+                    onClick={() => setGenerationMode('cv')} 
+                    className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white dark:bg-gray-700 shadow-xs text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                  >
+                    {t.cvMode}
+                  </button>
+                  <button 
+                    onClick={() => setGenerationMode('letter')} 
+                    className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white dark:bg-gray-700 shadow-xs text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                  >
+                    {t.letterMode}
+                  </button>
+                </div>
+              </div>
 
+              <div className={`pt-2 print:hidden ${isPrinting ? 'print:hidden' : ''}`}>
                 <form onSubmit={handleGenerateAI} className="space-y-4 sm:space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 2xl:gap-6">
                     <div>
@@ -4905,11 +5152,8 @@ ${aiResult.coverLetter}`;
 
               {/* Empty / Placeholder State when no document has been generated */}
               {!aiResult && !isLoadingAI && (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700/80 p-6 sm:p-8 text-center max-w-2xl mx-auto">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3.5">
-                    <Sparkles size={24} />
-                  </div>
-                  <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-white mb-1.5">{t.noDocumentGeneratedTitle}</h3>
+                <div className="py-12 text-center max-w-xl mx-auto">
+                  <h3 className="text-base font-bold text-gray-800 dark:text-white mb-1">{t.noDocumentGeneratedTitle}</h3>
                   <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg mx-auto">{t.noDocumentGeneratedDesc}</p>
                 </div>
               )}
@@ -4918,7 +5162,7 @@ ${aiResult.coverLetter}`;
               {aiResult && generationMode === 'cv' && aiResult.cv && (
                 <div className="space-y-4 sm:space-y-6">
                   {/* CV Customization & Toolbar */}
-                  <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 space-y-4 print:hidden">
+                  <div className="pb-4 border-b border-gray-200 dark:border-gray-700 space-y-4 print:hidden">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-gray-100 dark:border-gray-700 pb-3.5">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
@@ -5285,9 +5529,12 @@ ${aiResult.coverLetter}`;
           )}
 
           {activeTab === 'profile' && (
-            <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 transition-colors">
-              <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t.profileTitle}</h2>
+            <div className="max-w-4xl mx-auto space-y-6">
+              <div className="flex items-center justify-between pb-1 flex-wrap gap-3">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">{t.profileTitle}</h2>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">{t.profileSubtitle || 'Gérez votre profil professionnel, vos coordonnées et votre Master CV.'}</p>
+                </div>
                 <button 
                   type="button"
                   onClick={() => setActiveTab('onboarding')}
@@ -5297,6 +5544,7 @@ ${aiResult.coverLetter}`;
                   {t.onboardingRestartGuide}
                 </button>
               </div>
+
               <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('postutrack_profile', JSON.stringify(profile)); setSavedNotice(true); setTimeout(() => setSavedNotice(false), 3000); }} className="space-y-6">
                 
                 <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
@@ -5352,6 +5600,10 @@ ${aiResult.coverLetter}`;
                   </div>
                   <p className="text-xs text-amber-700 dark:text-amber-500 mb-4">{t.backupSubtitle}</p>
                   <div className="flex flex-wrap gap-3">
+                    <button type="button" onClick={handleExportProfile} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5" title={t.exportProfileTooltip}>
+                      <Download size={15} />
+                      {t.exportProfileBtn}
+                    </button>
                     <button type="button" onClick={handleExportData} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5" title={t.exportDataTooltip}>
                       <Download size={15} />
                       {t.exportDataBtn}
@@ -5412,6 +5664,9 @@ ${aiResult.coverLetter}`;
               setMasterLetterPrompt={setMasterLetterPrompt}
               onRestoreMasterCvPrompt={handleRestoreMasterCvPrompt}
               onRestoreMasterLetterPrompt={handleRestoreMasterLetterPrompt}
+              onExportProfile={handleExportProfile}
+              onExportBackup={handleExportData}
+              onImportData={handleImportData}
               onOpenTutorial={() => {
                 setTutorialPreviousTab('settings');
                 setActiveTab('api-tutorial');
@@ -5525,13 +5780,8 @@ ${aiResult.coverLetter}`;
       {isDemoConfirmOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 max-w-md w-full p-6 text-left space-y-4">
-            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
-              <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-xl">
-                <Sparkles size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.demoConfirmTitle}</h3>
-              </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.demoConfirmTitle}</h3>
             </div>
             
             <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
@@ -5580,6 +5830,7 @@ ${aiResult.coverLetter}`;
         onClose={handleDismissNoKeyModal}
         onGoToSettings={handleGoToSettingsFromNoKeyModal}
         onOpenTutorial={handleOpenTutorialFromNoKeyModal}
+        onToggleLanguage={toggleLanguage}
         lang={lang}
       />
 

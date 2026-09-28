@@ -1,9 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import {
-  Sun,
-  ChevronDown,
-  ChevronUp,
-  Zap,
   RotateCcw,
   FlaskConical
 } from 'lucide-react';
@@ -319,89 +315,41 @@ export default function HiringWeatherSection({ t, lang = 'fr', simulatedMonth = 
     : realMonthIdx;
   const isSimulated = simulatedMonth !== null && !isNaN(simulatedMonth) && simulatedMonth !== realMonthIdx;
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
-
   const currentMonthData = HIRING_WEATHER_MONTHS[activeMonthIdx];
 
   return (
-    <div className="bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/30 dark:from-gray-800 dark:via-gray-800 dark:to-gray-800/90 rounded-2xl sm:rounded-3xl shadow-xs border border-blue-100/80 dark:border-gray-700/80 p-3 sm:p-5 2xl:p-7 transition-all">
-      {/* Header with Title & Action Controls */}
-      <div className="flex items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-gray-100 dark:border-gray-700/80">
-        {/* Title and Icon Block */}
-        <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-          <div className="p-2 sm:p-2.5 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-xl sm:rounded-2xl shadow-xs shrink-0 mt-0.5 sm:mt-0">
-            <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
+    <div className="space-y-2">
+      {/* Simulation Reset Banner (if active) */}
+      {isSimulated && (
+        <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-200">
+          <div className="flex items-center gap-1.5 font-medium">
+            <FlaskConical size={14} className="text-amber-600 dark:text-amber-400" />
+            <span>{lang === 'en' ? 'Simulated Date Active (Dev Studio)' : 'Date Simulée Active (Dev Studio)'}</span>
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm sm:text-base md:text-lg font-extrabold text-gray-900 dark:text-white tracking-tight leading-snug">
-                {t.hiringWeatherTitle || (lang === 'en' ? 'Hiring Weather' : 'Météo du Recrutement')}
-              </h3>
-              {isSimulated && (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 text-[10px] sm:text-xs font-bold">
-                  <FlaskConical size={12} className="text-amber-600 dark:text-amber-300" />
-                  <span>{lang === 'en' ? 'Simulated Date (Dev)' : 'Date Simulée (Dev)'}</span>
-                  {onResetDate && (
-                    <button
-                      type="button"
-                      onClick={onResetDate}
-                      className="ml-1 hover:text-amber-950 dark:hover:text-white underline cursor-pointer flex items-center gap-0.5"
-                      title={lang === 'en' ? 'Reset to real date' : 'Rétablir la date réelle'}
-                    >
-                      <RotateCcw size={10} />
-                      {lang === 'en' ? 'Reset' : 'Rétablir'}
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 line-clamp-2 sm:line-clamp-none leading-relaxed">
-              {t.hiringWeatherSubtitle || (lang === 'en' ? 'Current hiring climate and best times to apply to maximize your response rate.' : 'Périodes propices et dynamiques d\'embauche pour optimiser vos candidatures.')}
-            </p>
-          </div>
-        </div>
-
-        {/* Minimize / Expand Toggle */}
-        <button
-          type="button"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white rounded-lg transition-colors cursor-pointer shrink-0 ml-1"
-          title={isCollapsed ? (lang === 'en' ? 'Expand' : 'Agrandir') : (lang === 'en' ? 'Minimize' : 'Réduire')}
-          aria-label={isCollapsed ? 'Expand' : 'Minimize'}
-        >
-          {isCollapsed ? <ChevronDown size={17} /> : <ChevronUp size={17} />}
-        </button>
-      </div>
-
-      {/* Main Content Area */}
-      {!isCollapsed && (
-        <div className="pt-3 sm:pt-4 space-y-3 sm:space-y-4 animate-in fade-in duration-200">
-          {/* Hero Banner */}
-          <div className="p-3.5 sm:p-4.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/20 dark:to-amber-950/40 border border-amber-300/80 dark:border-amber-700/60 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-start gap-3 min-w-0 flex-1">
-              <div className="p-2 sm:p-2.5 bg-amber-500 text-white rounded-xl shrink-0 shadow-xs mt-0.5">
-                <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-              <div className="space-y-1 min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-extrabold bg-amber-500 text-white uppercase tracking-wider">
-                    {t.currentSeasonBadge || (lang === 'en' ? 'Current Period' : 'Période Actuelle')} ({t[currentMonthData.monthKey] || currentMonthData.monthKey})
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${currentMonthData.badgeColor}`}>
-                    {lang === 'en' ? currentMonthData.tempBadgeEn : currentMonthData.tempBadgeFr}
-                  </span>
-                </div>
-                <h4 className="text-sm sm:text-base font-extrabold text-amber-950 dark:text-amber-100 leading-snug">
-                  {lang === 'en' ? currentMonthData.titleEn : currentMonthData.titleFr}
-                </h4>
-                <p className="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
-                  {lang === 'en' ? currentMonthData.descEn : currentMonthData.descFr}
-                </p>
-              </div>
-            </div>
-          </div>
+          {onResetDate && (
+            <button
+              type="button"
+              onClick={onResetDate}
+              className="hover:underline flex items-center gap-1 text-[11px] font-bold cursor-pointer"
+            >
+              <RotateCcw size={12} />
+              {lang === 'en' ? 'Reset to real date' : 'Rétablir date réelle'}
+            </button>
+          )}
         </div>
       )}
+
+      {/* Main Orange Hiring Weather Banner without the enclosing gray box */}
+      <div className="p-3.5 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/20 dark:to-amber-950/40 border border-amber-300/80 dark:border-amber-700/60 shadow-2xs transition-all">
+        <div className="space-y-1">
+          <h4 className="text-sm sm:text-base font-extrabold text-amber-950 dark:text-amber-100 leading-snug">
+            {lang === 'en' ? currentMonthData.titleEn : currentMonthData.titleFr}
+          </h4>
+          <p className="text-xs text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
+            {lang === 'en' ? currentMonthData.descEn : currentMonthData.descFr}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

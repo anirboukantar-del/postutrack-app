@@ -290,17 +290,11 @@ export function DevResumeLab({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-black text-xs sm:text-sm shadow-2xs shrink-0">
-                DEV
-              </div>
               <h2 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight whitespace-nowrap">
                 Dev Studio
               </h2>
               <span className="text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-300 hidden sm:inline">
                 — {lang === 'en' ? 'Resume Sandbox' : 'Laboratoire CV'}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700 whitespace-nowrap shrink-0">
-                ⚡ 0 Token
               </span>
             </div>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 max-w-3xl leading-relaxed">

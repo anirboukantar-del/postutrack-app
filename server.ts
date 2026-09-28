@@ -6,7 +6,7 @@ import { scrapeAllPlatforms } from "./src/serverJobScraper";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   app.use(cors());
   app.use(express.json({ limit: "5mb" }));
@@ -16,7 +16,7 @@ async function startServer() {
     res.json({ status: "ok", service: "PostuTrack JobSpy API" });
   });
 
-  // Real Multi-Platform Scraper endpoint (LinkedIn, Indeed, Welcome to the Jungle, Glassdoor)
+  // Real Multi-Platform Scraper endpoint (LinkedIn, Indeed, Welcome to the Jungle, Glassdoor, JobTeaser, HelloWork, Dice, France Travail)
   app.post("/api/scrape-jobs", async (req, res) => {
     try {
       const {
@@ -26,7 +26,7 @@ async function startServer() {
         search_terms,
         location = "Paris, France",
         results_wanted = 100,
-        sites = ["linkedin", "indeed", "wttj", "glassdoor"],
+        sites = ["linkedin", "indeed", "wttj", "glassdoor", "jobteaser", "hellowork", "dice", "francetravail"],
         contract_type = null,
         job_type = null,
         is_remote = false,
@@ -35,7 +35,7 @@ async function startServer() {
 
       const rawKeywords = keywords || search_terms || (query ? [query] : null) || (search_term ? [search_term] : ["Software Engineer"]);
       const keywordsList = Array.isArray(rawKeywords) ? rawKeywords : [String(rawKeywords)];
-      const requestedSites = Array.isArray(sites) && sites.length > 0 ? sites : ["linkedin", "indeed", "wttj", "glassdoor"];
+      const requestedSites = Array.isArray(sites) && sites.length > 0 ? sites : ["linkedin", "indeed", "wttj", "glassdoor", "jobteaser", "hellowork", "dice", "francetravail"];
 
       const jobs = await scrapeAllPlatforms({
         keywords: keywordsList,
@@ -181,8 +181,11 @@ async function startServer() {
     });
   });
 
-  // Vite middleware for development vs production
-  if (process.env.NODE_ENV !== "production") {
+  // Vite middleware for development vs production static serving
+  const isProduction = process.env.NODE_ENV === "production" || 
+    (typeof __filename !== "undefined" && (__filename.endsWith("server.cjs") || __filename.includes("dist")));
+
+  if (!isProduction) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",

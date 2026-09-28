@@ -183,3 +183,193 @@
   background-color: rgba(156, 163, 175, 0.6);
 }
 
+/* =========================================================================
+   Harmonized Dark Mode Theme (Cohesive Zinc/Neutral Dark UI — NOT BLUE)
+   ========================================================================= */
+html.dark,
+.dark body {
+  background-color: #09090b !important; /* zinc-950 deep canvas */
+  color: #f4f4f5 !important; /* zinc-100 */
+}
+
+/* Base application wrapper in dark mode */
+.dark .min-h-screen {
+  background-color: #09090b !important;
+}
+
+/* Dark mode main navigation & header bars */
+.dark aside,
+.dark header {
+  background-color: #0c0c0e !important; /* sleek deep neutral surface */
+  border-color: #27272a !important; /* zinc-800 */
+}
+
+/* Containers, modals, tables, and card surfaces in dark mode */
+.dark .bg-gray-800,
+.dark [class*="dark:bg-gray-800"],
+.dark [class*="dark:bg-slate-800"],
+.dark [class*="dark:bg-zinc-950"] {
+  background-color: #09090b !important; /* match applications table deep zinc-950 background */
+  border-color: #27272a !important;
+}
+
+.dark .bg-gray-900,
+.dark [class*="dark:bg-gray-900"],
+.dark [class*="dark:bg-zinc-900"] {
+  background-color: #121215 !important;
+  border-color: #27272a !important;
+}
+
+.dark .bg-gray-700,
+.dark [class*="dark:bg-gray-700"],
+.dark .bg-slate-700,
+.dark [class*="dark:bg-slate-700"] {
+  background-color: #18181b !important;
+  border-color: #27272a !important;
+}
+
+.dark .border-gray-700,
+.dark [class*="dark:border-gray-700"],
+.dark .border-gray-800,
+.dark [class*="dark:border-gray-800"],
+.dark [class*="dark:border-slate-700"],
+.dark [class*="dark:border-slate-800"],
+.dark [class*="dark:border-zinc-800"],
+.dark [class*="dark:divide-gray-700"],
+.dark [class*="dark:divide-zinc-800"] {
+  border-color: #27272a !important;
+}
+
+/* Neutralize blue-tinted dark backgrounds (not blue!) */
+.dark [class*="dark:bg-blue-950"]:not(button):not(a),
+.dark [class*="dark:bg-blue-900/40"]:not(button):not(a),
+.dark [class*="dark:bg-blue-900/50"]:not(button):not(a),
+.dark [class*="dark:bg-blue-900/60"]:not(button):not(a) {
+  background-color: #121216 !important;
+  border-color: #27272a !important;
+}
+
+.dark [class*="dark:border-blue-900"],
+.dark [class*="dark:border-blue-800"] {
+  border-color: #27272a !important;
+}
+
+/* Harmonized Buttons in Dark Mode: keep brand blue vibrancy consistent with light mode */
+.dark button.bg-blue-600,
+.dark a.bg-blue-600,
+.dark .bg-blue-600 {
+  background-color: #2563eb !important; /* blue-600 vibrant */
+  color: #ffffff !important;
+  border: 1px solid #3b82f6 !important;
+}
+
+.dark button.bg-blue-600:hover,
+.dark a.bg-blue-600:hover,
+.dark .bg-blue-600:hover {
+  background-color: #1d4ed8 !important; /* blue-700 */
+  border-color: #60a5fa !important;
+}
+
+/* Inputs, textareas, selects in dark mode */
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: #121215 !important;
+  border-color: #27272a !important;
+  color: #f4f4f5 !important;
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: #3f3f46 !important;
+  --tw-ring-color: #3f3f46 !important;
+}
+
+/* Harmonized Status Badges & Pills in Dark Mode (Soft, readable contrast without overpowering blue) */
+.dark [class*="dark:bg-blue-900"],
+.dark [class*="dark:bg-blue-950"] {
+  background-color: rgba(37, 99, 235, 0.16) !important;
+  border-color: rgba(59, 130, 246, 0.3) !important;
+  color: #93c5fd !important;
+}
+
+.dark [class*="dark:bg-emerald-900"],
+.dark [class*="dark:bg-emerald-950"] {
+  background-color: rgba(16, 185, 129, 0.16) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+  color: #6ee7b7 !important;
+}
+
+.dark [class*="dark:bg-rose-900"],
+.dark [class*="dark:bg-rose-950"] {
+  background-color: rgba(244, 63, 94, 0.16) !important;
+  border-color: rgba(244, 63, 94, 0.3) !important;
+  color: #fda4af !important;
+}
+
+.dark [class*="dark:bg-amber-900"],
+.dark [class*="dark:bg-amber-950"] {
+  background-color: rgba(245, 158, 11, 0.16) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+  color: #fcd34d !important;
+}
+
+.dark [class*="dark:bg-purple-900"],
+.dark [class*="dark:bg-purple-950"] {
+  background-color: rgba(168, 85, 247, 0.16) !important;
+  border-color: rgba(168, 85, 247, 0.3) !important;
+  color: #d8b4fe !important;
+}
+
+/* =========================================================================
+   Sleek Geometry: Crisp, modern radius instead of bloated round shapes
+   Make edges less round throughout the whole app
+   ========================================================================= */
+.rounded-3xl {
+  border-radius: 6px !important;
+}
+
+.rounded-2xl {
+  border-radius: 5px !important;
+}
+
+.rounded-xl {
+  border-radius: 4px !important;
+}
+
+.rounded-lg {
+  border-radius: 4px !important;
+}
+
+.rounded-md {
+  border-radius: 3px !important;
+}
+
+.rounded-sm {
+  border-radius: 2px !important;
+}
+
+/* Buttons, inputs, selects, textareas have crisp, modern square-ish edges */
+button:not([class*="w-"]):not([class*="h-"]),
+input:not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  border-radius: 4px !important;
+}
+
+/* Dialogs & Modals */
+[role="dialog"],
+.modal-box {
+  border-radius: 6px !important;
+}
+
+/* Tags and status pills - sleek rectangular tags with subtle rounding instead of pills */
+span.rounded-full:not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
+div.rounded-full:not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]):not([class*="w-5"]):not([class*="w-6"]):not([class*="w-7"]):not([class*="w-8"]):not([class*="w-9"]):not([class*="w-10"]),
+button.rounded-full:not([class*="w-5"]):not([class*="w-6"]):not([class*="w-7"]):not([class*="w-8"]):not([class*="w-9"]):not([class*="w-10"]):not([class*="h-5"]):not([class*="h-6"]):not([class*="h-7"]):not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]) {
+  border-radius: 3px !important;
+}
+
+
+
