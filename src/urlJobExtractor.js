@@ -1,4 +1,14 @@
 import { SOURCE_KEYS, CONTRACT_KEYS, formatExternalUrl } from './App';
+import { 
+  DEFAULT_OLLAMA_URL, 
+  DEFAULT_OLLAMA_MODEL, 
+  executeOllamaChat, 
+  extractJsonFromText 
+} from './ollamaService';
+import {
+  DEFAULT_GROQ_MODEL,
+  executeGroqChat
+} from './groqService';
 
 /**
  * Normalizes any job URL into its canonical direct job posting link.
@@ -774,10 +784,14 @@ export async function importJobFromUrl(
   rawUrl,
   {
     apiKey = '',
+    groqKey = '',
+    groqModel = '',
     openAiKey = '',
     anthropicKey = '',
-    selectedAiModel = 'gemini',
+    selectedAiModel = 'ollama',
     customApiUrl = '',
+    ollamaUrl = '',
+    ollamaModel = '',
     t = {},
     lang = 'fr'
   } = {}
@@ -799,9 +813,14 @@ export async function importJobFromUrl(
       body: JSON.stringify({ url: formattedUrl })
     });
     if (serverRes.ok) {
-      const data = await serverRes.json();
-      if (data.success && data.rawText && data.rawText.length > 50) {
-        rawExtractedText = data.rawText;
+      const resText = await serverRes.text().catch(() => '');
+      if (resText && !resText.trim().startsWith('<')) {
+        try {
+          const data = JSON.parse(resText);
+          if (data.success && data.rawText && data.rawText.length > 50) {
+            rawExtractedText = data.rawText;
+          }
+        } catch (e) {}
       }
     }
   } catch (serverErr) {
@@ -833,8 +852,10 @@ export async function importJobFromUrl(
   // 3. AI Extraction if API Key is configured and text is available
   const hasAiKey =
     (selectedAiModel === 'gemini' && apiKey && apiKey.trim().length > 5) ||
+    (selectedAiModel === 'groq' && groqKey && groqKey.trim().length > 5) ||
     (selectedAiModel === 'openai' && openAiKey && openAiKey.trim().length > 5) ||
     (selectedAiModel === 'anthropic' && anthropicKey && anthropicKey.trim().length > 5) ||
+    (selectedAiModel === 'ollama') ||
     (selectedAiModel === 'other' && customApiUrl && customApiUrl.trim().length > 5);
 
   if (hasAiKey && cleanedDescription && cleanedDescription.length > 60) {
@@ -844,10 +865,14 @@ export async function importJobFromUrl(
         url: formattedUrl,
         text: excerpt,
         apiKey,
+        groqKey,
+        groqModel,
         openAiKey,
         anthropicKey,
         selectedAiModel,
         customApiUrl,
+        ollamaUrl,
+        ollamaModel,
         hints: initialHints
       });
 
@@ -894,7 +919,7 @@ export async function importJobFromUrl(
 /**
  * Helper to call AI models with structured extraction schema.
  */
-async function extractWithAi({ url, text, apiKey, openAiKey, anthropicKey, selectedAiModel, customApiUrl = '', hints }) {
+async function extractWithAi({ url, text, apiKey, groqKey, groqModel, openAiKey, anthropicKey, selectedAiModel, customApiUrl = '', ollamaUrl = '', ollamaModel = '', hints }) {
   const prompt = `You are an expert recruitment parser. Extract the structured job information from this job posting text and URL.
 URL: ${url}
 Default Platform Hint: ${hints.source}
@@ -1094,6 +1119,25 @@ Return ONLY valid JSON.`;
       if (jsonMatch) return JSON.parse(jsonMatch[0]);
       return JSON.parse(content);
     }
+  } else if (selectedAiModel === 'groq') {
+    const rawResult = await executeGroqChat({
+      apiKey: groqKey,
+      model: groqModel || DEFAULT_GROQ_MODEL,
+      system: "You are an expert recruitment parser. Return ONLY valid JSON matching the requested fields.",
+      messages: [{ role: 'user', content: prompt + '\nReturn ONLY valid JSON matching the schema.' }],
+      responseFormat: 'json_object',
+      temperature: 0.1
+    });
+    return extractJsonFromText(rawResult);
+  } else if (selectedAiModel === 'ollama') {
+    const rawResult = await executeOllamaChat({
+      baseUrl: ollamaUrl || DEFAULT_OLLAMA_URL,
+      model: ollamaModel || DEFAULT_OLLAMA_MODEL,
+      messages: [{ role: 'user', content: prompt + '\nReturn ONLY valid JSON matching the schema.' }],
+      format: 'json',
+      temperature: 0.1
+    });
+    return extractJsonFromText(rawResult);
   }
 
   return null;

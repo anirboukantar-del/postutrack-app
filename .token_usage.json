@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-28",
+  "usedToday": 126,
+  "remainingTokens": 3999874,
+  "limitTokens": 4000000,
+  "requestsToday": 2,
+  "lastUsed": 9,
+  "lastCallTimestamp": "2026-09-28T21:04:45.899Z",
+  "lastBreakdown": {
+    "promptTokens": 6,
+    "completionTokens": 3,
+    "thoughtsTokens": 0,
+    "totalTokens": 9
+  }
+}

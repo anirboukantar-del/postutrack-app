@@ -65,8 +65,8 @@ export default function NoApiKeyModal({
 
           <p className="text-xs sm:text-sm text-blue-100/90 mt-1 leading-relaxed">
             {isEn
-              ? 'PostuTrack needs an AI API key to tailor resumes, generate cover letters, and analyze job descriptions.'
-              : 'PostuTrack utilise l\'IA pour adapter vos CVs sur-mesure, rédiger des lettres de motivation percutantes et analyser les offres.'}
+              ? 'PostuTrack needs an AI connection (free Gemini, OpenAI, Claude, or 100% local Ollama) to tailor resumes and generate cover letters.'
+              : 'PostuTrack utilise l\'IA (Gemini gratuit, OpenAI, Claude, ou Ollama 100% local) pour adapter vos CVs sur-mesure et rédiger vos lettres.'}
           </p>
         </div>
 

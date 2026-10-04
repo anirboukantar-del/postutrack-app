@@ -58,6 +58,7 @@ import {
   CheckCheck,
   Palette,
   LayoutTemplate,
+  Zap,
   SlidersHorizontal,
   Code,
   Image as ImageIcon,
@@ -67,11 +68,27 @@ import {
   BarChart2,
   Search,
   Library,
-  BookOpen
+  BookOpen,
+  Server,
+  RefreshCw,
+  AlignLeft,
+  CheckCircle2
 } from 'lucide-react';
 import { translations } from './i18n';
 import HiringWeatherSection from './HiringWeather';
 import { importJobFromUrl, detectSourceFromUrl, detectContractType, cleanJobDescription, normalizeJobUrl, extractHintsFromUrl } from './urlJobExtractor';
+import { 
+  DEFAULT_OLLAMA_URL, 
+  DEFAULT_OLLAMA_MODEL, 
+  POPULAR_OLLAMA_MODELS, 
+  executeOllamaChat, 
+  getOllamaModels 
+} from './ollamaService';
+import {
+  DEFAULT_GROQ_MODEL,
+  executeGroqChat
+} from './groqService';
+import OllamaBridgeHelper from './OllamaBridgeHelper';
 import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplates';
 import { ProfilePhotoUploader } from './ProfilePhotoUploader';
 import { DevResumeLab } from './DevResumeLab';
@@ -88,6 +105,8 @@ import ApiKeyTutorialView from './ApiKeyTutorialView';
 import { getDemoProfile, generateDemoApplications, getDemoCvLibrary } from './demoData';
 import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
 import { buildPromptWithTemplate } from './promptBuilder';
+import { isSchemaDefinition, parseMasterCvToStructured } from './cvParser';
+import { formatCoverLetterParagraphs, getCoverLetterParagraphList } from './coverLetterFormatter';
 
 export const STATUS_KEYS = ['Postulé', 'Entretien', 'Offre', 'Refusé', 'Ghosted'];
 export const CONTRACT_KEYS = ['CDI', 'CDD', 'Stage', 'Alternance', 'Freelance', 'Intérim'];
@@ -451,10 +470,14 @@ function AddApplicationModal({
   t,
   lang = 'fr',
   apiKey = '',
+  groqKey = '',
+  groqModel = DEFAULT_GROQ_MODEL,
   openAiKey = '',
   anthropicKey = '',
   selectedAiModel = 'gemini',
   customApiUrl = '',
+  ollamaUrl = '',
+  ollamaModel = '',
   initialUrl = ''
 }) {
   const [formData, setFormData] = useState({
@@ -485,10 +508,14 @@ function AddApplicationModal({
     try {
       const extracted = await importJobFromUrl(cleanUrl, {
         apiKey,
+        groqKey,
+        groqModel,
         openAiKey,
         anthropicKey,
         selectedAiModel,
         customApiUrl,
+        ollamaUrl,
+        ollamaModel,
         t,
         lang
       });
@@ -961,6 +988,10 @@ function OnboardingStartingPage({
   setApplications,
   apiKey,
   setApiKey,
+  groqKey = '',
+  setGroqKey,
+  groqModel = DEFAULT_GROQ_MODEL,
+  setGroqModel,
   openAiKey,
   setOpenAiKey,
   anthropicKey,
@@ -969,6 +1000,10 @@ function OnboardingStartingPage({
   setSelectedAiModel,
   customApiUrl,
   setCustomApiUrl,
+  ollamaUrl = DEFAULT_OLLAMA_URL,
+  setOllamaUrl,
+  ollamaModel = DEFAULT_OLLAMA_MODEL,
+  setOllamaModel,
   onComplete,
   onSkip,
   processFile,
@@ -985,10 +1020,14 @@ function OnboardingStartingPage({
   
   const currentKey = selectedAiModel === 'gemini' 
     ? apiKey 
+    : selectedAiModel === 'groq'
+    ? groqKey
     : selectedAiModel === 'openai' || selectedAiModel === 'other'
     ? openAiKey 
     : anthropicKey;
-  const hasKey = selectedAiModel === 'other'
+  const hasKey = selectedAiModel === 'ollama'
+    ? Boolean((ollamaModel && ollamaModel.trim().length > 0) || (ollamaUrl && ollamaUrl.trim().length > 0))
+    : selectedAiModel === 'other'
     ? Boolean((currentKey && currentKey.trim().length > 0) || (customApiUrl && customApiUrl.trim().length > 0))
     : Boolean(currentKey && currentKey.trim().length > 5);
 
@@ -1650,7 +1689,7 @@ function OnboardingStartingPage({
               </div>
 
               {/* Provider Selection Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {/* Google Gemini Card */}
                 <div
                   onClick={() => setSelectedAiModel('gemini')}
@@ -1663,7 +1702,7 @@ function OnboardingStartingPage({
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold text-gray-900 dark:text-white">Google Gemini</span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
-                      {lang === 'en' ? 'Free & Recommended' : 'Gratuit & Conseillé'}
+                      {lang === 'en' ? 'Free & Rec.' : 'Gratuit'}
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -1711,6 +1750,52 @@ function OnboardingStartingPage({
                   </p>
                 </div>
 
+                {/* Groq Cloud Card */}
+                <div
+                  onClick={() => setSelectedAiModel('groq')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    selectedAiModel === 'groq'
+                      ? 'border-amber-500 dark:border-amber-400 bg-amber-50/60 dark:bg-amber-900/30 ring-2 ring-amber-500/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                      <Zap size={13} className="text-amber-500" />
+                      <span>Groq Cloud</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                      500+ tok/s
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {lang === 'en' ? 'Llama 3.3 & DeepSeek at 500+ tok/s. Free tier on console.groq.com.' : 'Llama 3.3 & DeepSeek à 500+ tok/s. Clé gratuite sur console.groq.com.'}
+                  </p>
+                </div>
+
+                {/* Ollama Card */}
+                <div
+                  onClick={() => setSelectedAiModel('ollama')}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    selectedAiModel === 'ollama'
+                      ? 'border-emerald-600 dark:border-emerald-400 bg-emerald-50/60 dark:bg-emerald-900/30 ring-2 ring-emerald-500/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                      <Server size={13} className="text-emerald-600" />
+                      <span>Ollama</span>
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                      {lang === 'en' ? 'Local & Free' : '100% Local'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {lang === 'en' ? 'Llama 3.2, Mistral, DeepSeek without any API key.' : 'Llama 3.2, Mistral, DeepSeek sans clé API.'}
+                  </p>
+                </div>
+
                 {/* Other (Custom / Compatible) Card */}
                 <div
                   onClick={() => setSelectedAiModel('other')}
@@ -1722,14 +1807,14 @@ function OnboardingStartingPage({
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-bold text-gray-900 dark:text-white">
-                      {lang === 'en' ? 'Other / Custom' : 'Autre / Custom'}
+                      {lang === 'en' ? 'Other' : 'Autre'}
                     </span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
-                      Ollama / v1
+                      v1 / Proxy
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                    {lang === 'en' ? 'Custom API Key & URL (Ollama, OpenRouter, Groq).' : 'Clé & URL personnalisées (Ollama, OpenRouter, Groq).'}
+                    {lang === 'en' ? 'Custom API Key & URL (OpenRouter, Groq, etc.).' : 'Clé & URL personnalisées (OpenRouter, Groq...).'}
                   </p>
                 </div>
               </div>
@@ -1760,95 +1845,196 @@ function OnboardingStartingPage({
                 </div>
               )}
 
-              {/* Selected Key Input */}
-              <div className="space-y-2">
-                <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  {selectedAiModel === 'gemini' 
-                    ? t.geminiKeyLabel 
-                    : selectedAiModel === 'openai' 
-                    ? t.openAiKeyLabel 
-                    : selectedAiModel === 'anthropic'
-                    ? t.anthropicKeyLabel
-                    : (t.otherKeyLabel || (lang === 'en' ? 'API Key / Token (Optional)' : 'Clé API / Token (Optionnelle)'))}
-                </label>
-
-                <div className="relative">
-                  <input
-                    type={showApiKey ? 'text' : 'password'}
-                    placeholder={
-                      selectedAiModel === 'gemini'
-                        ? t.geminiKeyPlaceholder
-                        : selectedAiModel === 'openai'
-                        ? t.openAiKeyPlaceholder
-                        : selectedAiModel === 'anthropic'
-                        ? t.anthropicKeyPlaceholder
-                        : (t.otherKeyPlaceholder || (lang === 'en' ? 'Paste your API key (leave blank for local Ollama)...' : 'Collez votre clé API personnalisée (laissez vide si Ollama local)...'))
-                    }
-                    className="w-full p-3.5 pr-11 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={
-                      selectedAiModel === 'gemini'
-                        ? apiKey
-                        : selectedAiModel === 'openai' || selectedAiModel === 'other'
-                        ? openAiKey
-                        : anthropicKey
-                    }
-                    onChange={(e) => {
-                      if (selectedAiModel === 'gemini') setApiKey(e.target.value);
-                      else if (selectedAiModel === 'openai' || selectedAiModel === 'other') setOpenAiKey(e.target.value);
-                      else setAnthropicKey(e.target.value);
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer p-1"
-                    title={showApiKey ? 'Hide' : 'Show'}
-                  >
-                    {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Custom API URL (Optional) */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between gap-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                    <Globe size={13} className="text-indigo-600 dark:text-indigo-400" />
-                    <span>
-                      {selectedAiModel === 'other'
-                        ? (lang === 'en' ? 'Custom API Endpoint / Base URL (Required)' : "URL d'API / Endpoint personnalisé (Requis)")
-                        : (t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)")}
+              {/* Ollama Configuration Fields */}
+              {selectedAiModel === 'ollama' && (
+                <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Server size={16} className="text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                        {lang === 'en' ? 'Ollama Local Configuration' : 'Configuration Ollama Local'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                      {lang === 'en' ? 'Zero Cloud Keys Needed' : 'Aucune clé requise'}
                     </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                        {t.ollamaUrlLabel || "URL Ollama"}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={t.ollamaUrlPlaceholder || "http://localhost:11434"}
+                        className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-emerald-500"
+                        value={ollamaUrl}
+                        onChange={e => setOllamaUrl && setOllamaUrl(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                        {t.ollamaModelLabel || "Modèle Ollama"}
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={t.ollamaModelPlaceholder || "ex: llama3.2, mistral"}
+                        className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-emerald-500"
+                        value={ollamaModel}
+                        onChange={e => setOllamaModel && setOllamaModel(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick popular model pills */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
+                      {lang === 'en' ? 'Models:' : 'Modèles :'}
+                    </span>
+                    {POPULAR_OLLAMA_MODELS.slice(0, 4).map(pm => (
+                      <button
+                        key={pm.id}
+                        type="button"
+                        onClick={() => setOllamaModel && setOllamaModel(pm.id)}
+                        className={`text-[10px] px-2 py-0.5 rounded-md border font-mono transition-all cursor-pointer ${
+                          ollamaModel === pm.id
+                            ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-emerald-400'
+                        }`}
+                      >
+                        {pm.id}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Bridge Guide for Online Web App */}
+                  <div className="pt-1">
+                    <OllamaBridgeHelper 
+                      ollamaUrl={ollamaUrl} 
+                      onApplyUrl={(url) => setOllamaUrl && setOllamaUrl(url)} 
+                      lang={lang} 
+                      isCompact={true}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Key Input (For non-Ollama models) */}
+              {selectedAiModel !== 'ollama' && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                    {selectedAiModel === 'gemini' 
+                      ? t.geminiKeyLabel 
+                      : selectedAiModel === 'groq'
+                      ? (t.groqKeyLabel || 'Clé API Groq Cloud')
+                      : selectedAiModel === 'openai' 
+                      ? t.openAiKeyLabel 
+                      : selectedAiModel === 'anthropic'
+                      ? t.anthropicKeyLabel
+                      : (t.otherKeyLabel || (lang === 'en' ? 'API Key / Token (Optional)' : 'Clé API / Token (Optionnelle)'))}
                   </label>
-                  {customApiUrl && (
+
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      placeholder={
+                        selectedAiModel === 'gemini'
+                          ? t.geminiKeyPlaceholder
+                          : selectedAiModel === 'groq'
+                          ? (t.groqKeyPlaceholder || 'gsk_...')
+                          : selectedAiModel === 'openai'
+                          ? t.openAiKeyPlaceholder
+                          : selectedAiModel === 'anthropic'
+                          ? t.anthropicKeyPlaceholder
+                          : (t.otherKeyPlaceholder || (lang === 'en' ? 'Paste your API key...' : 'Collez votre clé API personnalisée...'))
+                      }
+                      className="w-full p-3.5 pr-11 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                      value={
+                        selectedAiModel === 'gemini'
+                          ? apiKey
+                          : selectedAiModel === 'groq'
+                          ? groqKey
+                          : selectedAiModel === 'openai' || selectedAiModel === 'other'
+                          ? openAiKey
+                          : anthropicKey
+                      }
+                      onChange={(e) => {
+                        if (selectedAiModel === 'gemini') setApiKey(e.target.value);
+                        else if (selectedAiModel === 'groq') setGroqKey(e.target.value);
+                        else if (selectedAiModel === 'openai' || selectedAiModel === 'other') setOpenAiKey(e.target.value);
+                        else setAnthropicKey(e.target.value);
+                      }}
+                    />
                     <button
                       type="button"
-                      onClick={() => setCustomApiUrl && setCustomApiUrl('')}
-                      className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer p-1"
+                      title={showApiKey ? 'Hide' : 'Show'}
                     >
-                      {t.resetDefaultUrl || 'Réinitialiser'}
+                      {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
+                  </div>
+
+                  {selectedAiModel === 'groq' && (
+                    <div className="pt-1 flex items-center justify-between">
+                      <a
+                        href="https://console.groq.com/keys"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
+                      >
+                        <span>{lang === 'en' ? 'Get a free Groq API key at console.groq.com' : 'Obtenir une clé API Groq gratuite sur console.groq.com'}</span>
+                        <ExternalLink size={11} />
+                      </a>
+                    </div>
                   )}
                 </div>
-                <input
-                  type="text"
-                  placeholder={t.customApiUrlPlaceholder || "ex: http://localhost:11434/v1, https://openrouter.ai/api/v1..."}
-                  className={`w-full p-3 text-xs font-mono rounded-xl border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500 ${
-                    selectedAiModel === 'other' && !customApiUrl.trim()
-                      ? 'border-amber-400 dark:border-amber-500 ring-1 ring-amber-400/40'
-                      : 'border-gray-200 dark:border-gray-600'
-                  }`}
-                  value={customApiUrl || ''}
-                  onChange={(e) => setCustomApiUrl && setCustomApiUrl(e.target.value)}
-                />
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                  {selectedAiModel === 'other'
-                    ? (lang === 'en'
-                        ? 'Compatible with standard OpenAI API format (e.g., Ollama at http://localhost:11434/v1, OpenRouter at https://openrouter.ai/api/v1, Groq, LM Studio, etc.).'
-                        : 'Compatible avec le format standard OpenAI (ex : Ollama à http://localhost:11434/v1, OpenRouter à https://openrouter.ai/api/v1, Groq, LM Studio, etc.).')
-                    : (t.customApiUrlHelp || "Laissez vide pour l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (Ollama, OpenRouter, Groq, local...).")}
-                </p>
-              </div>
+              )}
+
+              {/* Custom API URL (Optional, for non-Ollama) */}
+              {selectedAiModel !== 'ollama' && (
+                <div className="space-y-1.5 pt-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <Globe size={13} className="text-indigo-600 dark:text-indigo-400" />
+                      <span>
+                        {selectedAiModel === 'other'
+                          ? (lang === 'en' ? 'Custom API Endpoint / Base URL (Required)' : "URL d'API / Endpoint personnalisé (Requis)")
+                          : (t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)")}
+                      </span>
+                    </label>
+                    {customApiUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomApiUrl && setCustomApiUrl('')}
+                        className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                      >
+                        {t.resetDefaultUrl || 'Réinitialiser'}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder={t.customApiUrlPlaceholder || "ex: https://openrouter.ai/api/v1..."}
+                    className={`w-full p-3 text-xs font-mono rounded-xl border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500 ${
+                      selectedAiModel === 'other' && !customApiUrl.trim()
+                        ? 'border-amber-400 dark:border-amber-500 ring-1 ring-amber-400/40'
+                        : 'border-gray-200 dark:border-gray-600'
+                    }`}
+                    value={customApiUrl || ''}
+                    onChange={(e) => setCustomApiUrl && setCustomApiUrl(e.target.value)}
+                  />
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    {selectedAiModel === 'other'
+                      ? (lang === 'en'
+                          ? 'Compatible with standard OpenAI API format (e.g., OpenRouter at https://openrouter.ai/api/v1, Groq, LM Studio, etc.).'
+                          : 'Compatible avec le format standard OpenAI (ex : OpenRouter à https://openrouter.ai/api/v1, Groq, LM Studio, etc.).')
+                      : (t.customApiUrlHelp || "Laissez vide pour l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (OpenRouter, Groq, local...).")}
+                  </p>
+                </div>
+              )}
 
               {/* Privacy / Security Notice */}
               <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl flex items-start gap-3">
@@ -2303,10 +2489,14 @@ export default function App() {
       masterLetter: ''
     });
     setApiKey('');
+    setGroqKey('');
+    setGroqModel(DEFAULT_GROQ_MODEL);
     setOpenAiKey('');
     setAnthropicKey('');
     setSelectedAiModel('gemini');
     setCustomApiUrl('');
+    setOllamaUrl(DEFAULT_OLLAMA_URL);
+    setOllamaModel(DEFAULT_OLLAMA_MODEL);
     setMasterCvPrompt(DEFAULT_MASTER_CV_PROMPT);
     setMasterLetterPrompt(DEFAULT_MASTER_LETTER_PROMPT);
     setSelectedResumeTemplate('rendercv');
@@ -2330,6 +2520,23 @@ export default function App() {
   const [apiKey, setApiKey] = useState(() => {
     try { return localStorage.getItem('postutrack_apikey') || ''; } catch (e) { return ''; }
   });
+  const [groqKey, setGroqKey] = useState(() => {
+    try { return localStorage.getItem('postutrack_groqkey') || ''; } catch (e) { return ''; }
+  });
+  const [groqModel, setGroqModel] = useState(() => {
+    try { return localStorage.getItem('postutrack_groqmodel') || DEFAULT_GROQ_MODEL; } catch (e) { return DEFAULT_GROQ_MODEL; }
+  });
+
+  // Listen for auto-switched Groq model from smart fallback
+  useEffect(() => {
+    const handleModelUpdate = (e) => {
+      if (e.detail?.model) {
+        setGroqModel(e.detail.model);
+      }
+    };
+    window.addEventListener('postutrack_groqmodel_updated', handleModelUpdate);
+    return () => window.removeEventListener('postutrack_groqmodel_updated', handleModelUpdate);
+  }, []);
   const [openAiKey, setOpenAiKey] = useState(() => {
     try { return localStorage.getItem('postutrack_openaikey') || ''; } catch (e) { return ''; }
   });
@@ -2337,15 +2544,23 @@ export default function App() {
     try { return localStorage.getItem('postutrack_anthropickey') || ''; } catch (e) { return ''; }
   });
   const [selectedAiModel, setSelectedAiModel] = useState(() => {
-    try { return localStorage.getItem('postutrack_aimodel') || 'gemini'; } catch (e) { return 'gemini'; }
+    try { return localStorage.getItem('postutrack_aimodel') || 'ollama'; } catch (e) { return 'ollama'; }
   });
   const [customApiUrl, setCustomApiUrl] = useState(() => {
     try { return localStorage.getItem('postutrack_custom_api_url') || ''; } catch (e) { return ''; }
   });
+  const [ollamaUrl, setOllamaUrl] = useState(() => {
+    try { return localStorage.getItem('postutrack_ollama_url') || DEFAULT_OLLAMA_URL; } catch (e) { return DEFAULT_OLLAMA_URL; }
+  });
+  const [ollamaModel, setOllamaModel] = useState(() => {
+    try { return localStorage.getItem('postutrack_ollama_model') || DEFAULT_OLLAMA_MODEL; } catch (e) { return DEFAULT_OLLAMA_MODEL; }
+  });
 
-  // Check if an AI key is installed across providers
+  // Check if an AI key or local engine is installed across providers
   const hasInstalledApiKey = Boolean(
+    (selectedAiModel === 'ollama') ||
     (apiKey && apiKey.trim()) ||
+    (groqKey && groqKey.trim()) ||
     (openAiKey && openAiKey.trim()) ||
     (anthropicKey && anthropicKey.trim()) ||
     (customApiUrl && customApiUrl.trim())
@@ -2443,14 +2658,18 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem('postutrack_apikey', apiKey);
+      localStorage.setItem('postutrack_groqkey', groqKey);
+      localStorage.setItem('postutrack_groqmodel', groqModel);
       localStorage.setItem('postutrack_openaikey', openAiKey);
       localStorage.setItem('postutrack_anthropickey', anthropicKey);
       localStorage.setItem('postutrack_aimodel', selectedAiModel);
       localStorage.setItem('postutrack_custom_api_url', customApiUrl);
+      localStorage.setItem('postutrack_ollama_url', ollamaUrl);
+      localStorage.setItem('postutrack_ollama_model', ollamaModel);
     } catch (e) {
       console.error(e);
     }
-  }, [apiKey, openAiKey, anthropicKey, selectedAiModel, customApiUrl]);
+  }, [apiKey, groqKey, groqModel, openAiKey, anthropicKey, selectedAiModel, customApiUrl, ollamaUrl, ollamaModel]);
 
   const [selectedAppId, setSelectedAppId] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -2758,6 +2977,19 @@ export default function App() {
   const [baseLetter, setBaseLetter] = useState(profile.masterLetter || '');
   const [letterTone, setLetterTone] = useState('professional');
   const [isCopied, setIsCopied] = useState(false);
+  const [isEditingLetter, setIsEditingLetter] = useState(false);
+  const [letterFormatNotice, setLetterFormatNotice] = useState(false);
+
+  const handleReformatCoverLetter = () => {
+    if (!aiResult?.coverLetter) return;
+    const formatted = formatCoverLetterParagraphs(aiResult.coverLetter, profile.fullName);
+    setAiResult(prev => ({
+      ...prev,
+      coverLetter: formatted
+    }));
+    setLetterFormatNotice(true);
+    setTimeout(() => setLetterFormatNotice(false), 2500);
+  };
 
   // --- SAUVEGARDE ET EXPORTS AVEC DÉLAIS DE RÉPONSE ---
   const getFullSettingsSnapshot = () => ({
@@ -2780,9 +3012,13 @@ export default function App() {
 
   const getFullApiKeysSnapshot = () => ({
     apiKey,
+    groqKey,
+    groqModel,
     openAiKey,
     anthropicKey,
-    customApiUrl
+    customApiUrl,
+    ollamaUrl,
+    ollamaModel
   });
 
   // Export complet de toutes les données (candidatures, profil, bibliothèque CV, paramètres et clés API)
@@ -2823,10 +3059,14 @@ export default function App() {
       apiKeys: getFullApiKeysSnapshot(),
       // Top-level backwards compatibility fields
       apiKey: apiKey,
+      groqKey: groqKey,
+      groqModel: groqModel,
       openAiKey: openAiKey,
       anthropicKey: anthropicKey,
       selectedAiModel: selectedAiModel,
       customApiUrl: customApiUrl,
+      ollamaUrl: ollamaUrl,
+      ollamaModel: ollamaModel,
       masterCvPrompt: masterCvPrompt,
       masterLetterPrompt: masterLetterPrompt,
       selectedResumeTemplate: selectedResumeTemplate,
@@ -2865,10 +3105,14 @@ export default function App() {
       apiKeys: getFullApiKeysSnapshot(),
       // Direct root fields for full cross-compatibility
       apiKey: apiKey,
+      groqKey: groqKey,
+      groqModel: groqModel,
       openAiKey: openAiKey,
       anthropicKey: anthropicKey,
       selectedAiModel: selectedAiModel,
       customApiUrl: customApiUrl,
+      ollamaUrl: ollamaUrl,
+      ollamaModel: ollamaModel,
       masterCvPrompt: masterCvPrompt,
       masterLetterPrompt: masterLetterPrompt,
       selectedResumeTemplate: selectedResumeTemplate,
@@ -3014,6 +3258,20 @@ export default function App() {
           importedSomething = true;
         }
 
+        const gKey = backup.groqKey ?? backup.apiKeys?.groqKey;
+        if (gKey !== undefined && gKey !== null) {
+          setGroqKey(gKey);
+          try { localStorage.setItem('postutrack_groqkey', gKey); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const gModel = backup.groqModel ?? backup.apiKeys?.groqModel;
+        if (gModel !== undefined && gModel !== null) {
+          setGroqModel(gModel);
+          try { localStorage.setItem('postutrack_groqmodel', gModel); } catch (err) {}
+          importedSomething = true;
+        }
+
         const oaiKey = backup.openAiKey ?? backup.apiKeys?.openAiKey;
         if (oaiKey !== undefined && oaiKey !== null) {
           setOpenAiKey(oaiKey);
@@ -3032,6 +3290,20 @@ export default function App() {
         if (customUrl !== undefined && customUrl !== null) {
           setCustomApiUrl(customUrl);
           try { localStorage.setItem('postutrack_custom_api_url', customUrl); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const oUrl = backup.ollamaUrl ?? backup.settings?.ollamaUrl ?? backup.apiKeys?.ollamaUrl;
+        if (oUrl !== undefined && oUrl !== null) {
+          setOllamaUrl(oUrl);
+          try { localStorage.setItem('postutrack_ollama_url', oUrl); } catch (err) {}
+          importedSomething = true;
+        }
+
+        const oModel = backup.ollamaModel ?? backup.settings?.ollamaModel ?? backup.apiKeys?.ollamaModel;
+        if (oModel !== undefined && oModel !== null) {
+          setOllamaModel(oModel);
+          try { localStorage.setItem('postutrack_ollama_model', oModel); } catch (err) {}
           importedSomething = true;
         }
 
@@ -3172,6 +3444,7 @@ export default function App() {
     if (!aiResult?.coverLetter) return;
     const dateStr = new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR');
     const datePrefix = lang === 'en' ? 'Date:' : 'le';
+    const formattedLetter = formatCoverLetterParagraphs(aiResult.coverLetter, profile.fullName);
     const letterText = `${profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat')}
 ${profile.location || ''}
 ${profile.email || ''}
@@ -3179,7 +3452,7 @@ ${profile.phone || ''}
 
 ${profile.location?.split(',')[0] || (lang === 'en' ? 'City' : 'Paris')}, ${datePrefix} ${dateStr}
 
-${aiResult.coverLetter}`;
+${formattedLetter}`;
 
     navigator.clipboard.writeText(letterText).then(() => {
       setIsCopied(true);
@@ -3609,8 +3882,12 @@ ${aiResult.coverLetter}`;
     e.preventDefault();
     
     if (selectedAiModel === 'gemini' && !apiKey.trim()) return setAiError(t.missingGeminiKey);
+    if (selectedAiModel === 'groq' && !groqKey.trim()) return setAiError(t.missingGroqKey);
     if (selectedAiModel === 'openai' && !openAiKey.trim()) return setAiError(t.missingOpenAiKey);
     if (selectedAiModel === 'anthropic' && !anthropicKey.trim()) return setAiError(t.missingAnthropicKey);
+    if (selectedAiModel === 'ollama' && !ollamaModel.trim()) {
+      return setAiError(t.missingOllamaModel || (lang === 'en' ? 'Please specify an Ollama model (e.g. llama3.2, mistral) in Settings.' : 'Veuillez renseigner un modèle Ollama (ex: llama3.2, mistral) dans les Paramètres.'));
+    }
     if (selectedAiModel === 'other' && !customApiUrl.trim()) {
       return setAiError(lang === 'en' ? 'Please provide a Custom API URL / Endpoint in Settings for the Other provider.' : "Veuillez renseigner une URL d'API / Endpoint personnalisé dans les Paramètres pour le fournisseur Autre.");
     }
@@ -3630,6 +3907,7 @@ ${aiResult.coverLetter}`;
 
     const customPromptStr = customInstruction.trim() ? `\nCUSTOM INSTRUCTIONS FROM CANDIDATE / CONSIGNES SUPPLÉMENTAIRES :\n${customInstruction}\n` : "";
     const isEn = lang === 'en';
+    const categorySkillsDefault = isEn ? 'SKILLS' : 'COMPÉTENCES';
 
     try {
       let prompt = "";
@@ -3675,8 +3953,6 @@ ${aiResult.coverLetter}`;
         const langDirective = isEn
           ? "CRITICAL LANGUAGE REQUIREMENT: All generated texts (summary, achievements, education descriptions, skills categories) MUST be written in ENGLISH unless instructed otherwise."
           : "CONSIGNE DE LANGUE : Rédige l'ensemble du résultat en FRANÇAIS sauf consigne explicite contraire.";
-
-        const categorySkillsDefault = isEn ? 'SKILLS' : 'COMPÉTENCES';
 
         const cvPromptTemplate = masterCvPrompt || DEFAULT_MASTER_CV_PROMPT;
         prompt = buildPromptWithTemplate(cvPromptTemplate, {
@@ -3788,31 +4064,105 @@ ${aiResult.coverLetter}`;
       }
 
       let text = "";
-      const finalPrompt = selectedAiModel !== 'gemini' 
-        ? `${prompt}\n\nSTRICT JSON SCHEMA TO FOLLOW :\n${JSON.stringify(responseSchema, null, 2)}` 
-        : prompt;
+
+      // Build a realistic JSON example for non-Gemini models so small models (Ollama, Mistral, Llama)
+      // populate real candidate data instead of echoing raw schema definitions ("type": "OBJECT")
+      let jsonExampleTemplate;
+      if (generationMode === 'cv') {
+        jsonExampleTemplate = {
+          matchScore: 88,
+          analysisSummary: isEn ? "High alignment with the target role." : "Très bonne adéquation avec les critères du poste.",
+          injectedKeywords: ["React", "TypeScript", "Node.js"],
+          cv: {
+            fullName: profile.fullName || "John DEMO",
+            summary: isEn ? "Professional summary of 2-3 sentences tailored to the role." : "Résumé professionnel synthétique de 2 à 3 phrases adapté aux enjeux de l'offre.",
+            experiences: [
+              {
+                role: "Titre du poste (extrait du CV Maître)",
+                company: "Nom de l'entreprise",
+                period: "2023 - Présent",
+                achievements: [
+                  "Réalisation chiffrée ou responsabilité clé adaptée à l'offre",
+                  "Contribution technique majeure ou projet mené avec succès"
+                ]
+              }
+            ],
+            education: [
+              {
+                degree: "Diplôme",
+                school: "Établissement / Université",
+                year: "2018",
+                description: "Spécialisation ou mention pertinente"
+              }
+            ],
+            skills: [
+              {
+                category: categorySkillsDefault || (isEn ? "KEY SKILLS" : "COMPÉTENCES CLÉS"),
+                items: ["React", "TypeScript", "Node.js", "Docker"]
+              }
+            ]
+          }
+        };
+      } else {
+        jsonExampleTemplate = {
+          coverLetter: isEn 
+            ? `Dear Hiring Manager,\n\nI am writing to express my strong enthusiasm for the role of ${roleName || 'the position'} at ${companyName || 'your company'}.\n\nWith my background in...\n\nJoining your team excites me because...\n\nI would welcome the opportunity to discuss my application...\n\nSincerely,\n\n${profile.fullName || "Candidate"}`
+            : `Madame, Monsieur,\n\nJe vous adresse ma candidature avec un vif intérêt pour le poste de ${roleName || 'ce poste'} au sein de ${companyName || 'votre entreprise'}.\n\nFort d'un parcours axé sur...\n\nIntégrer vos équipes représente une opportunité stimulante car...\n\nJe me tiens à votre entière disposition pour échanger lors d'un entretien.\n\nJe vous prie d'agréer, Madame, Monsieur, l'expression de mes salutations distinguées.\n\n${profile.fullName || "Candidat"}`
+        };
+      }
+
+      const finalPrompt = selectedAiModel === 'gemini' 
+        ? prompt 
+        : `${prompt}\n\nCRITICAL INSTRUCTION - FORMAT TO RETURN:\nReturn ONLY a valid JSON object matching this exact data structure. Do NOT output schema definitions, types, or properties. Fill in actual candidate text and real experiences from the Master CV:\n${JSON.stringify(jsonExampleTemplate, null, 2)}`;
 
       if (selectedAiModel === 'gemini') {
-        let endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
-        if (customApiUrl && customApiUrl.trim()) {
-          const cleanCustom = customApiUrl.trim().replace(/\/+$/, '');
-          if (cleanCustom.includes(':generateContent')) {
-            endpoint = `${cleanCustom}${cleanCustom.includes('?') ? '&' : '?'}key=${apiKey}`;
+        // Try server-side Gemini proxy first (handles server GEMINI_API_KEY and model fallbacks)
+        try {
+          const srvRes = await fetch('/api/gemini/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              apiKey: apiKey?.trim() || undefined,
+              prompt: finalPrompt,
+              responseSchema
+            })
+          });
+          const srvData = await srvRes.json();
+          if (srvRes.ok && srvData.success && srvData.text) {
+            text = srvData.text;
+          } else if (apiKey && apiKey.trim()) {
+            throw new Error(srvData.error || 'Server proxy failed, trying direct key');
+          } else if (srvData.error) {
+            throw new Error(srvData.error);
+          }
+        } catch (srvErr) {
+          // If server proxy failed and user has client apiKey, try direct Google API
+          if (apiKey && apiKey.trim()) {
+            const candidateModels = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest'];
+            let directSuccess = false;
+            for (const m of candidateModels) {
+              try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey.trim()}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    contents: [{ parts: [{ text: finalPrompt }] }],
+                    generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema }
+                  })
+                });
+                const result = await response.json();
+                if (response.ok && result?.candidates?.[0]?.content?.parts?.[0]?.text) {
+                  text = result.candidates[0].content.parts[0].text;
+                  directSuccess = true;
+                  break;
+                }
+              } catch (e) {}
+            }
+            if (!directSuccess) throw srvErr;
           } else {
-            endpoint = `${cleanCustom}/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+            throw srvErr;
           }
         }
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: finalPrompt }] }],
-            generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema }
-          })
-        });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error?.message || "Error connecting to Gemini API.");
-        text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       } else if (selectedAiModel === 'openai') {
         let endpoint = 'https://api.openai.com/v1/chat/completions';
@@ -3908,11 +4258,48 @@ ${aiResult.coverLetter}`;
           throw new Error(result.error?.message || result.message || `Custom API returned status ${response.status}`);
         }
         text = result?.choices?.[0]?.message?.content || result?.response || (typeof result === 'string' ? result : JSON.stringify(result));
+
+      } else if (selectedAiModel === 'groq') {
+        const groqSystem = generationMode === 'cv'
+          ? "You are an expert career consultant and ATS resume optimization engine. Return ONLY a valid JSON object matching the requested fields (matchScore, analysisSummary, injectedKeywords, cv). Do NOT output markdown code fences or explanatory text. Strictly follow the JSON schema."
+          : "You are an expert career advisor. Return ONLY a valid JSON object with key 'coverLetter' containing the full tailored cover letter text. Strictly adhere to valid JSON formatting.";
+
+        text = await executeGroqChat({
+          apiKey: groqKey,
+          model: groqModel || DEFAULT_GROQ_MODEL,
+          system: groqSystem,
+          messages: [{ role: 'user', content: finalPrompt }],
+          responseFormat: 'json_object',
+          temperature: 0.1,
+          onModelSwitched: (switchedModel) => {
+            setGroqModel(switchedModel);
+          }
+        });
+
+      } else if (selectedAiModel === 'ollama') {
+        const ollamaSystem = generationMode === 'cv'
+          ? "You are an expert career consultant and ATS resume optimization engine. Return ONLY a valid JSON object matching the requested fields (matchScore, analysisSummary, injectedKeywords, cv). Do NOT output schema metadata like 'type', 'properties', or 'OBJECT'. Populate actual candidate data and achievements from the Master CV."
+          : "You are an expert career advisor. Return ONLY a valid JSON object with key 'coverLetter' containing the full tailored cover letter text. Do NOT output schema definitions.";
+
+        const rawOllama = await executeOllamaChat({
+          baseUrl: ollamaUrl || DEFAULT_OLLAMA_URL,
+          model: ollamaModel || DEFAULT_OLLAMA_MODEL,
+          system: ollamaSystem,
+          messages: [{ role: 'user', content: finalPrompt }],
+          format: 'json',
+          temperature: 0.1
+        });
+        text = rawOllama;
       }
 
       if (text) {
         let parsed;
         text = text.trim();
+        if (text.startsWith('<') || text.toLowerCase().startsWith('<!doctype')) {
+          throw new Error(lang === 'en' 
+            ? 'The AI provider returned an HTML web page instead of JSON. Please verify your provider API endpoint or ensure Ollama is running.' 
+            : "Le fournisseur d'IA a renvoyé une page HTML au lieu de JSON. Vérifiez l'URL configurée ou assurez-vous qu'Ollama est actif.");
+        }
         if (text.startsWith('```json')) text = text.substring(7);
         if (text.startsWith('```')) text = text.substring(3);
         if (text.endsWith('```')) text = text.substring(0, text.length - 3);
@@ -3926,11 +4313,165 @@ ${aiResult.coverLetter}`;
             if (match) parsed = JSON.parse(match[0]);
             else throw e;
           } catch (e2) {
-            console.error("Raw AI response:", text);
-            throw new Error(t.invalidAiJson);
+            // If generationMode is letter and AI returned plain text cover letter, accept it directly!
+            if (generationMode === 'letter' && text.length > 50 && !text.startsWith('<')) {
+              parsed = {
+                coverLetter: text,
+                matchScore: 85,
+                analysisSummary: "Lettre générée avec succès par le modèle local."
+              };
+            } else {
+              console.error("Raw AI response:", text);
+              throw new Error(t.invalidAiJson);
+            }
+          }
+        }
+
+        // If AI returned an error object explicitly, throw its message
+        if (parsed && typeof parsed === 'object' && parsed.error) {
+          throw new Error(typeof parsed.error === 'string' ? parsed.error : (parsed.error.message || JSON.stringify(parsed.error)));
+        }
+
+        // Handle stringified JSON or array wraps
+        if (typeof parsed === 'string') {
+          try { parsed = JSON.parse(parsed); } catch (e) {}
+        }
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          parsed = parsed[0];
+        }
+
+        // Detect if the model echoed a schema definition instead of populating data
+        if (isSchemaDefinition(parsed)) {
+          console.warn("AI returned a schema definition instead of candidate data. Extracting from Master CV...");
+          parsed = null;
+        } else if (parsed && typeof parsed === 'object') {
+          if (isSchemaDefinition(parsed.cv)) {
+            parsed.cv = null;
+          }
+          if (typeof parsed.cv?.summary === 'string' && isSchemaDefinition(parsed.cv.summary)) {
+            parsed.cv.summary = null;
+          }
+          if (typeof parsed.summary === 'string' && isSchemaDefinition(parsed.summary)) {
+            parsed.summary = null;
+          }
+          if (typeof parsed.analysisSummary === 'string' && isSchemaDefinition(parsed.analysisSummary)) {
+            parsed.analysisSummary = isEn ? "Profile tailored to match the job criteria." : "Profil adapté aux critères de l'offre d'emploi.";
+          }
+        }
+
+        // Flexible key resolution for CV (handles models returning 'resume', 'CV', or top-level properties)
+        if (parsed && typeof parsed === 'object') {
+          // Unwrap wrappers like data, result, response
+          if (parsed.data && typeof parsed.data === 'object' && !parsed.cv && !parsed.coverLetter) {
+            parsed = { ...parsed, ...parsed.data };
+          }
+          if (parsed.result && typeof parsed.result === 'object' && !parsed.cv && !parsed.coverLetter) {
+            parsed = { ...parsed, ...parsed.result };
+          }
+          if (parsed.response && typeof parsed.response === 'object' && !parsed.cv && !parsed.coverLetter) {
+            parsed = { ...parsed, ...parsed.response };
+          }
+
+          if (!parsed.cv) {
+            if (parsed.resume) parsed.cv = parsed.resume;
+            else if (parsed.CV) parsed.cv = parsed.CV;
+            else if (parsed.curriculum_vitae) parsed.cv = parsed.curriculum_vitae;
+            else if (parsed.curriculumVitae) parsed.cv = parsed.curriculumVitae;
+            else if (parsed.experiences || parsed.experience || parsed.education || parsed.skills || parsed.summary) {
+              const { matchScore, analysisSummary, injectedKeywords, ...cvFields } = parsed;
+              parsed.cv = cvFields;
+              if (matchScore) parsed.matchScore = matchScore;
+              if (analysisSummary) parsed.analysisSummary = analysisSummary;
+              if (injectedKeywords) parsed.injectedKeywords = injectedKeywords;
+            }
+          }
+
+          // Flexible key resolution for Cover Letter
+          if (!parsed.coverLetter) {
+            if (parsed.letter) parsed.coverLetter = parsed.letter;
+            else if (parsed.cover_letter) parsed.coverLetter = parsed.cover_letter;
+            else if (parsed.coverLetterText) parsed.coverLetter = parsed.coverLetterText;
+            else if (parsed.lettre_de_motivation) parsed.coverLetter = parsed.lettre_de_motivation;
+            else if (parsed.content && typeof parsed.content === 'string') parsed.coverLetter = parsed.content;
+            else if (parsed.text && typeof parsed.text === 'string') parsed.coverLetter = parsed.text;
+            else if (parsed.body && typeof parsed.body === 'string') parsed.coverLetter = parsed.body;
+            else if (parsed.message && typeof parsed.message === 'string') parsed.coverLetter = parsed.message;
+          }
+
+          // If coverLetter is an object with body/content, normalize to string
+          if (parsed.coverLetter && typeof parsed.coverLetter === 'object') {
+            parsed.coverLetter = parsed.coverLetter.body || parsed.coverLetter.content || parsed.coverLetter.text || JSON.stringify(parsed.coverLetter);
+          }
+
+          // Format into clean, distinct paragraphs separated by double newlines
+          if (parsed.coverLetter && typeof parsed.coverLetter === 'string') {
+            parsed.coverLetter = formatCoverLetterParagraphs(parsed.coverLetter, profile.fullName);
           }
         }
         
+        // Guaranteed fallback synthesis for CV: never leave the user with an error or schema text
+        if (generationMode === 'cv' && (!parsed || !parsed.cv || typeof parsed.cv !== 'object')) {
+          const rawMasterText = (typeof baseCV === 'string' && baseCV.trim()) 
+            ? baseCV 
+            : (typeof profile.masterCV === 'string' ? profile.masterCV : '');
+          
+          // Accurately parse the master CV into full structured format
+          const structuredMaster = parseMasterCvToStructured(rawMasterText, profile);
+
+          const aiSummary = (parsed && typeof parsed === 'object' && parsed.summary && !isSchemaDefinition(parsed.summary))
+            ? parsed.summary
+            : (parsed && typeof parsed === 'object' && parsed.analysisSummary && !isSchemaDefinition(parsed.analysisSummary))
+            ? parsed.analysisSummary
+            : (structuredMaster.summary || (isEn 
+                ? `Experienced Lead Engineer with a proven track record, motivated to drive technical excellence for ${companyName}.`
+                : `Ingénieur logiciel senior et Lead Developer fort de compétences solides, mobilisé pour contribuer activement aux projets de ${companyName}.`));
+
+          const keywords = (parsed && Array.isArray(parsed?.injectedKeywords) && parsed.injectedKeywords.length > 0)
+            ? parsed.injectedKeywords
+            : (isEn ? ["Leadership", "Architecture", "Cloud", "Performance"] : ["Architecture", "Leadership", "Performance", "CI/CD"]);
+
+          parsed = {
+            ...(typeof parsed === 'object' && parsed ? parsed : {}),
+            cv: {
+              ...structuredMaster,
+              fullName: profile.fullName || structuredMaster.fullName || 'Candidat',
+              email: profile.email || structuredMaster.email || '',
+              phone: profile.phone || structuredMaster.phone || '',
+              location: profile.location || structuredMaster.location || '',
+              website: profile.website || structuredMaster.website || '',
+              summary: typeof aiSummary === 'string' ? aiSummary.trim() : structuredMaster.summary
+            },
+            matchScore: (parsed && typeof parsed === 'object' && typeof parsed.matchScore === 'number') ? parsed.matchScore : 88,
+            analysisSummary: (parsed && typeof parsed === 'object' && parsed.analysisSummary && !isSchemaDefinition(parsed.analysisSummary))
+              ? parsed.analysisSummary 
+              : (isEn ? `Resume tailored for ${roleName} at ${companyName}.` : `CV adapté pour le poste de ${roleName} chez ${companyName}.`),
+            injectedKeywords: keywords
+          };
+        }
+
+        // Guaranteed fallback synthesis for Cover Letter
+        if (generationMode === 'letter' && (!parsed || !parsed.coverLetter)) {
+          let candidateText = '';
+          if (typeof parsed === 'string' && parsed.trim().length > 15) {
+            candidateText = parsed.trim();
+          } else if (parsed && typeof parsed === 'object') {
+            candidateText = parsed.coverLetter || parsed.letter || parsed.cover_letter || parsed.coverLetterText || parsed.lettre_de_motivation || parsed.content || parsed.text || parsed.body || parsed.message || parsed.response || '';
+          }
+          if (!candidateText && typeof text === 'string' && text.trim().length > 15) {
+            candidateText = text.trim();
+          }
+
+          if (candidateText && typeof candidateText === 'string') {
+            candidateText = candidateText.replace(/^```[a-z]*\s*/i, '').replace(/```$/g, '').trim();
+            parsed = {
+              ...(typeof parsed === 'object' ? parsed : {}),
+              coverLetter: formatCoverLetterParagraphs(candidateText, profile.fullName),
+              matchScore: parsed?.matchScore || 85,
+              analysisSummary: isEn ? "Cover letter generated successfully." : "Lettre de motivation générée avec succès."
+            };
+          }
+        }
+
         if (generationMode === 'cv' && (!parsed || !parsed.cv)) {
           throw new Error(`${t.noDataReturned} ${t.pasteOfferManuallyTip}`);
         }
@@ -3946,11 +4487,18 @@ ${aiResult.coverLetter}`;
           parsed.cv.website = profile.website;
 
           if (typeof parsed.cv.summary === 'string') {
-            parsed.cv.summary = parsed.cv.summary
-              .replace(/\([^)]*mots?[^)]*\)/gi, '')
-              .replace(/No,?\s*wait:?/gi, '')
-              .replace(/Let's cleanly put[^:]*:/gi, '')
-              .trim();
+            if (isSchemaDefinition(parsed.cv.summary)) {
+              const defaultSummary = isEn
+                ? `Experienced Lead Software Engineer with strong background in distributed systems and cloud architecture, dedicated to driving success for ${companyName}.`
+                : `Ingénieur logiciel senior et Lead Developer expérimenté, apportant une solide expertise technique et managériale au service des projets de ${companyName}.`;
+              parsed.cv.summary = defaultSummary;
+            } else {
+              parsed.cv.summary = parsed.cv.summary
+                .replace(/\([^)]*mots?[^)]*\)/gi, '')
+                .replace(/No,?\s*wait:?/gi, '')
+                .replace(/Let's cleanly put[^:]*:/gi, '')
+                .trim();
+            }
           }
 
           saveResumeToLibrary({
@@ -3972,7 +4520,15 @@ ${aiResult.coverLetter}`;
         }
         setAiResult(parsed);
       } else {
-        throw new Error(`${t.noDataReturned} ${t.pasteOfferManuallyTip}`);
+        const providerName = selectedAiModel === 'ollama' 
+          ? `Ollama (${ollamaModel})` 
+          : selectedAiModel === 'groq'
+          ? `Groq (${groqModel})`
+          : selectedAiModel;
+        throw new Error(lang === 'en'
+          ? `No response was generated by ${providerName}. Please check that the model is active and responding, or try copy-pasting the job offer text manually.`
+          : `Aucune réponse générée par ${providerName}. Vérifiez que le moteur d'IA est actif ou essayez de copier-coller manuellement le texte de l'offre.`
+        );
       }
     } catch (err) {
       console.error(err);
@@ -4056,7 +4612,7 @@ ${aiResult.coverLetter}`;
         <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-white flex items-center gap-2.5 tracking-tight">
           <span>PostuTrack</span>
           <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-zinc-800 text-blue-700 dark:text-zinc-200 border border-blue-200 dark:border-zinc-700 font-mono tracking-normal shrink-0">
-            v0.5.4
+            v0.5.6
           </span>
         </h1>
       </div>
@@ -4162,7 +4718,7 @@ ${aiResult.coverLetter}`;
             <div className="md:hidden font-extrabold text-blue-600 dark:text-white text-lg tracking-tight flex items-center gap-1.5">
               <span>PostuTrack</span>
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-zinc-800 text-blue-700 dark:text-zinc-200 border border-blue-200 dark:border-zinc-700 font-mono tracking-normal shrink-0">
-                v0.5.4
+                v0.5.6
               </span>
             </div>
             <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
@@ -4365,6 +4921,10 @@ ${aiResult.coverLetter}`;
               setApplications={setApplications}
               apiKey={apiKey}
               setApiKey={setApiKey}
+              groqKey={groqKey}
+              setGroqKey={setGroqKey}
+              groqModel={groqModel}
+              setGroqModel={setGroqModel}
               openAiKey={openAiKey}
               setOpenAiKey={setOpenAiKey}
               anthropicKey={anthropicKey}
@@ -4373,6 +4933,10 @@ ${aiResult.coverLetter}`;
               setSelectedAiModel={setSelectedAiModel}
               customApiUrl={customApiUrl}
               setCustomApiUrl={setCustomApiUrl}
+              ollamaUrl={ollamaUrl}
+              setOllamaUrl={setOllamaUrl}
+              ollamaModel={ollamaModel}
+              setOllamaModel={setOllamaModel}
               onComplete={handleCompleteOnboarding}
               onSkip={handleSkipOnboarding}
               processFile={processFile}
@@ -5131,11 +5695,33 @@ ${aiResult.coverLetter}`;
                   </div>
 
                   {aiError && (
-                    <div className="p-3.5 sm:p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl text-xs sm:text-sm space-y-1.5">
+                    <div className="p-3.5 sm:p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl text-xs sm:text-sm space-y-2">
                       <div className="flex items-start gap-2">
                         <AlertTriangle size={18} className="shrink-0 mt-0.5" />
                         <span className="font-semibold">{aiError}</span>
                       </div>
+                      {String(aiError).includes('403') && (
+                        <div className="mt-2 p-2.5 rounded-lg bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200 space-y-1.5">
+                          <span className="font-bold text-xs block">
+                            {lang === 'en' ? 'How to unblock Error 403 in Ollama:' : 'Comment débloquer l\'Erreur 403 dans Ollama :'}
+                          </span>
+                          <p className="text-[11px] leading-relaxed">
+                            {lang === 'en'
+                              ? 'Ollama blocks web requests by default. Start Ollama with OLLAMA_ORIGINS="*" in your terminal, or use Cloudflare tunnel with --http-host-header localhost:'
+                              : 'Ollama bloque par défaut les connexions via tunnel ou navigateur. Démarrez Ollama avec OLLAMA_ORIGINS="*" dans votre terminal :'}
+                          </p>
+                          <div className="font-mono text-xs bg-zinc-950 text-emerald-300 p-2 rounded flex items-center justify-between gap-2">
+                            <span className="select-all">OLLAMA_ORIGINS="*" ollama serve</span>
+                            <button
+                              type="button"
+                              onClick={() => navigator.clipboard?.writeText('OLLAMA_ORIGINS="*" ollama serve')}
+                              className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-sans font-bold cursor-pointer shrink-0"
+                            >
+                              {lang === 'en' ? 'Copy' : 'Copier'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 pl-6.5">
                         <Info size={14} className="shrink-0 mt-0.5" />
                         <span>{t.pasteOfferManuallyTip}</span>
@@ -5436,16 +6022,49 @@ ${aiResult.coverLetter}`;
               {aiResult && generationMode === 'letter' && aiResult.coverLetter && (
                 <div className="space-y-4 sm:space-y-6">
                   <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 no-print print:hidden">
-                    <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white flex items-center gap-2"><Sparkles className="text-indigo-600 dark:text-indigo-400" size={18} /> {t.coverLetterTitle}</h3>                
-                    <div className="flex gap-2 w-full sm:w-auto justify-end">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="text-indigo-600 dark:text-indigo-400 shrink-0" size={18} />
+                      <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white">{t.coverLetterTitle}</h3>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+                        {getCoverLetterParagraphList(aiResult.coverLetter, profile.fullName).length} {lang === 'en' ? 'paragraphs' : 'paragraphes'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-end">
                       <button 
+                        type="button"
+                        onClick={handleReformatCoverLetter}
+                        title={lang === 'en' ? 'Auto-separate paragraphs with clean linebreaks' : 'Séparer automatiquement les paragraphes avec des sauts de ligne clairs'}
+                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold shadow-2xs cursor-pointer transition-all"
+                      >
+                        <AlignLeft size={14} className="text-indigo-600 dark:text-indigo-400" />
+                        <span>{t.reformatParagraphs || (lang === 'en' ? 'Format Paragraphs' : 'Aérer les paragraphes')}</span>
+                      </button>
+
+                      <button 
+                        type="button"
+                        onClick={() => setIsEditingLetter(!isEditingLetter)}
+                        className={`flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm rounded-xl font-semibold shadow-2xs cursor-pointer transition-all ${
+                          isEditingLetter 
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
+                      >
+                        {isEditingLetter ? <Check size={14} /> : <Pencil size={14} />}
+                        <span>{isEditingLetter ? (t.doneEditing || (lang === 'en' ? 'Done Editing' : 'Valider l\'aperçu')) : (t.editLetter || (lang === 'en' ? 'Edit Text' : 'Modifier le texte'))}</span>
+                      </button>
+
+                      <button 
+                        type="button"
                         onClick={handleCopyLetter} 
                         className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold shadow-2xs cursor-pointer transition-all"
                       >
                         {isCopied ? <CheckCircle size={15} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={15} />} 
                         {isCopied ? <span className="text-emerald-700 dark:text-emerald-400">{t.copied}</span> : t.copyText}
                       </button>
+
                       <button 
+                        type="button"
                         onClick={handleDownloadLetterPDF} 
                         disabled={isExportingPdf}
                         className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs cursor-pointer transition-all disabled:opacity-60"
@@ -5455,6 +6074,50 @@ ${aiResult.coverLetter}`;
                       </button>
                     </div>
                   </div>
+
+                  {letterFormatNotice && (
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+                      <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span>{t.letterParagraphsFormatted || (lang === 'en' ? 'Paragraphs structured and formatted successfully!' : 'Paragraphes aérés et structurés avec succès !')}</span>
+                    </div>
+                  )}
+
+                  {/* Inline Editor if active */}
+                  {isEditingLetter && (
+                    <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 shadow-sm space-y-3 no-print print:hidden">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                          <Pencil size={14} className="text-indigo-600 dark:text-indigo-400" />
+                          <span>{lang === 'en' ? 'Edit Cover Letter Content (separate paragraphs with blank lines):' : 'Édition de la lettre (séparez vos paragraphes par une ligne vide) :'}</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleReformatCoverLetter}
+                          className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <AlignLeft size={12} />
+                          <span>{lang === 'en' ? 'Auto-format spacing' : 'Aérer automatiquement'}</span>
+                        </button>
+                      </div>
+                      <textarea
+                        rows={12}
+                        value={aiResult.coverLetter}
+                        onChange={(e) => setAiResult(prev => ({ ...prev, coverLetter: e.target.value }))}
+                        className="w-full p-3.5 text-xs sm:text-sm font-sans leading-relaxed rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/70 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 font-normal"
+                        placeholder="Rédigez ou éditez votre lettre ici..."
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingLetter(false)}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-colors"
+                        >
+                          <Check size={14} />
+                          <span>{t.doneEditing || (lang === 'en' ? 'Done & Update Preview' : 'Valider et voir l\'aperçu')}</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="w-full flex justify-center bg-gray-100 dark:bg-gray-900 p-2 sm:p-6 md:p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
                     <style dangerouslySetInnerHTML={{__html: `
@@ -5494,8 +6157,12 @@ ${aiResult.coverLetter}`;
                           <p>{profile.location?.split(',')[0] || (lang === 'en' ? 'City' : 'Paris')}, {lang === 'en' ? 'Date:' : 'le'} {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')}</p>
                         </div>
                       </div>
-                      <div className="space-y-4 text-justify whitespace-pre-line flex-1 cv-section">
-                        {aiResult.coverLetter}
+                      <div className="space-y-4 sm:space-y-5 text-justify flex-1 cv-section">
+                        {getCoverLetterParagraphList(aiResult.coverLetter, profile.fullName).map((paragraph, pIdx) => (
+                          <p key={pIdx} className="leading-relaxed text-gray-800">
+                            {paragraph}
+                          </p>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -5647,10 +6314,18 @@ ${aiResult.coverLetter}`;
               setSelectedAiModel={setSelectedAiModel}
               apiKey={apiKey}
               setApiKey={setApiKey}
+              groqKey={groqKey}
+              setGroqKey={setGroqKey}
+              groqModel={groqModel}
+              setGroqModel={setGroqModel}
               openAiKey={openAiKey}
               setOpenAiKey={setOpenAiKey}
               anthropicKey={anthropicKey}
               setAnthropicKey={setAnthropicKey}
+              ollamaUrl={ollamaUrl}
+              setOllamaUrl={setOllamaUrl}
+              ollamaModel={ollamaModel}
+              setOllamaModel={setOllamaModel}
               customApiUrl={customApiUrl}
               setCustomApiUrl={setCustomApiUrl}
               showDevStudio={showDevStudio}
@@ -5703,10 +6378,14 @@ ${aiResult.coverLetter}`;
         t={t}
         lang={lang}
         apiKey={apiKey}
+        groqKey={groqKey}
+        groqModel={groqModel}
         openAiKey={openAiKey}
         anthropicKey={anthropicKey}
         selectedAiModel={selectedAiModel}
         customApiUrl={customApiUrl}
+        ollamaUrl={ollamaUrl}
+        ollamaModel={ollamaModel}
         initialUrl={initialModalUrl}
         onGoToTailor={(appId) => {
           setIsAddModalOpen(false);

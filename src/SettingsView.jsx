@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   Sparkles, 
@@ -19,10 +19,29 @@ import {
   Mail,
   Info,
   Download,
-  Upload
+  Upload,
+  Server,
+  RefreshCw,
+  CheckCircle2,
+  AlertTriangle,
+  Layers,
+  Zap
 } from 'lucide-react';
 import { BookOpen, HelpCircle, ExternalLink } from 'lucide-react';
 import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
+import { 
+  DEFAULT_OLLAMA_URL, 
+  DEFAULT_OLLAMA_MODEL, 
+  POPULAR_OLLAMA_MODELS, 
+  getOllamaModels,
+  resolveOllamaModel 
+} from './ollamaService';
+import {
+  DEFAULT_GROQ_MODEL,
+  POPULAR_GROQ_MODELS,
+  fetchGroqModels
+} from './groqService';
+import OllamaBridgeHelper from './OllamaBridgeHelper';
 
 export default function SettingsView({
   t,
@@ -31,10 +50,18 @@ export default function SettingsView({
   setSelectedAiModel,
   apiKey,
   setApiKey,
+  groqKey = '',
+  setGroqKey,
+  groqModel = DEFAULT_GROQ_MODEL,
+  setGroqModel,
   openAiKey,
   setOpenAiKey,
   anthropicKey,
   setAnthropicKey,
+  ollamaUrl = DEFAULT_OLLAMA_URL,
+  setOllamaUrl,
+  ollamaModel = DEFAULT_OLLAMA_MODEL,
+  setOllamaModel,
   customApiUrl,
   setCustomApiUrl,
   showDevStudio,
@@ -55,6 +82,140 @@ export default function SettingsView({
 }) {
   const [showKey, setShowKey] = useState(false);
   const [savedKeyNotice, setSavedKeyNotice] = useState(false);
+
+  // Ollama connection & model detection state
+  const [testingOllama, setTestingOllama] = useState(false);
+  const [ollamaStatus, setOllamaStatus] = useState(null);
+  const [availableOllamaModels, setAvailableOllamaModels] = useState([]);
+
+  const handleTestOllama = async () => {
+    setTestingOllama(true);
+    setOllamaStatus(null);
+    try {
+      const res = await getOllamaModels(ollamaUrl || DEFAULT_OLLAMA_URL);
+      if (res.success && res.models && res.models.length > 0) {
+        setAvailableOllamaModels(res.models);
+        setOllamaStatus({
+          success: true,
+          message: (t.ollamaConnected || 'Connecté à Ollama ({count} modèles installés détectés)').replace('{count}', res.models.length),
+          models: res.models
+        });
+        if (setOllamaModel) {
+          const resolved = resolveOllamaModel(ollamaModel, res.models);
+          if (resolved && resolved !== ollamaModel) {
+            handleKeyChange(resolved, setOllamaModel);
+          } else if (!ollamaModel && res.models[0]) {
+            handleKeyChange(res.models[0], setOllamaModel);
+          }
+        }
+      } else {
+        setAvailableOllamaModels([]);
+        setOllamaStatus({
+          success: true,
+          message: t.ollamaNoModelsFound || "Connecté à Ollama, mais aucun modèle n'est installé ('ollama pull llama3.2').",
+          models: []
+        });
+      }
+    } catch (err) {
+      setOllamaStatus({
+        success: false,
+        message: err.message || (t.ollamaConnectError || "Impossible de joindre Ollama.")
+      });
+    } finally {
+      setTestingOllama(false);
+    }
+  };
+
+  // Auto-detect installed models on mount or URL change
+  useEffect(() => {
+    if (ollamaUrl && (ollamaUrl.includes('trycloudflare.com') || ollamaUrl.includes('loca.lt') || ollamaUrl.includes('ngrok') || !ollamaUrl.includes('localhost'))) {
+      getOllamaModels(ollamaUrl)
+        .then(res => {
+          if (res.success && res.models?.length > 0) {
+            setAvailableOllamaModels(res.models);
+            if (setOllamaModel) {
+              const resolved = resolveOllamaModel(ollamaModel, res.models);
+              if (resolved && resolved !== ollamaModel) {
+                handleKeyChange(resolved, setOllamaModel);
+              }
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [ollamaUrl]);
+
+  // Groq connection & model detection state
+  const [testingGroq, setTestingGroq] = useState(false);
+  const [groqStatus, setGroqStatus] = useState(null);
+  const [availableGroqModels, setAvailableGroqModels] = useState([]);
+
+  const handleTestGroq = async () => {
+    if (!groqKey || !groqKey.trim()) {
+      setGroqStatus({
+        success: false,
+        message: lang === 'en' ? 'Please paste your Groq API key (starts with gsk_).' : 'Veuillez saisir votre clé API Groq (commence par gsk_).'
+      });
+      return;
+    }
+    setTestingGroq(true);
+    setGroqStatus(null);
+    try {
+      const res = await fetchGroqModels(groqKey);
+      if (res.success && res.models?.length > 0) {
+        setAvailableGroqModels(res.models);
+        setGroqStatus({
+          success: true,
+          message: (t.groqConnected || 'Connecté à Groq Cloud ({count} modèles disponibles)').replace('{count}', res.models.length)
+        });
+        if (setGroqModel && (!groqModel || !res.models.includes(groqModel))) {
+          const bestMatch = res.models.find(m => m === 'openai/gpt-oss-120b') ||
+                            res.models.find(m => m === 'openai/gpt-oss-20b') ||
+                            res.models.find(m => m === 'llama-3.1-8b-instant') ||
+                            res.models.find(m => m === 'llama-3.3-70b-versatile') ||
+                            res.models[0];
+          if (bestMatch) {
+            handleKeyChange(bestMatch, setGroqModel);
+          }
+        }
+      } else {
+        setGroqStatus({
+          success: false,
+          message: res.error || t.groqConnectError || "Impossible de joindre Groq."
+        });
+      }
+    } catch (err) {
+      setGroqStatus({
+        success: false,
+        message: err.message || t.groqConnectError || "Erreur de connexion à Groq."
+      });
+    } finally {
+      setTestingGroq(false);
+    }
+  };
+
+  // Auto-detect Groq models if groqKey is present
+  useEffect(() => {
+    if (groqKey && groqKey.trim().length > 10) {
+      fetchGroqModels(groqKey)
+        .then(res => {
+          if (res.success && res.models?.length > 0) {
+            setAvailableGroqModels(res.models);
+            if (setGroqModel && (!groqModel || !res.models.includes(groqModel))) {
+              const bestMatch = res.models.find(m => m === 'openai/gpt-oss-120b') ||
+                                res.models.find(m => m === 'openai/gpt-oss-20b') ||
+                                res.models.find(m => m === 'llama-3.1-8b-instant') ||
+                                res.models.find(m => m === 'llama-3.3-70b-versatile') ||
+                                res.models[0];
+              if (bestMatch) {
+                handleKeyChange(bestMatch, setGroqModel);
+              }
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, [groqKey]);
 
   // Master Prompt editor state
   const [activePromptTab, setActivePromptTab] = useState('cv'); // 'cv' or 'letter'
@@ -131,21 +292,411 @@ export default function SettingsView({
               onChange={(e) => setSelectedAiModel(e.target.value)}
             >
               <option value="gemini">{t.geminiOption}</option>
+              <option value="groq">{t.groqOption || (lang === 'en' ? 'Groq Cloud (Ultra-Fast LPU™)' : 'Groq Cloud (Ultra-Rapide LPU™)')}</option>
               <option value="openai">{t.openAiOption}</option>
               <option value="anthropic">{t.anthropicOption}</option>
-              <option value="other">{t.otherAiOption || (lang === 'en' ? 'Other (Custom / Compatible / Ollama)' : 'Autre (Custom / Compatible / Ollama)')}</option>
+              <option value="ollama">{t.ollamaOption || (lang === 'en' ? 'Ollama (100% Local & Private)' : 'Ollama (100% Local & Privé)')}</option>
+              <option value="other">{t.otherAiOption || (lang === 'en' ? 'Other (Custom / OpenAI-Compatible / OpenRouter)' : 'Autre (Custom / Compatible / OpenRouter)')}</option>
             </select>
           </div>
         </div>
 
         {/* Privacy Note */}
-        <div className="flex items-start gap-2.5 p-3.5 bg-gray-50/70 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-md text-xs text-gray-700 dark:text-zinc-300">
-          <ShieldCheck size={16} className="text-blue-600 dark:text-zinc-400 shrink-0 mt-0.5" />
-          <span>{t.apiKeyPrivacyNote}</span>
+        <div className={`flex items-start gap-2.5 p-3.5 border rounded-md text-xs ${
+          selectedAiModel === 'ollama'
+            ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+            : selectedAiModel === 'groq'
+            ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
+            : 'bg-gray-50/70 dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300'
+        }`}>
+          {selectedAiModel === 'ollama' ? (
+            <Server size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+          ) : selectedAiModel === 'groq' ? (
+            <Zap size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          ) : (
+            <ShieldCheck size={16} className="text-blue-600 dark:text-zinc-400 shrink-0 mt-0.5" />
+          )}
+          <span>
+            {selectedAiModel === 'ollama'
+              ? (lang === 'en'
+                  ? '100% Local & Private with Ollama: Generation executes directly on your machine. Zero cloud keys, zero subscription costs, and your data never leaves your computer.'
+                  : 'Mode 100% Local & Privé avec Ollama : L\'inférence s\'exécute directement sur votre ordinateur. Aucune clé API cloud, aucune dépendance externe, données 100% confidentielles.')
+              : selectedAiModel === 'groq'
+              ? (lang === 'en'
+                  ? 'Ultra-Fast Inference with Groq LPU™: High-speed processing (500+ tokens/s). Free API keys available on console.groq.com. Your key is stored only on your local browser.'
+                  : 'Inférence Ultra-Rapide avec Groq LPU™ : Vitesse de réponse fulgurante (500+ tokens/s). Clé API gratuite disponible sur console.groq.com. Clé stockée uniquement dans votre navigateur.')
+              : t.apiKeyPrivacyNote}
+          </span>
         </div>
 
-        {/* API Key Input */}
-        <div className="space-y-3">
+        {/* API Key / Provider Configuration */}
+        <div className="space-y-4">
+          {/* OLLAMA CONFIGURATION PANEL */}
+          {selectedAiModel === 'ollama' && (
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-zinc-200/70 dark:border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg">
+                    <Server size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                      <span>Ollama Local Server</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40">
+                        {t.ollamaBadge || '100% Local'}
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                      {t.ollamaQuickDesc || (lang === 'en' ? 'Run open-weight LLMs locally on your own machine.' : 'Exécutez vos modèles en local sans clé API.')}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleTestOllama}
+                  disabled={testingOllama}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw size={13} className={testingOllama ? 'animate-spin' : ''} />
+                  <span>{testingOllama ? (t.ollamaTesting || 'Connexion...') : (t.ollamaTestBtn || 'Tester & Détecter les modèles')}</span>
+                </button>
+              </div>
+
+              {/* Status Notice */}
+              {ollamaStatus && (
+                <div className={`p-3 rounded-lg text-xs font-medium flex items-start gap-2 animate-in fade-in ${
+                  ollamaStatus.success
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
+                }`}>
+                  {ollamaStatus.success ? (
+                    <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <p className="font-semibold">{ollamaStatus.message}</p>
+                    {!ollamaStatus.success && String(ollamaStatus.message).includes('403') && (
+                      <div className="mt-2 p-2.5 rounded-lg bg-amber-100/90 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 space-y-1.5">
+                        <span className="font-bold text-amber-950 dark:text-amber-100 block text-[11px]">
+                          {lang === 'en' ? 'Quick fix for Error 403:' : 'Comment débloquer l\'Erreur 403 en 1 clic :'}
+                        </span>
+                        <div className="font-mono text-[11px] bg-zinc-950 text-emerald-300 p-2 rounded flex items-center justify-between gap-2">
+                          <span className="select-all truncate">OLLAMA_ORIGINS="*" ollama serve</span>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard?.writeText('OLLAMA_ORIGINS="*" ollama serve')}
+                            className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-sans font-bold cursor-pointer shrink-0"
+                          >
+                            {lang === 'en' ? 'Copy' : 'Copier'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {!ollamaStatus.success && !String(ollamaStatus.message).includes('403') && (
+                      <p className="text-[11px] opacity-90">
+                        {t.ollamaCorsTip || 'Lancez dans votre terminal : ollama run llama3.2'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Online App HTTPS to Localhost Bridge Guide */}
+              <OllamaBridgeHelper 
+                ollamaUrl={ollamaUrl} 
+                onApplyUrl={(url) => handleKeyChange(url, setOllamaUrl)} 
+                lang={lang} 
+              />
+
+              {/* Host / URL Field */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                    <Globe size={13} className="text-emerald-600" />
+                    <span>{t.ollamaUrlLabel || "URL du serveur Ollama"}</span>
+                  </label>
+                  {(ollamaUrl || '').trim() !== DEFAULT_OLLAMA_URL && (
+                    <button
+                      type="button"
+                      onClick={() => handleKeyChange(DEFAULT_OLLAMA_URL, setOllamaUrl)}
+                      className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                    >
+                      {t.resetDefaultUrl || 'Réinitialiser (http://localhost:11434)'}
+                    </button>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  placeholder={t.ollamaUrlPlaceholder || "http://localhost:11434"}
+                  className="w-full p-2.5 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  value={ollamaUrl}
+                  onChange={e => handleKeyChange(e.target.value, setOllamaUrl)}
+                />
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {t.ollamaUrlHelp || "Par défaut http://localhost:11434. Fonctionne en direct ou via proxy automatique."}
+                </p>
+              </div>
+
+              {/* Model Selection */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                    <Layers size={13} className="text-emerald-600" />
+                    <span>{t.ollamaModelLabel || "Modèle Ollama"}</span>
+                  </label>
+                  {availableOllamaModels.length > 0 && (
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                      {availableOllamaModels.length} {lang === 'en' ? 'installed models detected' : 'modèles installés détectés'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Dropdown if detected models exist */}
+                {availableOllamaModels.length > 0 && (
+                  <select
+                    className="w-full p-2.5 border border-emerald-300 dark:border-emerald-800 rounded-md bg-emerald-50/50 dark:bg-zinc-900 text-xs sm:text-sm font-mono text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
+                    value={availableOllamaModels.includes(ollamaModel) ? ollamaModel : ''}
+                    onChange={e => {
+                      if (e.target.value) handleKeyChange(e.target.value, setOllamaModel);
+                    }}
+                  >
+                    <option value="">{t.ollamaSelectModel || '-- Choisir parmi vos modèles installés --'}</option>
+                    {availableOllamaModels.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                )}
+
+                {/* Direct Text Input for active model */}
+                <input
+                  type="text"
+                  placeholder={t.ollamaModelPlaceholder || "ex: llama3.2:3b, mistral, deepseek-r1, qwen2.5..."}
+                  className="w-full p-2.5 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  value={ollamaModel}
+                  onChange={e => handleKeyChange(e.target.value, setOllamaModel)}
+                />
+
+                {/* Installed models detected on user's machine */}
+                {availableOllamaModels.length > 0 && (
+                  <div className="space-y-1.5 p-2.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60">
+                    <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                      <CheckCircle2 size={13} className="text-emerald-600" />
+                      {lang === 'en' ? 'Models detected on your Ollama:' : 'Modèles installés sur votre Ollama (cliquez pour choisir) :'}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableOllamaModels.map(m => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => handleKeyChange(m, setOllamaModel)}
+                          className={`text-xs px-2.5 py-1 rounded-md border font-mono font-semibold transition-all cursor-pointer ${
+                            ollamaModel === m
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                              : 'bg-white dark:bg-zinc-800 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                          }`}
+                        >
+                          ✓ {m}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Popular model shortcuts */}
+                <div className="space-y-1 pt-1">
+                  <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                    {lang === 'en' ? 'Quick select popular models:' : 'Sélection rapide de modèles populaires :'}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {POPULAR_OLLAMA_MODELS.map(pm => (
+                      <button
+                        key={pm.id}
+                        type="button"
+                        onClick={() => handleKeyChange(pm.id, setOllamaModel)}
+                        className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-all cursor-pointer ${
+                          ollamaModel === pm.id
+                            ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs'
+                            : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-zinc-700 hover:border-emerald-400'
+                        }`}
+                        title={pm.desc}
+                      >
+                        {pm.id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Terminal Guide */}
+              <div className="p-3 bg-zinc-950 text-zinc-300 rounded-lg text-[11px] font-mono space-y-1.5 border border-zinc-800">
+                <div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider">
+                  <Terminal size={12} />
+                  <span>{lang === 'en' ? 'Terminal commands to start Ollama' : 'Commandes Terminal pour lancer Ollama'}</span>
+                </div>
+                <div className="space-y-0.5 text-zinc-200">
+                  <div className="text-emerald-400 font-bold">$ ollama run {ollamaModel || 'llama3.2'}</div>
+                  <div className="text-zinc-500 text-[10px]">{lang === 'en' ? '# or in background:' : '# ou en arrière-plan :'}</div>
+                  <div className="text-zinc-400">$ ollama serve</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* GROQ CLOUD LPU™ CONFIGURATION PANEL */}
+          {selectedAiModel === 'groq' && (
+            <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 rounded-xl space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-amber-200/60 dark:border-amber-800/40">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-lg">
+                    <Zap size={18} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-gray-900 dark:text-white">Groq Cloud (LPU™ Inference)</h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+                        500+ tok/s
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t.groqQuickDesc || (lang === 'en' ? 'Ultra-fast open models powered by Groq LPU™ hardware.' : 'Modèles open source ultra-rapides propulsés par les puces Groq LPU™.')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <a
+                    href="https://console.groq.com/keys"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/60 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                  >
+                    <span>{lang === 'en' ? 'Get free API key' : 'Obtenir une clé gratuite'}</span>
+                    <ExternalLink size={12} />
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handleTestGroq}
+                    disabled={testingGroq || !groqKey.trim()}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer ${
+                      testingGroq
+                        ? 'bg-amber-400 text-white cursor-wait opacity-80'
+                        : groqKey.trim()
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                        : 'bg-gray-200 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <RefreshCw size={13} className={testingGroq ? 'animate-spin' : ''} />
+                    <span>{testingGroq ? (t.groqTesting || 'Vérification...') : (t.groqTestBtn || 'Tester la clé')}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Alert Banner */}
+              {groqStatus && (
+                <div className={`p-3 rounded-lg text-xs flex items-start gap-2 border ${
+                  groqStatus.success
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                    : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-300 dark:border-red-800'
+                }`}>
+                  {groqStatus.success ? (
+                    <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertTriangle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+                  )}
+                  <div className="space-y-1">
+                    <p className="font-semibold">{groqStatus.message}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* API Key Input */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                    <Key size={14} className="text-amber-600" />
+                    <span>{t.groqKeyLabel || 'Clé API Groq Cloud'}</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 cursor-pointer"
+                  >
+                    {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
+                    <span>{showKey ? (lang === 'en' ? 'Hide' : 'Masquer') : (lang === 'en' ? 'Show' : 'Afficher')}</span>
+                  </button>
+                </div>
+                <input 
+                  type={showKey ? 'text' : 'password'} 
+                  placeholder={t.groqKeyPlaceholder || 'gsk_...'} 
+                  className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-amber-500 outline-none transition-all" 
+                  value={groqKey} 
+                  onChange={e => handleKeyChange(e.target.value, setGroqKey)} 
+                />
+              </div>
+
+              {/* Model Selection */}
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                  <Cpu size={14} className="text-amber-600" />
+                  <span>{t.groqModelLabel || 'Modèle Groq'}</span>
+                </label>
+
+                {/* Dropdown if models detected or presets */}
+                <select
+                  className="w-full p-2.5 border border-gray-200 dark:border-zinc-800 rounded-md text-xs sm:text-sm bg-white dark:bg-zinc-900 text-gray-900 dark:text-white font-mono shadow-xs outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                  value={groqModel}
+                  onChange={e => handleKeyChange(e.target.value, setGroqModel)}
+                >
+                  {availableGroqModels.length > 0 ? (
+                    availableGroqModels.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))
+                  ) : (
+                    POPULAR_GROQ_MODELS.map(pm => (
+                      <option key={pm.id} value={pm.id}>{pm.label} ({pm.id})</option>
+                    ))
+                  )}
+                </select>
+
+                {/* Quick Model Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[11px] font-semibold text-gray-500 dark:text-zinc-400 mr-1">
+                    {lang === 'en' ? 'Quick select:' : 'Sélection rapide :'}
+                  </span>
+                  {POPULAR_GROQ_MODELS.map(pm => (
+                    <button
+                      key={pm.id}
+                      type="button"
+                      onClick={() => handleKeyChange(pm.id, setGroqModel)}
+                      className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-all cursor-pointer ${
+                        groqModel === pm.id
+                          ? 'bg-amber-600 text-white shadow-2xs font-bold'
+                          : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                      }`}
+                      title={pm.desc}
+                    >
+                      {pm.id}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Model Input */}
+                <div className="pt-1">
+                  <input
+                    type="text"
+                    placeholder={t.groqModelPlaceholder || 'ex: llama-3.3-70b-versatile, llama-3.1-8b-instant...'}
+                    className="w-full p-2 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-amber-500 outline-none"
+                    value={groqModel}
+                    onChange={e => handleKeyChange(e.target.value, setGroqModel)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           {selectedAiModel === 'gemini' && (
             <div>
               <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
@@ -257,46 +808,48 @@ export default function SettingsView({
             </div>
           )}
 
-          {/* Section URL d'API Personnalisée */}
-          <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
-                <Globe size={14} className="text-blue-600 dark:text-blue-400" />
-                <span>
-                  {selectedAiModel === 'other'
-                    ? (lang === 'en' ? 'Custom API Endpoint / Base URL (Required)' : "URL d'API / Endpoint personnalisé (Requis)")
-                    : (t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)")}
-                </span>
-              </label>
-              {customApiUrl && (
-                <button 
-                  type="button" 
-                  onClick={() => handleKeyChange('', setCustomApiUrl)} 
-                  className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                >
-                  {t.resetDefaultUrl || 'Réinitialiser URL par défaut'}
-                </button>
-              )}
+          {/* Section URL d'API Personnalisée (Pour Gemini, OpenAI, Claude ou Autre) */}
+          {selectedAiModel !== 'ollama' && (
+            <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                  <Globe size={14} className="text-blue-600 dark:text-blue-400" />
+                  <span>
+                    {selectedAiModel === 'other'
+                      ? (lang === 'en' ? 'Custom API Endpoint / Base URL (Required)' : "URL d'API / Endpoint personnalisé (Requis)")
+                      : (t.customApiUrlLabel || "URL d'API / Endpoint personnalisé (Optionnel)")}
+                  </span>
+                </label>
+                {customApiUrl && (
+                  <button 
+                    type="button" 
+                    onClick={() => handleKeyChange('', setCustomApiUrl)} 
+                    className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  >
+                    {t.resetDefaultUrl || 'Réinitialiser URL par défaut'}
+                  </button>
+                )}
+              </div>
+              <input 
+                type="text" 
+                placeholder={t.customApiUrlPlaceholder || "ex: https://openrouter.ai/api/v1, https://api.groq.com/openai/v1..."} 
+                className={`w-full p-3 border rounded-md bg-white dark:bg-zinc-900 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all dark:text-white ${
+                  selectedAiModel === 'other' && !customApiUrl.trim()
+                    ? 'border-amber-400 dark:border-amber-600 ring-1 ring-amber-400/50'
+                    : 'border-gray-200 dark:border-zinc-800'
+                }`} 
+                value={customApiUrl} 
+                onChange={e => handleKeyChange(e.target.value, setCustomApiUrl)} 
+              />
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                {selectedAiModel === 'other'
+                  ? (lang === 'en' 
+                      ? 'Compatible with standard OpenAI API format (e.g., OpenRouter at https://openrouter.ai/api/v1, Groq, LM Studio, vLLM, etc.).' 
+                      : 'Compatible avec le format standard OpenAI (ex : OpenRouter à https://openrouter.ai/api/v1, Groq, LM Studio, vLLM, etc.).')
+                  : (t.customApiUrlHelp || "Laissez vide pour utiliser l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (OpenRouter, Groq, LM Studio, proxy interne...).")}
+              </p>
             </div>
-            <input 
-              type="text" 
-              placeholder={t.customApiUrlPlaceholder || "ex: http://localhost:11434/v1, https://openrouter.ai/api/v1, https://api.groq.com/openai/v1..."} 
-              className={`w-full p-3 border rounded-md bg-white dark:bg-zinc-900 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all dark:text-white ${
-                selectedAiModel === 'other' && !customApiUrl.trim()
-                  ? 'border-amber-400 dark:border-amber-600 ring-1 ring-amber-400/50'
-                  : 'border-gray-200 dark:border-zinc-800'
-              }`} 
-              value={customApiUrl} 
-              onChange={e => handleKeyChange(e.target.value, setCustomApiUrl)} 
-            />
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
-              {selectedAiModel === 'other'
-                ? (lang === 'en' 
-                    ? 'Compatible with standard OpenAI API format (e.g., Ollama at http://localhost:11434/v1, OpenRouter at https://openrouter.ai/api/v1, Groq, LM Studio, vLLM, etc.).' 
-                    : 'Compatible avec le format standard OpenAI (ex : Ollama à http://localhost:11434/v1, OpenRouter à https://openrouter.ai/api/v1, Groq, LM Studio, vLLM, etc.).')
-                : (t.customApiUrlHelp || "Laissez vide pour utiliser l'URL par défaut de l'IA sélectionnée, ou renseignez votre propre proxy/endpoint (Ollama, OpenRouter, Groq, LM Studio, proxy interne...).")}
-            </p>
-          </div>
+          )}
         </div>
 
         {savedKeyNotice && (

@@ -6,7 +6,8 @@ import {
   Key,
   CheckCircle2,
   Settings,
-  Info
+  Info,
+  Zap
 } from 'lucide-react';
 
 export default function ApiKeyTutorialView({
@@ -230,6 +231,41 @@ export default function ApiKeyTutorialView({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Alternative: Groq Cloud (Ultra-Fast & Free) */}
+        <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800/60 rounded-2xl p-5 sm:p-6 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-amber-200/80 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 rounded-lg">
+                <Zap size={18} />
+              </div>
+              <h3 className="font-bold text-sm text-gray-900 dark:text-white">
+                {isEn ? 'Another Free & Blazing Fast Option: Groq Cloud LPU™' : 'Autre option gratuite & ultra-rapide : Groq Cloud LPU™'}
+              </h3>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200">
+              500+ tok/s
+            </span>
+          </div>
+
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            {isEn
+              ? 'Groq provides free API keys with near-instant inference for Llama 3.3 70B, Llama 3.1 8B, and DeepSeek R1 models powered by custom LPU™ hardware. Create your key in 30 seconds at console.groq.com/keys.'
+              : 'Groq propose également des clés API gratuites offrant une vitesse d\'inférence quasi instantanée pour Llama 3.3 70B, Llama 3.1 8B et DeepSeek R1 grâce à son matériel LPU™ sur-mesure. Créez votre clé en 30 secondes sur console.groq.com/keys.'}
+          </p>
+
+          <div>
+            <a
+              href="https://console.groq.com/keys"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              <span>{isEn ? 'Get Groq API Key (console.groq.com)' : 'Obtenir une clé Groq (console.groq.com)'}</span>
+              <ExternalLink size={13} />
+            </a>
           </div>
         </div>
       </div>
