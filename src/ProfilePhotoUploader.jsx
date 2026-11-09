@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Trash2, Image as ImageIcon, Check, RefreshCw } from 'lucide-react';
+import { Camera, Upload, Trash2, Image as ImageIcon, Check, RefreshCw } from './icons';
 
 /**
  * Resizes and compresses an image file to a lightweight data URL
@@ -142,12 +142,10 @@ export function ProfilePhotoUploader({
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`relative group cursor-pointer w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden border-2 transition-all flex items-center justify-center shrink-0 shadow-xs ${
+          className={`relative group cursor-pointer w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden transition-colors duration-150 flex items-center justify-center shrink-0 ${
             isDragging 
-              ? 'border-blue-500 ring-4 ring-blue-500/20 scale-105' 
-              : photo 
-              ? 'border-blue-200 dark:border-blue-800' 
-              : 'border-dashed border-gray-300 dark:border-gray-600 bg-gray-100/80 dark:bg-gray-800 hover:border-blue-400'
+              ? 'bg-blue-50 dark:bg-blue-950/50' 
+              : 'bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200/70 dark:hover:bg-zinc-700'
           }`}
           title={photo ? (t?.changePhotoBtn || 'Changer la photo') : (t?.importPhotoBtn || 'Importer une photo')}
         >
@@ -159,7 +157,7 @@ export function ProfilePhotoUploader({
               </div>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+            <div className="flex flex-col items-center justify-center text-zinc-500 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">
               <Camera size={20} />
             </div>
           )}
@@ -177,7 +175,7 @@ export function ProfilePhotoUploader({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-2.5 py-1.5 bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 rounded-lg text-xs font-semibold border border-blue-200 dark:border-blue-800/60 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-2.5 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200/70 dark:hover:bg-zinc-700 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
             >
               <Upload size={13} />
               <span>{photo ? (t?.changePhotoBtn || 'Changer') : (t?.importPhotoBtn || 'Photo')}</span>
@@ -187,24 +185,24 @@ export function ProfilePhotoUploader({
               <button
                 type="button"
                 onClick={handleRemove}
-                className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-md transition-colors duration-150 cursor-pointer"
                 title={t?.removePhotoBtn || 'Supprimer'}
               >
                 <Trash2 size={14} />
               </button>
             )}
           </div>
-          <span className="text-[10.5px] text-gray-400 dark:text-gray-500 truncate">
-            {photo ? (lang === 'en' ? 'Picture linked' : 'Photo enregistrée') : (lang === 'en' ? 'PNG, JPG, WebP' : 'PNG, JPG, WebP')}
+          <span className="text-[10.5px] text-zinc-400 dark:text-zinc-500 truncate">
+            {photo ? (lang === 'en' ? 'Picture linked' : 'Photo enregistrée') : 'PNG, JPG, WebP'}
           </span>
         </div>
       </div>
     );
   }
 
-  // Default 'card' variant: Prominent card uploader
+  // Default 'card' variant: Prominent uploader
   return (
-    <div className={`p-4 sm:p-5 bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 rounded-2xl transition-all ${className}`}>
+    <div className={`p-4 sm:p-5 bg-zinc-100/70 dark:bg-zinc-950/60 rounded-lg transition-colors duration-150 ${className}`}>
       {/* Hidden file input */}
       <input 
         ref={fileInputRef}
@@ -227,12 +225,10 @@ export function ProfilePhotoUploader({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`relative group cursor-pointer w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden border-2 transition-all flex items-center justify-center shrink-0 shadow-sm ${
+            className={`relative group cursor-pointer w-20 h-20 rounded-lg overflow-hidden transition-colors duration-150 flex items-center justify-center shrink-0 ${
               isDragging 
-                ? 'border-blue-500 ring-4 ring-blue-500/20 scale-105 bg-blue-50 dark:bg-blue-950/40' 
-                : photo 
-                ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-100 dark:ring-blue-900/30' 
-                : 'border-dashed border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-blue-400 dark:hover:border-blue-500'
+                ? 'bg-blue-50 dark:bg-blue-950/40' 
+                : 'bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800'
             }`}
             title={t?.photoDropTip || 'Glissez une photo ici ou cliquez pour choisir'}
           >
@@ -245,11 +241,11 @@ export function ProfilePhotoUploader({
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 gap-1 text-center px-1">
-                <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-xs">
+              <div className="flex flex-col items-center justify-center text-zinc-400 dark:text-zinc-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 gap-1 text-center px-1">
+                <div className="w-9 h-9 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-semibold text-xs">
                   {getInitials(name)}
                 </div>
-                <Camera size={14} className="text-gray-400" />
+                <Camera size={14} className="text-zinc-400" />
               </div>
             )}
 
@@ -264,17 +260,17 @@ export function ProfilePhotoUploader({
           {/* Description & Status */}
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h4 className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
-                <ImageIcon size={16} className="text-blue-600 dark:text-blue-400" />
+              <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                <ImageIcon size={15} className="text-blue-600 dark:text-blue-400" />
                 {t?.photoLabel || 'Photo de profil'}
               </h4>
               {photo && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-sm text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                   <Check size={11} /> {lang === 'en' ? 'Active' : 'Enregistrée'}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-600 dark:text-gray-300 max-w-md">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-md">
               {t?.photoSubtitle || 'Formats acceptés : JPG, PNG, WebP (Optimisation et recadrage automatiques)'}
             </p>
             <p className="text-[11px] text-blue-600 dark:text-blue-400 font-medium">
@@ -288,7 +284,7 @@ export function ProfilePhotoUploader({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1 sm:flex-none justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+            className="flex-1 sm:flex-none justify-center px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-semibold transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
           >
             <Upload size={14} />
             <span>{photo ? (t?.changePhotoBtn || 'Changer la photo') : (t?.importPhotoBtn || 'Importer une photo')}</span>
@@ -298,7 +294,7 @@ export function ProfilePhotoUploader({
             <button
               type="button"
               onClick={handleRemove}
-              className="px-3 py-2 bg-white dark:bg-gray-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-gray-200 dark:border-gray-700 hover:border-rose-200 dark:hover:border-rose-800 rounded-xl text-xs sm:text-sm font-semibold shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-2 bg-white dark:bg-zinc-900 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
               title={t?.removePhotoBtn || 'Supprimer la photo'}
             >
               <Trash2 size={14} />
@@ -309,7 +305,7 @@ export function ProfilePhotoUploader({
       </div>
 
       {error && (
-        <div className="mt-3 p-2 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 rounded-lg text-xs font-medium">
+        <div className="mt-3 p-2 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 rounded-md text-xs font-medium">
           {error}
         </div>
       )}

@@ -29,7 +29,7 @@ import {
   RefreshCw,
   Copy,
   LayoutTemplate
-} from 'lucide-react';
+} from './icons';
 import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplates';
 import { downloadElementAsPDF } from './pdfExport';
 
@@ -420,19 +420,19 @@ export default function CVLibrary({
   };
 
   return (
-    <div className="space-y-5 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto pb-12">
+    <div className="space-y-4 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto pb-12">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-1">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">
+            <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
               {t.cvLibrary || "Bibliothèque de CV"}
             </h2>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+            <span className="text-xs font-medium font-mono tabular-nums px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
               {cvLibrary.length} {cvLibrary.length <= 1 ? (lang === 'en' ? 'resume' : 'CV') : (lang === 'en' ? 'resumes' : 'CVs')}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
             {t.cvLibrarySubtitle || "Consultez, gérez et exportez le dernier CV généré ou importé pour chaque candidature."}
           </p>
         </div>
@@ -448,16 +448,16 @@ export default function CVLibrary({
               setImportError('');
               setIsImportModalOpen(true);
             }}
-            className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer flex items-center justify-center gap-2"
+            className="flex-1 sm:flex-none px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center justify-center gap-2"
           >
-            <Upload size={16} />
+            <Upload size={15} />
             <span>{t.importCvBtn || "Importer un CV"}</span>
           </button>
         </div>
       </div>
 
       {/* Informative Rule Badge */}
-      <div className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-500/10 px-3.5 py-2.5 rounded-xl border border-amber-500/20">
+      <div className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300 bg-amber-500/10 px-3.5 py-2.5 rounded-md">
         <Sparkles size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
         <span>
           {t.lastResumeNote || "Règle de gestion : Un seul CV est conservé par candidature (le plus récent). L'adaptation ou l'import pour une offre remplace automatiquement sa version précédente."}
@@ -465,24 +465,24 @@ export default function CVLibrary({
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+      <div className="p-3.5 bg-white dark:bg-zinc-900 rounded-lg flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Search Input */}
         <div className="relative flex-1 min-w-0">
-          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-            <Search size={15} />
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+            <Search size={14} />
           </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.searchCvPlaceholder || "Rechercher par titre, entreprise, poste, compétences..."}
-            className="w-full pl-9 sm:pl-10 pr-9 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 transition-colors shadow-2xs"
+            className="w-full pl-9 pr-9 py-1.5 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 transition-colors duration-150"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 cursor-pointer"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 cursor-pointer"
             >
               <X size={14} />
             </button>
@@ -491,14 +491,14 @@ export default function CVLibrary({
 
         {/* Filter Pills */}
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-          <div className="flex bg-gray-100 dark:bg-zinc-900 p-1 rounded-xl border border-gray-200 dark:border-zinc-800">
+          <div className="flex bg-zinc-100 dark:bg-zinc-950 p-1 rounded-md">
             <button
               type="button"
               onClick={() => setFilterType('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer font-mono tabular-nums ${
                 filterType === 'all'
-                  ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-2xs'
-                  : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200/60 dark:hover:bg-zinc-800/60'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
               {t.allResumes || "Tous"} ({cvLibrary.length})
@@ -506,10 +506,10 @@ export default function CVLibrary({
             <button
               type="button"
               onClick={() => setFilterType('linked')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer font-mono tabular-nums ${
                 filterType === 'linked'
-                  ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-2xs'
-                  : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200/60 dark:hover:bg-zinc-800/60'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
               {t.linkedResumes || "Liés"} ({cvLibrary.filter(i => i.applicationId).length})
@@ -517,10 +517,10 @@ export default function CVLibrary({
             <button
               type="button"
               onClick={() => setFilterType('unlinked')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer font-mono tabular-nums ${
                 filterType === 'unlinked'
-                  ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-2xs'
-                  : 'text-gray-600 dark:text-zinc-400 hover:bg-gray-200/60 dark:hover:bg-zinc-800/60'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
               {t.unlinkedResumes || "Autonomes"} ({cvLibrary.filter(i => !i.applicationId).length})
@@ -528,30 +528,30 @@ export default function CVLibrary({
           </div>
 
           {/* View Mode Toggle */}
-          <div className="hidden sm:flex bg-gray-100 dark:bg-zinc-900 p-1 rounded-xl border border-gray-200 dark:border-zinc-800">
+          <div className="hidden sm:flex bg-zinc-100 dark:bg-zinc-950 p-1 rounded-md">
             <button
               type="button"
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-md transition-colors duration-150 cursor-pointer ${
                 viewMode === 'grid'
-                  ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-2xs'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
               }`}
               title="Vue Grille"
             >
-              <Layers size={15} />
+              <Layers size={14} />
             </button>
             <button
               type="button"
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+              className={`p-1.5 rounded-md transition-colors duration-150 cursor-pointer ${
                 viewMode === 'list'
-                  ? 'bg-white dark:bg-zinc-800 text-gray-900 dark:text-white shadow-2xs'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200'
+                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200'
               }`}
               title="Vue Liste"
             >
-              <FileText size={15} />
+              <FileText size={14} />
             </button>
           </div>
         </div>
@@ -559,13 +559,13 @@ export default function CVLibrary({
 
       {/* Empty State */}
       {filteredList.length === 0 && (
-        <div className="py-12 text-center max-w-xl mx-auto">
-          <h3 className="text-base sm:text-lg font-bold text-gray-800 dark:text-white mb-2">
+        <div className="p-8 bg-white dark:bg-zinc-900 rounded-lg text-center max-w-xl mx-auto">
+          <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-2">
             {cvLibrary.length === 0 
               ? (t.noResumesInLibrary || "Aucun CV dans la bibliothèque")
               : (t.noMatchingResumes || "Aucun CV ne correspond à vos critères de recherche.")}
           </h3>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed mb-5">
             {cvLibrary.length === 0
               ? (t.noResumesInLibraryDesc || "Générez un CV adapté depuis l'onglet Adaptateur IA ou importez vos CVs existants pour les centraliser ici.")
               : "Essayez d'effacer les filtres de recherche pour afficher tous les CVs enregistrés."}
@@ -575,7 +575,7 @@ export default function CVLibrary({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs sm:text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer"
               >
                 Effacer la recherche
               </button>
@@ -589,9 +589,9 @@ export default function CVLibrary({
                 setImportFile(null);
                 setIsImportModalOpen(true);
               }}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
             >
-              <Upload size={15} />
+              <Upload size={14} />
               <span>{t.importCvBtn || "Importer un CV"}</span>
             </button>
           </div>
@@ -600,7 +600,7 @@ export default function CVLibrary({
 
       {/* Grid View of Resumes */}
       {viewMode === 'grid' && filteredList.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {filteredList.map((item) => {
             const linkedApp = item.applicationId ? applications.find(a => String(a.id) === String(item.applicationId)) : null;
             const isEditingTitle = editingTitleId === item.id;
@@ -608,7 +608,7 @@ export default function CVLibrary({
             return (
               <div
                 key={item.id}
-                className="bg-white dark:bg-zinc-950 rounded-md shadow-xs border border-gray-200 dark:border-zinc-800 hover:border-blue-400 dark:hover:border-zinc-700 p-4 sm:p-5 flex flex-col justify-between transition-all group"
+                className="bg-white dark:bg-zinc-900 rounded-lg p-4 sm:p-5 flex flex-col justify-between transition-colors duration-150 group"
               >
                 {/* Card Top: Title & Linked Application info */}
                 <div className="space-y-3">
@@ -625,12 +625,12 @@ export default function CVLibrary({
                               if (e.key === 'Escape') setEditingTitleId(null);
                             }}
                             autoFocus
-                            className="w-full px-2 py-1 text-sm font-bold bg-white dark:bg-zinc-900 border border-blue-500 rounded-md outline-none text-gray-900 dark:text-white"
+                            className="w-full px-2 py-1 text-sm font-semibold bg-zinc-50 dark:bg-zinc-950 rounded-md outline-none focus:ring-2 focus:ring-blue-600 text-zinc-900 dark:text-zinc-100"
                           />
                           <button
                             type="button"
                             onClick={() => handleSaveTitle(item.id)}
-                            className="p-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+                            className="p-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 cursor-pointer"
                           >
                             <CheckCircle size={14} />
                           </button>
@@ -638,7 +638,7 @@ export default function CVLibrary({
                       ) : (
                         <div className="flex items-center gap-1.5 group/title">
                           <h3
-                            className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate"
+                            className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100 truncate tracking-tight"
                             title={item.title}
                           >
                             {item.title}
@@ -649,7 +649,7 @@ export default function CVLibrary({
                               setEditingTitleId(item.id);
                               setEditingTitleValue(item.title);
                             }}
-                            className="opacity-0 group-hover/title:opacity-100 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-opacity p-0.5 cursor-pointer"
+                            className="opacity-0 group-hover/title:opacity-100 text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 transition-opacity p-0.5 cursor-pointer"
                             title={t.editTitle || "Modifier le titre"}
                           >
                             <Pencil size={13} />
@@ -658,8 +658,8 @@ export default function CVLibrary({
                       )}
 
                       {/* Subtitle / Timestamp */}
-                      <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mt-1">
-                        <span className="flex items-center gap-1">
+                      <div className="flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400 mt-1">
+                        <span className="flex items-center gap-1 font-mono tabular-nums">
                           <Clock size={11} /> {item.date}
                         </span>
                         <span>•</span>
@@ -669,7 +669,7 @@ export default function CVLibrary({
                         {item.matchScore && (
                           <>
                             <span>•</span>
-                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            <span className="font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
                               {item.matchScore}% Match
                             </span>
                           </>
@@ -678,41 +678,41 @@ export default function CVLibrary({
                     </div>
 
                     {/* Format Badge */}
-                    <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 shrink-0 border dark:border-slate-600">
+                    <span className="text-[10px] uppercase font-medium tracking-wider px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 shrink-0">
                       {item.template || 'Modern'}
                     </span>
                   </div>
 
                   {/* Linked Application Pill */}
-                  <div className="pt-2 border-t border-gray-100 dark:border-gray-700/80">
+                  <div>
                     {linkedApp ? (
-                      <div className="flex items-center justify-between p-2 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50">
+                      <div className="flex items-center justify-between p-2.5 rounded-md bg-blue-50/70 dark:bg-blue-950/30">
                         <div className="flex items-center gap-2 min-w-0">
                           <Building2 size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
                           <div className="truncate text-xs">
-                            <span className="font-bold text-blue-950 dark:text-blue-200">{linkedApp.company}</span>
+                            <span className="font-semibold text-blue-950 dark:text-blue-200">{linkedApp.company}</span>
                             <span className="text-blue-700 dark:text-blue-300"> — {linkedApp.role}</span>
                           </div>
                         </div>
                         <button
                           type="button"
                           onClick={(e) => handleOpenLinkModal(item, e)}
-                          className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline shrink-0 ml-1.5 cursor-pointer"
+                          className="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline shrink-0 ml-1.5 cursor-pointer"
                           title={t.linkToApp || "Changer l'association"}
                         >
                           {t.changeLink || "Modifier"}
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-200/70 dark:border-gray-700/70">
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <div className="flex items-center justify-between p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60">
+                        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 truncate">
                           <Unlink size={13} />
                           <span>{t.noLinkedApplication || "CV autonome (Non lié)"}</span>
                         </div>
                         <button
                           type="button"
                           onClick={(e) => handleOpenLinkModal(item, e)}
-                          className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline shrink-0 ml-1.5 cursor-pointer"
+                          className="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline shrink-0 ml-1.5 cursor-pointer"
                         >
                           {t.linkToApp || "+ Lier"}
                         </button>
@@ -722,45 +722,45 @@ export default function CVLibrary({
 
                   {/* Summary Snippet */}
                   {item.cv?.summary && (
-                    <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed italic bg-gray-50/70 dark:bg-gray-900/40 p-2.5 rounded-xl border border-gray-100 dark:border-gray-800">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-300 line-clamp-2 leading-relaxed bg-zinc-50 dark:bg-zinc-950/50 p-2.5 rounded-md">
                       "{item.cv.summary}"
                     </p>
                   )}
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700/80 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
+                <div className="pt-3 mt-3 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1">
                     {/* Delete button */}
                     <button
                       type="button"
                       onClick={(e) => handleDeleteCv(item.id, e)}
-                      className="p-2 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
+                      className="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition-colors duration-150 cursor-pointer"
                       title={t.deleteResume || "Supprimer"}
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={14} />
                     </button>
                     {/* Open in Tailor */}
                     {onOpenInTailor && item.cv && (
                       <button
                         type="button"
                         onClick={() => onOpenInTailor(item)}
-                        className="p-2 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl transition-colors cursor-pointer"
+                        className="p-1.5 text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 cursor-pointer"
                         title={t.openInTailor || "Ouvrir dans l'Adaptateur IA"}
                       >
-                        <Sparkles size={15} />
+                        <Sparkles size={14} />
                       </button>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     {/* Preview Button */}
                     <button
                       type="button"
                       onClick={() => handleOpenPreview(item)}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                      className="px-2.5 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                     >
-                      <Eye size={14} />
+                      <Eye size={13} />
                       <span>{t.previewResume || "Visualiser"}</span>
                     </button>
                     {/* Quick PDF Download */}
@@ -770,9 +770,9 @@ export default function CVLibrary({
                         handleOpenPreview(item);
                         setTimeout(() => handleDownloadPdf(item), 100);
                       }}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors cursor-pointer flex items-center gap-1.5"
+                      className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                     >
-                      <Download size={14} />
+                      <Download size={13} />
                       <span>PDF</span>
                     </button>
                   </div>
@@ -801,56 +801,61 @@ export default function CVLibrary({
 
       {/* List View of Resumes */}
       {viewMode === 'list' && filteredList.length > 0 && (
-        <div className="bg-white dark:bg-zinc-950 rounded-md shadow-xs border border-gray-200 dark:border-zinc-800/80 overflow-hidden">
+        <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden">
           <table className="w-full table-fixed text-left border-collapse text-xs md:text-sm">
             <thead>
-              <tr className="bg-gray-100/70 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-zinc-800/80">
-                <th className="w-[30%] px-4 py-3 font-semibold truncate">{t.resumeTitleLabel || "Titre du CV"}</th>
-                <th className="w-[30%] px-3 py-3 font-semibold truncate">{t.linkedApplication || "Candidature liée"}</th>
-                <th className="w-[15%] px-3 py-3 font-semibold truncate">{t.date || "Date"}</th>
-                <th className="w-[10%] px-2 py-3 font-semibold truncate">Modèle</th>
-                <th className="w-[15%] px-3 py-3 text-right font-semibold truncate">{t.actions || "Actions"}</th>
+              <tr className="bg-zinc-100/80 dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 text-[11px] uppercase tracking-wider">
+                <th className="w-[30%] px-4 py-3 font-medium truncate">{t.resumeTitleLabel || "Titre du CV"}</th>
+                <th className="w-[30%] px-3 py-3 font-medium truncate">{t.linkedApplication || "Candidature liée"}</th>
+                <th className="w-[15%] px-3 py-3 font-medium truncate">{t.date || "Date"}</th>
+                <th className="w-[10%] px-2 py-3 font-medium truncate">Modèle</th>
+                <th className="w-[15%] px-3 py-3 text-right font-medium truncate">{t.actions || "Actions"}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80 bg-white dark:bg-zinc-950">
-              {filteredList.map((item) => {
+            <tbody className="bg-white dark:bg-zinc-900">
+              {filteredList.map((item, idx) => {
                 const linkedApp = item.applicationId ? applications.find(a => String(a.id) === String(item.applicationId)) : null;
 
                 return (
-                  <tr key={item.id} className="hover:bg-gray-50/80 dark:hover:bg-zinc-900/60 transition-colors">
-                    <td className="w-[30%] px-4 py-3 font-bold text-gray-900 dark:text-white truncate">
+                  <tr
+                    key={item.id}
+                    className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors duration-150 ${
+                      idx % 2 === 1 ? 'bg-zinc-50/40 dark:bg-zinc-950/30' : ''
+                    }`}
+                  >
+                    <td className="w-[30%] px-4 py-3 font-semibold text-zinc-900 dark:text-zinc-100 truncate">
                       <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                        <FileText size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
                         <span className="truncate" title={item.title}>{item.title}</span>
                       </div>
                     </td>
-                    <td className="w-[30%] px-3 py-3 text-gray-700 dark:text-gray-300 truncate">
+                    <td className="w-[30%] px-3 py-3 text-zinc-700 dark:text-zinc-300 truncate">
                       {linkedApp ? (
                         <div className="flex items-center gap-1.5 truncate">
                           <span className="font-semibold text-blue-900 dark:text-blue-300 truncate">{linkedApp.company}</span>
-                          <span className="text-gray-500">— {linkedApp.role}</span>
+                          <span className="text-zinc-500">— {linkedApp.role}</span>
                         </div>
                       ) : (
-                        <span className="text-gray-400 italic text-xs">{t.noLinkedApplication || "CV autonome"}</span>
+                        <span className="text-zinc-400 text-xs">{t.noLinkedApplication || "CV autonome"}</span>
                       )}
                     </td>
-                    <td className="w-[15%] px-3 py-3 text-gray-500 dark:text-gray-400 text-xs truncate">
+                    <td className="w-[15%] px-3 py-3 text-zinc-500 dark:text-zinc-400 font-mono tabular-nums text-xs truncate">
                       {item.date}
                     </td>
                     <td className="w-[10%] px-2 py-3">
-                      <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                      <span className="text-[10px] uppercase font-medium px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                         {item.template || 'Modern'}
                       </span>
                     </td>
                     <td className="w-[15%] px-3 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
                           onClick={() => handleOpenPreview(item)}
-                          className="p-1.5 text-gray-600 dark:text-gray-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-zinc-600 dark:text-zinc-300 hover:text-blue-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 cursor-pointer"
                           title={t.previewResume || "Visualiser"}
                         >
-                          <Eye size={15} />
+                          <Eye size={14} />
                         </button>
                         <button
                           type="button"
@@ -858,18 +863,18 @@ export default function CVLibrary({
                             handleOpenPreview(item);
                             setTimeout(() => handleDownloadPdf(item), 100);
                           }}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-md transition-colors duration-150 cursor-pointer"
                           title="Télécharger PDF"
                         >
-                          <Download size={15} />
+                          <Download size={14} />
                         </button>
                         <button
                           type="button"
                           onClick={(e) => handleDeleteCv(item.id, e)}
-                          className="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 text-zinc-400 hover:text-rose-600 rounded-md transition-colors duration-150 cursor-pointer"
                           title={t.deleteResume || "Supprimer"}
                         >
-                          <Trash2 size={15} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </td>
@@ -883,23 +888,23 @@ export default function CVLibrary({
 
       {/* MODAL: Full Preview of Resume */}
       {previewCvItem && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden my-auto">
             {/* Modal Header & Toolbar */}
-            <div className="p-4 sm:p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/80 flex items-center justify-between flex-wrap gap-3">
+            <div className="p-4 sm:p-5 bg-zinc-50 dark:bg-zinc-950 flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-xl">
-                  <FileCheck size={20} />
+                <div className="p-2 bg-zinc-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 rounded-md">
+                  <FileCheck size={18} />
                 </div>
                 <div className="truncate">
-                  <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 truncate tracking-tight">
                     {previewCvItem.title}
                   </h3>
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
                     {previewCvItem.applicationId && (
-                      <span>Candidature : <strong>{previewCvItem.company}</strong> ({previewCvItem.role})</span>
+                      <span>Candidature : <strong className="font-semibold text-zinc-800 dark:text-zinc-200">{previewCvItem.company}</strong> ({previewCvItem.role})</span>
                     )}
-                    <span>• {previewCvItem.date}</span>
+                    <span className="font-mono tabular-nums">• {previewCvItem.date}</span>
                   </div>
                 </div>
               </div>
@@ -909,31 +914,31 @@ export default function CVLibrary({
                   type="button"
                   onClick={() => handleDownloadPdf(previewCvItem)}
                   disabled={isExportingPdf}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs cursor-pointer transition-all flex items-center gap-1.5 disabled:opacity-60"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium cursor-pointer transition-colors duration-150 flex items-center gap-1.5 disabled:opacity-60"
                 >
-                  {isExportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                  {isExportingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                   <span>{isExportingPdf ? "Export PDF..." : "Télécharger PDF"}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewCvItem(null)}
-                  className="p-2 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-xl cursor-pointer transition-colors"
+                  className="p-2 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-md cursor-pointer transition-colors duration-150"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
             </div>
 
             {/* Customization Toolbar inside Preview */}
-            <div className="p-3.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="p-3.5 bg-zinc-100/70 dark:bg-zinc-950/60 flex flex-wrap items-center justify-between gap-3 text-xs">
               {/* Template selector */}
               <div className="flex items-center gap-1.5">
-                <LayoutTemplate size={14} className="text-gray-500" />
-                <span className="font-semibold text-gray-700 dark:text-gray-300">Modèle:</span>
+                <LayoutTemplate size={14} className="text-zinc-500" />
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">Modèle:</span>
                 <select
                   value={previewTemplate}
                   onChange={(e) => setPreviewTemplate(e.target.value)}
-                  className="px-2.5 py-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg font-medium text-gray-800 dark:text-gray-200 outline-none"
+                  className="px-2.5 py-1 bg-white dark:bg-zinc-900 rounded-md font-medium text-zinc-800 dark:text-zinc-200 outline-none"
                 >
                   {RESUME_TEMPLATES.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
@@ -943,16 +948,16 @@ export default function CVLibrary({
 
               {/* Color selector */}
               <div className="flex items-center gap-1.5">
-                <Palette size={14} className="text-gray-500" />
-                <span className="font-semibold text-gray-700 dark:text-gray-300">Couleur:</span>
+                <Palette size={14} className="text-zinc-500" />
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">Couleur:</span>
                 <div className="flex items-center gap-1.5">
                   {ACCENT_COLORS.map(c => (
                     <button
                       key={c.id}
                       type="button"
                       onClick={() => setPreviewColor(c.hex)}
-                      className={`w-5 h-5 rounded-full cursor-pointer transition-transform ${
-                        previewColor === c.hex ? 'ring-2 ring-blue-500 scale-110' : ''
+                      className={`w-4 h-4 rounded-full cursor-pointer transition-colors duration-150 ${
+                        previewColor === c.hex ? 'ring-2 ring-blue-500 ring-offset-1 dark:ring-offset-zinc-900' : ''
                       }`}
                       style={{ backgroundColor: c.hex }}
                     />
@@ -962,14 +967,14 @@ export default function CVLibrary({
 
               {/* Page Format Toggle */}
               <div className="flex items-center gap-1.5">
-                <Files size={14} className="text-gray-500" />
+                <Files size={14} className="text-zinc-500" />
                 <button
                   type="button"
                   onClick={() => setPreviewIsMultiPage(!previewIsMultiPage)}
-                  className={`px-2.5 py-1 rounded-lg font-semibold border transition-colors cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md font-medium transition-colors duration-150 cursor-pointer ${
                     !previewIsMultiPage
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200'
                   }`}
                 >
                   {!previewIsMultiPage ? "1 Page A4 stricte" : "Multi-pages"}
@@ -978,7 +983,7 @@ export default function CVLibrary({
             </div>
 
             {/* Resume Content View */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-gray-100 dark:bg-gray-950 flex justify-center">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-zinc-100 dark:bg-zinc-950 flex justify-center">
               <div id="resume-preview-modal-content" className="w-full flex justify-center">
                 <ResumeRenderer
                   cv={previewCvItem.cv}
@@ -998,18 +1003,18 @@ export default function CVLibrary({
 
       {/* MODAL: Import a CV */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-xl p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg w-full max-w-xl p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-2">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 rounded-xl">
-                  <Upload size={20} />
+                <div className="p-2 bg-zinc-100 dark:bg-zinc-800 text-blue-600 dark:text-blue-400 rounded-md">
+                  <Upload size={18} />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                  <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                     {t.importCvModalTitle || "Importer un CV dans la bibliothèque"}
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     {t.importCvModalSubtitle || "Importez un fichier (PDF, TXT, JSON) ou collez le texte, avec option d'association."}
                   </p>
                 </div>
@@ -1017,15 +1022,15 @@ export default function CVLibrary({
               <button
                 type="button"
                 onClick={() => setIsImportModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             {/* Option to Link to an Existing Application */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 {t.selectLinkedApplication || "Associer à une candidature (optionnel)"}
               </label>
               <select
@@ -1036,12 +1041,11 @@ export default function CVLibrary({
                   if (appId) {
                     const matchedApp = applications.find(a => String(a.id) === String(appId));
                     if (matchedApp) {
-                      // Pre-fill base title as the name of offer
                       setImportTitle(`${matchedApp.company} - ${matchedApp.role}`);
                     }
                   }
                 }}
-                className="w-full p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-950 rounded-md text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
               >
                 <option value="">{t.noJobLinked || "-- Aucune candidature liée (CV autonome) --"}</option>
                 {applications.map(app => (
@@ -1053,7 +1057,7 @@ export default function CVLibrary({
 
               {/* Overwrite notice if application already has a resume */}
               {importAppId && getExistingCvForApp(importAppId) && (
-                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
+                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-md flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400">
                   <AlertCircle size={15} className="shrink-0 mt-0.5" />
                   <span>
                     {t.overwriteWarning || "Attention : cette candidature a déjà un CV enregistré. Ce nouvel import le remplacera pour conserver uniquement le dernier."}
@@ -1064,26 +1068,26 @@ export default function CVLibrary({
 
             {/* Base Title for Resume (default: offer name, fully editable) */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
-                {t.resumeTitleLabel || "Titre du CV"} <span className="text-gray-400 font-normal">(modifiable)</span>
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                {t.resumeTitleLabel || "Titre du CV"} <span className="text-zinc-400 font-normal">(modifiable)</span>
               </label>
               <input
                 type="text"
                 value={importTitle}
                 onChange={(e) => setImportTitle(e.target.value)}
                 placeholder={t.resumeTitlePlaceholder || "ex: Google - Développeur Full-Stack"}
-                className="w-full p-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-950 rounded-md text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {/* File Upload Zone */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 Fichier CV (PDF, TXT, JSON)
               </label>
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl p-5 text-center cursor-pointer transition-colors bg-gray-50/50 dark:bg-gray-900/30"
+                className="rounded-lg p-5 text-center cursor-pointer transition-colors duration-150 bg-zinc-50 hover:bg-zinc-100/80 dark:bg-zinc-950 dark:hover:bg-zinc-950/80"
               >
                 <input
                   type="file"
@@ -1093,8 +1097,8 @@ export default function CVLibrary({
                   className="hidden"
                 />
                 <div className="flex flex-col items-center gap-1.5">
-                  <Upload size={22} className="text-gray-400 dark:text-gray-500" />
-                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <Upload size={20} className="text-zinc-400 dark:text-zinc-500" />
+                  <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                     {importFile ? importFile.name : (t.uploadFileOrDrag || "Déposez un fichier PDF, TXT ou JSON, ou cliquez")}
                   </span>
                   {isParsingFile && (
@@ -1109,7 +1113,7 @@ export default function CVLibrary({
 
             {/* Raw Text Input */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 {t.pasteRawText || "Ou collez le texte du CV directement"}
               </label>
               <textarea
@@ -1117,22 +1121,22 @@ export default function CVLibrary({
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
                 placeholder="Expérience, Formation, Compétences..."
-                className="w-full p-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-mono text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-950 rounded-md text-xs font-mono text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
               />
             </div>
 
             {importError && (
-              <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900 rounded-xl text-xs flex items-center gap-2">
+              <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 rounded-md text-xs flex items-center gap-2">
                 <AlertCircle size={15} />
                 <span>{importError}</span>
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsImportModalOpen(false)}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs sm:text-sm font-medium hover:bg-gray-200 transition-colors cursor-pointer"
+                className="px-3.5 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer"
               >
                 Annuler
               </button>
@@ -1140,9 +1144,9 @@ export default function CVLibrary({
                 type="button"
                 onClick={handleSaveImportedCv}
                 disabled={isParsingFile || (!importText.trim() && !importFile)}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
               >
-                <CheckCircle size={15} />
+                <CheckCircle size={14} />
                 <span>Enregistrer dans la bibliothèque</span>
               </button>
             </div>
@@ -1152,32 +1156,32 @@ export default function CVLibrary({
 
       {/* MODAL: Link to Application */}
       {linkModalCvItem && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg w-full max-w-md p-5 space-y-4">
+            <div className="flex items-center justify-between pb-2">
               <div className="flex items-center gap-2">
-                <Link2 size={18} className="text-blue-600 dark:text-blue-400" />
-                <h3 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
+                <Link2 size={17} className="text-blue-600 dark:text-blue-400" />
+                <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 tracking-tight">
                   {t.linkToApp || "Lier ce CV à une candidature"}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setLinkModalCvItem(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
               >
                 <X size={18} />
               </button>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                 Sélectionner la candidature ciblée :
               </label>
               <select
                 value={selectedLinkAppId}
                 onChange={(e) => setSelectedLinkAppId(e.target.value)}
-                className="w-full p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs sm:text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-950 rounded-md text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
               >
                 <option value="">{t.noJobLinked || "-- Aucune candidature (CV autonome) --"}</option>
                 {applications.map(app => (
@@ -1188,7 +1192,7 @@ export default function CVLibrary({
               </select>
 
               {selectedLinkAppId && getExistingCvForApp(selectedLinkAppId) && getExistingCvForApp(selectedLinkAppId).id !== linkModalCvItem.id && (
-                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 mt-2">
+                <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-md flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 mt-2">
                   <AlertCircle size={15} className="shrink-0 mt-0.5" />
                   <span>
                     Cette candidature possède déjà un CV. L'associer ici remplacera l'ancien afin de conserver uniquement le dernier CV.
@@ -1197,18 +1201,18 @@ export default function CVLibrary({
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-end gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setLinkModalCvItem(null)}
-                className="px-3.5 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-200 transition-colors cursor-pointer"
+                className="px-3.5 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer"
               >
                 Annuler
               </button>
               <button
                 type="button"
                 onClick={handleSaveLinkApplication}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer"
               >
                 Valider
               </button>

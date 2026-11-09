@@ -20,10 +20,11 @@ import {
   Tag,
   Trash2,
   ChevronDown
-} from 'lucide-react';
+} from './icons';
 import { executeJobScrape, normalizeText } from './jobScraperService';
 import { openExternalLink, formatExternalUrl } from './App';
 import { notifyDownloadSuccess } from './DownloadToast';
+import { AgentThinkingTrace } from './components/PromptKitUI';
 
 export const SUPPORTED_JOB_BOARDS = [
   {
@@ -679,12 +680,12 @@ export function JobScraperView({
   };
 
   return (
-    <div className="space-y-5 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto pb-12">
+    <div className="space-y-4 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto pb-12">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-gray-900/95 dark:bg-gray-100/95 text-white dark:text-gray-900 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-md border border-gray-700 dark:border-gray-300 animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <Sparkles className="w-5 h-5 text-amber-400 dark:text-amber-600 shrink-0" />
-          <span className="text-sm font-semibold">{toastMessage}</span>
+        <div className="fixed bottom-6 right-6 z-50 bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 px-4 py-3 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5 duration-150">
+          <Sparkles className="w-4 h-4 text-blue-400 dark:text-blue-600 shrink-0" />
+          <span className="text-xs sm:text-sm font-medium">{toastMessage}</span>
           <button onClick={() => setToastMessage(null)} className="ml-2 hover:opacity-75">
             <X className="w-4 h-4" />
           </button>
@@ -692,28 +693,28 @@ export function JobScraperView({
       )}
 
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">
+          <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
             {lang === 'en' ? 'Job Board & Scraper' : 'Agrégateur & Recherche d\'Offres'}
           </h2>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
             {lang === 'en' ? 'Aggregate job postings across top platforms or trigger direct searches.' : 'Agrégez des offres ciblées depuis les plateformes majeures ou lancez vos recherches en direct.'}
           </p>
         </div>
       </div>
 
       {/* Scraper Controls */}
-      <div className="space-y-4">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg space-y-5">
         {/* Search & Multi-Keywords Box */}
         <div className="space-y-4">
           {/* Main Keywords Input & Manager */}
           <div className="space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <label className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <Search size={16} className="text-blue-600 dark:text-blue-400" />
+              <label className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Search size={15} className="text-blue-600 dark:text-blue-400" />
                 <span>{lang === 'en' ? 'Job Title & Target Keywords' : 'Poste recherché & Mots-clés cibles'}</span>
-                <span className="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 text-[11px] font-black">
+                <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[11px] font-medium font-mono tabular-nums">
                   {keywords.length} {lang === 'en' ? (keywords.length > 1 ? 'keywords' : 'keyword') : (keywords.length > 1 ? 'mots-clés' : 'mot-clé')}
                 </span>
               </label>
@@ -722,7 +723,7 @@ export function JobScraperView({
                 <button
                   type="button"
                   onClick={handleClearAllKeywords}
-                  className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-[11px] font-medium text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Trash2 size={12} />
                   <span>{lang === 'en' ? 'Clear all keywords' : 'Effacer tous les mots-clés'}</span>
@@ -732,21 +733,21 @@ export function JobScraperView({
 
             {/* Active Keywords Badges Display */}
             {keywords.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 p-3 bg-white dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-md shadow-2xs">
+              <div className="flex flex-wrap items-center gap-2 p-3 bg-zinc-50 dark:bg-zinc-950/60 rounded-md">
                 {keywords.map((kw, idx) => (
                   <span
                     key={`${kw}_${idx}`}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-zinc-900 text-gray-800 dark:text-zinc-200 border border-gray-200 dark:border-zinc-800 rounded-md text-xs font-bold shadow-2xs group hover:border-gray-400 dark:hover:border-zinc-700 transition-all"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 rounded-md text-xs font-medium group transition-colors duration-150"
                   >
                     <Tag size={12} className="text-blue-500 shrink-0" />
                     <span>{kw}</span>
                     <button
                       type="button"
                       onClick={() => handleRemoveKeyword(idx)}
-                      className="p-0.5 ml-0.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/80 rounded transition-colors cursor-pointer"
+                      className="p-0.5 ml-0.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/80 rounded transition-colors duration-150 cursor-pointer"
                       title={lang === 'en' ? 'Remove this keyword' : 'Supprimer ce mot-clé'}
                     >
-                      <X size={13} className="stroke-[2.5]" />
+                      <X size={13} />
                     </button>
                   </span>
                 ))}
@@ -775,13 +776,13 @@ export function JobScraperView({
                       ? 'Type a keyword (e.g. React, Python, DevOps, Senior)...'
                       : 'Tapez un mot-clé (ex: React, Python, DevOps, Senior)...'
                   }
-                  className="w-full pl-4 pr-10 py-3 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md text-sm font-medium text-gray-900 dark:text-white placeholder-gray-400 outline-none focus:border-zinc-500 dark:focus:border-zinc-600 shadow-xs transition-all"
+                  className="w-full pl-3.5 pr-10 py-2.5 bg-zinc-50 dark:bg-zinc-950/60 rounded-md text-sm font-medium text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 outline-none focus:ring-2 focus:ring-zinc-600 transition-colors duration-150"
                 />
                 {keywordInput && (
                   <button
                     type="button"
                     onClick={() => setKeywordInput('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
                   >
                     <X size={15} />
                   </button>
@@ -793,10 +794,10 @@ export function JobScraperView({
                 type="button"
                 onClick={() => handleAddKeyword()}
                 disabled={!keywordInput.trim()}
-                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 text-gray-800 dark:text-zinc-200 border border-gray-300 dark:border-zinc-700 rounded-md text-xs sm:text-sm font-bold shadow-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0 active:scale-95"
+                className="px-4 py-2.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0"
                 title={lang === 'en' ? 'Add keyword to search list' : 'Ajouter le mot-clé à la liste de recherche'}
               >
-                <Plus size={16} className="stroke-[2.5]" />
+                <Plus size={15} />
                 <span>{lang === 'en' ? 'Add Keyword' : 'Ajouter mot-clé'}</span>
               </button>
 
@@ -805,16 +806,16 @@ export function JobScraperView({
                 type="button"
                 disabled={isScraping || (!keywords.length && !keywordInput.trim())}
                 onClick={handleLaunchScrape}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-bold shadow-xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0 active:scale-95"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 shrink-0"
               >
                 {isScraping ? (
                   <>
-                    <RefreshCw size={15} className="animate-spin" />
+                    <RefreshCw size={14} className="animate-spin" />
                     <span>{lang === 'en' ? 'Scraping...' : 'Scraping...'}</span>
                   </>
                 ) : (
                   <>
-                    <Zap size={15} className="fill-amber-300 text-amber-300" />
+                    <Zap size={14} />
                     <span>{lang === 'en' ? 'Scrape Jobs' : 'Lancer le Scraper'}</span>
                   </>
                 )}
@@ -823,11 +824,11 @@ export function JobScraperView({
           </div>
 
           {/* Options Grid Under Prompt Box */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2 border-t border-gray-200 dark:border-zinc-800">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
             {/* Location */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <MapPin size={14} className="text-rose-500" />
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <MapPin size={13} className="text-zinc-500" />
                 <span>{lang === 'en' ? 'Location / City' : 'Localisation / Ville'}</span>
               </label>
               <input
@@ -835,20 +836,20 @@ export function JobScraperView({
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="Ex: Paris, France / Remote"
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100"
               />
             </div>
 
             {/* Contract Type */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Briefcase size={14} className="text-blue-500" />
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <Briefcase size={13} className="text-zinc-500" />
                 <span>{lang === 'en' ? 'Contract Type' : 'Type de contrat'}</span>
               </label>
               <select
                 value={contractType}
                 onChange={(e) => setContractType(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100"
               >
                 {CONTRACT_OPTIONS.map(c => (
                   <option key={c.id} value={c.id}>
@@ -860,14 +861,14 @@ export function JobScraperView({
 
             {/* Workplace / Remote */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Building2 size={14} className="text-emerald-500" />
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <Building2 size={13} className="text-zinc-500" />
                 <span>{lang === 'en' ? 'Workplace / Remote' : 'Mode de travail'}</span>
               </label>
               <select
                 value={workplace}
                 onChange={(e) => setWorkplace(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100"
               >
                 {WORKPLACE_OPTIONS.map(w => (
                   <option key={w.id} value={w.id}>
@@ -879,14 +880,14 @@ export function JobScraperView({
 
             {/* Freshness */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                <Calendar size={14} className="text-amber-500" />
+              <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <Calendar size={13} className="text-zinc-500" />
                 <span>{lang === 'en' ? 'Date Posted' : 'Date de publication'}</span>
               </label>
               <select
                 value={freshness}
                 onChange={(e) => setFreshness(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-white"
+                className="w-full px-3 py-2 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100"
               >
                 {FRESHNESS_OPTIONS.map(f => (
                   <option key={f.id} value={f.id}>
@@ -898,12 +899,12 @@ export function JobScraperView({
           </div>
 
           {/* Website Selection */}
-          <div className="space-y-2 pt-2 border-t border-gray-200 dark:border-gray-700/80">
+          <div className="space-y-2.5 pt-1">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <label className="text-xs sm:text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <Globe size={16} className="text-indigo-600 dark:text-indigo-400" />
+              <label className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                <Globe size={15} className="text-blue-600 dark:text-blue-400" />
                 <span>{lang === 'en' ? 'Target Platforms:' : 'Plateformes cibles :'}</span>
-                <span className="text-[11px] font-normal text-gray-500 dark:text-gray-400">
+                <span className="text-[11px] font-normal font-mono tabular-nums text-zinc-500 dark:text-zinc-400">
                   ({selectedPlatforms.length}/{SUPPORTED_JOB_BOARDS.length} {lang === 'en' ? 'active' : 'actives'})
                 </span>
               </label>
@@ -911,22 +912,22 @@ export function JobScraperView({
                 <button
                   type="button"
                   onClick={selectAllPlatforms}
-                  className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                  className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                 >
                   {lang === 'en' ? 'Select all' : 'Tout sélectionner'}
                 </button>
-                <span className="text-gray-300 dark:text-gray-600">•</span>
+                <span className="text-zinc-300 dark:text-zinc-700">•</span>
                 <button
                   type="button"
                   onClick={deselectAllPlatforms}
-                  className="text-[11px] font-semibold text-gray-500 hover:underline cursor-pointer"
+                  className="text-[11px] font-medium text-zinc-500 hover:underline cursor-pointer"
                 >
                   {lang === 'en' ? 'Reset' : 'Réinitialiser'}
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {SUPPORTED_JOB_BOARDS.map((board) => {
                 const isSelected = selectedPlatforms.includes(board.id);
                 return (
@@ -934,22 +935,22 @@ export function JobScraperView({
                     key={board.id}
                     type="button"
                     onClick={() => togglePlatform(board.id)}
-                    className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 text-left transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-md flex items-center justify-between gap-2 text-left transition-colors duration-150 cursor-pointer ${
                       isSelected
-                        ? 'bg-white dark:bg-gray-800 border-blue-500 dark:border-blue-400 shadow-sm ring-1 ring-blue-500/20'
-                        : 'bg-gray-100/70 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 text-gray-400 opacity-60 hover:opacity-90'
+                        ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 ring-1 ring-blue-500/40'
+                        : 'bg-zinc-50 dark:bg-zinc-950/60 text-zinc-400 opacity-70 hover:opacity-100'
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className={`w-2.5 h-2.5 rounded-full ${board.dotColor} shrink-0`} />
-                      <span className="text-xs font-bold text-gray-900 dark:text-white truncate">
+                      <span className={`w-2 h-2 rounded-full ${board.dotColor} shrink-0`} />
+                      <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
                         {board.name}
                       </span>
                     </div>
                     {isSelected ? (
-                      <CheckCircle2 size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                      <CheckCircle2 size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
                     ) : (
-                      <div className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600 shrink-0" />
+                      <div className="w-3.5 h-3.5 rounded-full bg-zinc-200 dark:bg-zinc-800 shrink-0" />
                     )}
                   </button>
                 );
@@ -958,32 +959,22 @@ export function JobScraperView({
           </div>
         </div>
 
-        {/* Real-time Scraping Progress Banner */}
+        {/* Real-time Scraping Progress via Beautiful UI AgentThinkingTrace */}
         {isScraping && (
-          <div className="p-4 bg-indigo-50 dark:bg-indigo-950/40 border-t border-indigo-100 dark:border-indigo-900 flex items-center justify-between gap-4 animate-pulse">
-            <div className="flex items-center gap-3">
-              <RefreshCw className="w-5 h-5 text-indigo-600 dark:text-indigo-400 animate-spin" />
-              <div>
-                <div className="text-xs sm:text-sm font-bold text-indigo-900 dark:text-indigo-200">
-                  {scrapingStep}
-                </div>
-                <div className="text-[11px] text-indigo-700 dark:text-indigo-400">
-                  {lang === 'en' 
-                    ? `Searching all offers posted within the selected period (${FRESHNESS_OPTIONS.find(f => f.id === freshness)?.labelEn || 'Past week'})...` 
-                    : `Recherche de toutes les offres publiées sur la période (${FRESHNESS_OPTIONS.find(f => f.id === freshness)?.label || 'Dernière semaine'})...`}
-                </div>
-              </div>
-            </div>
-            <div className="text-xs font-semibold text-indigo-800 dark:text-indigo-300">
-              {lang === 'en' ? 'All offers in period' : 'Toutes les offres de la période'}
-            </div>
+          <div className="p-4 rounded-md bg-zinc-50 dark:bg-zinc-950/60">
+            <AgentThinkingTrace
+              isActive={isScraping}
+              mode="scrape"
+              providerName={scrapingStep || (lang === 'en' ? 'Multi-Board Scraper' : 'Agrégateur Multi-Portails')}
+              lang={lang}
+            />
           </div>
         )}
       </div>
 
       {/* Error notification if any */}
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex items-center gap-3 text-amber-900 dark:text-amber-200 text-xs sm:text-sm">
+        <div className="p-4 rounded-md bg-amber-50 dark:bg-amber-950/30 flex items-center gap-3 text-amber-900 dark:text-amber-200 text-xs sm:text-sm">
           <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
           <div className="flex-1">{errorMessage}</div>
           <button
@@ -996,19 +987,19 @@ export function JobScraperView({
       )}
 
       {/* Scraped Jobs Table Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden transition-colors duration-150">
         {/* Table Top Header & Actions Toolbar */}
-        <div className="p-4 sm:p-5 border-b dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+        <div className="p-4 sm:p-5 bg-zinc-50/50 dark:bg-zinc-950/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+              <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
                 {lang === 'en' ? 'Scraped Job Results' : 'Résultats du Scraping'}
               </h3>
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-xs font-bold">
+              <span className="px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium font-mono tabular-nums">
                 {displayedJobs.length} / {filteredJobs.length} {lang === 'en' ? 'shown' : 'affichées'} {filteredJobs.length > 100 ? '(max 100)' : ''}
               </span>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               {lang === 'en' 
                 ? 'Click on the "+" button next to any offer to transfer it directly to your applications list.'
                 : 'Cliquez sur le bouton "+" à côté d\'une offre pour la transférer immédiatement dans vos candidatures.'}
@@ -1021,9 +1012,9 @@ export function JobScraperView({
               <button
                 type="button"
                 onClick={handleBatchTransfer}
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 animate-in fade-in"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 font-mono tabular-nums"
               >
-                <Plus size={15} />
+                <Plus size={14} />
                 <span>
                   {lang === 'en'
                     ? `Transfer ${selectedJobIds.size} selected (+)`
@@ -1036,10 +1027,10 @@ export function JobScraperView({
               type="button"
               onClick={handleExportCSV}
               disabled={scrapedJobs.length === 0}
-              className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs sm:text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5 disabled:opacity-50"
+              className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
               title="Exporter en CSV"
             >
-              <Download size={14} className="text-emerald-600 dark:text-emerald-400" />
+              <Download size={14} className="text-zinc-500 dark:text-zinc-400" />
               <span>{lang === 'en' ? 'Export CSV' : 'Exporter CSV'}</span>
             </button>
 
@@ -1047,7 +1038,7 @@ export function JobScraperView({
               type="button"
               onClick={handleLaunchScrape}
               disabled={isScraping}
-              className="px-3 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-xl text-xs sm:text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs sm:text-sm font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
             >
               <RefreshCw size={14} className={isScraping ? 'animate-spin' : ''} />
               <span>{lang === 'en' ? 'Refresh' : 'Actualiser'}</span>
@@ -1057,15 +1048,15 @@ export function JobScraperView({
 
         {/* Filter bar within results */}
         {scrapedJobs.length > 0 && (
-          <div className="p-3.5 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="p-3.5 bg-white dark:bg-zinc-900 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="relative flex-1 sm:max-w-md">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
                 value={tableSearch}
                 onChange={(e) => setTableSearch(e.target.value)}
                 placeholder={lang === 'en' ? 'Filter by title, company, location...' : 'Filtrer par poste, entreprise, lieu...'}
-                className="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white"
+                className="w-full pl-9 pr-3 py-1.5 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-zinc-900 dark:text-zinc-100"
               />
             </div>
 
@@ -1075,7 +1066,7 @@ export function JobScraperView({
                 <select
                   value={tableKeywordFilter}
                   onChange={(e) => setTableKeywordFilter(e.target.value)}
-                  className="px-2.5 py-1.5 text-xs bg-gray-50 dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded-xl text-blue-800 dark:text-blue-200 font-semibold outline-none"
+                  className="px-2.5 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-950/60 rounded-md text-blue-700 dark:text-blue-300 font-medium outline-none"
                 >
                   <option value="all">{lang === 'en' ? 'All Keywords' : 'Tous mots-clés'}</option>
                   {searchedKeywordsList.map(kw => (
@@ -1088,7 +1079,7 @@ export function JobScraperView({
               <select
                 value={tablePlatformFilter}
                 onChange={(e) => setTablePlatformFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 outline-none"
+                className="px-2.5 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-950/60 rounded-md text-zinc-700 dark:text-zinc-300 outline-none"
               >
                 <option value="all">{lang === 'en' ? 'All Platforms' : 'Toutes plateformes'}</option>
                 {SUPPORTED_JOB_BOARDS.map(b => (
@@ -1100,7 +1091,7 @@ export function JobScraperView({
               <select
                 value={tableContractFilter}
                 onChange={(e) => setTableContractFilter(e.target.value)}
-                className="px-2.5 py-1.5 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-300 outline-none"
+                className="px-2.5 py-1.5 text-xs bg-zinc-50 dark:bg-zinc-950/60 rounded-md text-zinc-700 dark:text-zinc-300 outline-none"
               >
                 <option value="all">{lang === 'en' ? 'All Contracts' : 'Tous contrats'}</option>
                 <option value="CDI">CDI</option>
@@ -1117,12 +1108,12 @@ export function JobScraperView({
         {scrapedJobs.length === 0 ? (
           <div className="p-8 sm:p-10 text-center space-y-3">
             <div className="space-y-1.5">
-              <h4 className="text-base font-bold text-gray-900 dark:text-white">
+              <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">
                 {hasSearched
                   ? (lang === 'en' ? 'No live offers matched your search' : 'Aucune offre réelle correspondante trouvée')
                   : (lang === 'en' ? 'Ready to scrape live jobs' : 'Prêt à scraper des offres en direct')}
               </h4>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto leading-relaxed">
                 {hasSearched
                   ? (lang === 'en' 
                       ? 'No genuine job postings matched these exact keywords on the queried live feeds. You can adjust your keywords or search directly on job boards below:' 
@@ -1138,7 +1129,7 @@ export function JobScraperView({
                 <button
                   type="button"
                   onClick={() => openExternalLink(`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(keywords.join(' '))}&location=${encodeURIComponent(location)}`)}
-                  className="px-3 py-2 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer"
                 >
                   <ExternalLink size={13} />
                   <span>LinkedIn Jobs</span>
@@ -1146,7 +1137,7 @@ export function JobScraperView({
                 <button
                   type="button"
                   onClick={() => openExternalLink(`https://fr.indeed.com/jobs?q=${encodeURIComponent(keywords.join(' '))}&l=${encodeURIComponent(location)}`)}
-                  className="px-3 py-2 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 rounded-xl text-xs font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer"
                 >
                   <ExternalLink size={13} />
                   <span>Indeed</span>
@@ -1154,7 +1145,7 @@ export function JobScraperView({
                 <button
                   type="button"
                   onClick={() => openExternalLink(`https://www.welcometothejungle.com/fr/jobs?query=${encodeURIComponent(keywords.join(' '))}&aroundQuery=${encodeURIComponent(location)}`)}
-                  className="px-3 py-2 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 rounded-xl text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer"
                 >
                   <ExternalLink size={13} />
                   <span>Welcome to the Jungle</span>
@@ -1162,7 +1153,7 @@ export function JobScraperView({
                 <button
                   type="button"
                   onClick={() => openExternalLink(`https://candidat.francetravail.fr/offres/recherche?motsCles=${encodeURIComponent(keywords.join(' '))}&lieux=${encodeURIComponent(location)}`)}
-                  className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 rounded-xl text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 flex items-center gap-1.5 cursor-pointer"
                 >
                   <ExternalLink size={13} />
                   <span>France Travail</span>
@@ -1175,33 +1166,33 @@ export function JobScraperView({
                 type="button"
                 onClick={handleLaunchScrape}
                 disabled={isScraping}
-                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-blue-500/20 transition-all cursor-pointer inline-flex items-center gap-2"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer inline-flex items-center gap-2"
               >
-                <Zap size={15} className="fill-amber-300 text-amber-300" />
+                <Zap size={14} />
                 <span>{lang === 'en' ? 'Launch Scraper Now' : 'Lancer le Scraper Maintenant'}</span>
               </button>
             )}
           </div>
         ) : filteredJobs.length === 0 ? (
           <div className="p-8 text-center space-y-3">
-            <h4 className="text-sm font-bold text-gray-900 dark:text-white">
+            <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
               {lang === 'en' ? 'No offers match table filter' : 'Aucune offre ne correspond au filtre du tableau'}
             </h4>
             <button
               type="button"
               onClick={() => { setTableSearch(''); setTablePlatformFilter('all'); setTableContractFilter('all'); setTableKeywordFilter('all'); }}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors duration-150"
             >
               {lang === 'en' ? 'Reset Table Filters' : 'Réinitialiser les filtres'}
             </button>
           </div>
         ) : (
           <div>
-            <div className="overflow-x-auto border border-gray-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-white dark:bg-zinc-950">
+            <div className="overflow-x-auto bg-white dark:bg-zinc-900">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-100/60 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 text-[11px] sm:text-xs font-bold uppercase tracking-wider border-b border-gray-200 dark:border-zinc-800">
-                    <th className="p-3 sm:p-4 w-10 text-center">
+                  <tr className="bg-zinc-100/80 dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 text-[11px] uppercase tracking-wider">
+                    <th className="p-3 sm:p-4 w-10 text-center font-medium">
                       <input
                         type="checkbox"
                         checked={selectedJobIds.size === displayedJobs.length && displayedJobs.length > 0}
@@ -1210,18 +1201,18 @@ export function JobScraperView({
                         title="Tout sélectionner"
                       />
                     </th>
-                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Job Title & Role' : 'Intitulé du Poste'}</th>
-                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Company' : 'Entreprise'}</th>
-                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Relevance' : 'Pertinence'}</th>
-                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Platform / Source' : 'Plateforme / Source'}</th>
-                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Location & Mode' : 'Lieu & Mode'}</th>
-                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Contract' : 'Contrat'}</th>
-                    <th className="p-3 sm:p-4">{lang === 'en' ? 'Date' : 'Publication'}</th>
-                    <th className="p-3 sm:p-4 text-right">{lang === 'en' ? 'Actions & Transfer' : 'Actions & Transfert'}</th>
+                    <th className="p-3 sm:p-4 font-medium">{lang === 'en' ? 'Job Title & Role' : 'Intitulé du Poste'}</th>
+                    <th className="p-3 sm:p-4 font-medium">{lang === 'en' ? 'Company' : 'Entreprise'}</th>
+                    <th className="p-3 sm:p-4 font-medium">{lang === 'en' ? 'Relevance' : 'Pertinence'}</th>
+                    <th className="p-3 sm:p-4 font-medium">{lang === 'en' ? 'Platform / Source' : 'Plateforme / Source'}</th>
+                    <th className="p-3 sm:p-4 font-medium">{lang === 'en' ? 'Location & Mode' : 'Lieu & Mode'}</th>
+                    <th className="p-3 sm:p-4 font-medium">{lang === 'en' ? 'Contract' : 'Contrat'}</th>
+                    <th className="p-3 sm:p-4 font-medium">{lang === 'en' ? 'Date' : 'Publication'}</th>
+                    <th className="p-3 sm:p-4 text-right font-medium">{lang === 'en' ? 'Actions & Transfer' : 'Actions & Transfert'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-zinc-800 text-xs sm:text-sm bg-white dark:bg-zinc-950">
-                  {displayedJobs.map((job) => {
+                <tbody className="text-xs sm:text-sm bg-white dark:bg-zinc-900">
+                  {displayedJobs.map((job, idx) => {
                     const jobKey = `${job.company.toLowerCase().trim()}___${job.title.toLowerCase().trim()}`;
                     const isTransferred = transferredJobKeys.has(jobKey);
                     const isSelected = selectedJobIds.has(job.id);
@@ -1230,8 +1221,12 @@ export function JobScraperView({
                     return (
                       <tr
                         key={job.id}
-                        className={`hover:bg-gray-50/60 dark:hover:bg-zinc-900/70 transition-colors ${
-                          isSelected ? 'bg-amber-500/10 dark:bg-zinc-800/80' : ''
+                        className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors duration-150 ${
+                          isSelected
+                            ? 'bg-blue-50/40 dark:bg-zinc-800/80'
+                            : idx % 2 === 1
+                            ? 'bg-zinc-50/40 dark:bg-zinc-950/30'
+                            : ''
                         }`}
                       >
                         {/* Checkbox */}
@@ -1246,7 +1241,7 @@ export function JobScraperView({
 
                         {/* Job Title */}
                         <td className="p-3 sm:p-4">
-                          <div className="font-bold text-gray-900 dark:text-white">
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-100">
                             <span
                               className="hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                               onClick={() => setViewingJob(job)}
@@ -1256,13 +1251,13 @@ export function JobScraperView({
                           </div>
                           <div className="flex items-center gap-2 flex-wrap mt-0.5">
                             {job.salary && job.salary !== 'Non spécifié' && (
-                              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                              <span className="text-[11px] font-medium font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
                                 {job.salary}
                               </span>
                             )}
                             {job.matchedKeyword && (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold text-[10px] border border-gray-200 dark:border-zinc-700">
-                                <Tag size={9} className="text-gray-500 dark:text-zinc-400 shrink-0" />
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-[10px]">
+                                <Tag size={9} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
                                 <span>{job.matchedKeyword}</span>
                               </span>
                             )}
@@ -1272,10 +1267,10 @@ export function JobScraperView({
                         {/* Company */}
                         <td className="p-3 sm:p-4">
                           <div className="flex items-center gap-2.5">
-                            <div className={`w-7 h-7 rounded-lg ${job.companyColor} text-white font-bold text-xs flex items-center justify-center shadow-2xs shrink-0`}>
+                            <div className={`w-7 h-7 rounded-md ${job.companyColor} text-white font-semibold text-xs flex items-center justify-center shrink-0`}>
                               {job.companyLogo}
                             </div>
-                            <div className="font-semibold text-gray-900 dark:text-gray-100">
+                            <div className="font-medium text-zinc-900 dark:text-zinc-100">
                               {job.company}
                             </div>
                           </div>
@@ -1284,7 +1279,7 @@ export function JobScraperView({
                         {/* Relevance Score */}
                         <td className="p-3 sm:p-4">
                           <div className="flex items-center gap-2">
-                            <div className="w-14 bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden shrink-0">
+                            <div className="w-14 bg-zinc-200 dark:bg-zinc-800 h-1.5 rounded-full overflow-hidden shrink-0">
                               <div
                                 className={`h-full ${
                                   relScore >= 80
@@ -1297,7 +1292,7 @@ export function JobScraperView({
                               />
                             </div>
                             <span
-                              className={`text-xs font-black px-1.5 py-0.5 rounded ${
+                              className={`text-xs font-semibold font-mono tabular-nums px-1.5 py-0.5 rounded-md ${
                                 relScore >= 80
                                   ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
                                   : relScore >= 65
@@ -1312,7 +1307,7 @@ export function JobScraperView({
 
                         {/* Platform / Source */}
                         <td className="p-3 sm:p-4">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${job.platformColor}`}>
+                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${job.platformColor}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${job.platformDot}`} />
                             {job.platformName}
                           </span>
@@ -1320,37 +1315,37 @@ export function JobScraperView({
 
                         {/* Location & Mode */}
                         <td className="p-3 sm:p-4">
-                          <div className="text-gray-800 dark:text-gray-200 font-medium">
+                          <div className="text-zinc-800 dark:text-zinc-200 font-medium">
                             {job.location}
                           </div>
-                          <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                          <div className="text-[11px] text-zinc-500 dark:text-zinc-400">
                             {job.workplaceLabel}
                           </div>
                         </td>
 
                         {/* Contract */}
                         <td className="p-3 sm:p-4">
-                          <span className={`px-2.5 py-0.5 rounded-md font-bold text-xs border ${getContractBadgeStyle(job.contract)}`}>
+                          <span className={`px-2 py-0.5 rounded-md font-medium text-xs ${getContractBadgeStyle(job.contract)}`}>
                             {job.contract}
                           </span>
                         </td>
 
                         {/* Date Posted */}
-                        <td className="p-3 sm:p-4 text-gray-600 dark:text-gray-400 text-xs">
+                        <td className="p-3 sm:p-4 text-zinc-600 dark:text-zinc-400 font-mono tabular-nums text-xs">
                           {job.posted}
                         </td>
 
                         {/* Actions & Transfer Button (+) */}
                         <td className="p-3 sm:p-4 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                          <div className="flex items-center justify-end gap-1">
                             {/* Preview Details Button */}
                             <button
                               type="button"
                               onClick={() => setViewingJob(job)}
-                              className="p-1.5 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
+                              className="p-1.5 text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 cursor-pointer"
                               title={lang === 'en' ? 'View Job Details' : 'Voir le détail de l\'offre'}
                             >
-                              <Eye size={16} />
+                              <Eye size={15} />
                             </button>
 
                             {/* Open External URL */}
@@ -1360,10 +1355,10 @@ export function JobScraperView({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => openExternalLink(job.url, e)}
-                                className="p-1.5 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
+                                className="p-1.5 text-zinc-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 cursor-pointer"
                                 title={lang === 'en' ? 'Open on Source Website' : 'Ouvrir sur le site d\'origine'}
                               >
-                                <ExternalLink size={16} />
+                                <ExternalLink size={15} />
                               </a>
                             )}
 
@@ -1372,10 +1367,10 @@ export function JobScraperView({
                               type="button"
                               onClick={() => handleTransferToApplications(job)}
                               disabled={isTransferred}
-                              className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer ${
+                              className={`px-2.5 py-1.5 rounded-md font-medium text-xs flex items-center gap-1.5 transition-colors duration-150 cursor-pointer ${
                                 isTransferred
-                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 cursor-default opacity-90'
-                                  : 'bg-blue-600 hover:bg-blue-700 active:scale-95 text-white shadow-blue-500/20'
+                                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 cursor-default opacity-90'
+                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
                               }`}
                               title={
                                 isTransferred
@@ -1385,12 +1380,12 @@ export function JobScraperView({
                             >
                               {isTransferred ? (
                                 <>
-                                  <Check size={14} className="stroke-[3]" />
+                                  <Check size={13} />
                                   <span>{lang === 'en' ? 'Added' : 'Transféré'}</span>
                                 </>
                               ) : (
                                 <>
-                                  <Plus size={15} className="stroke-[3]" />
+                                  <Plus size={14} />
                                   <span>{lang === 'en' ? 'Add' : 'Transférer'}</span>
                                 </>
                               )}
@@ -1406,8 +1401,8 @@ export function JobScraperView({
 
             {/* Pagination / Show More Toolbar */}
             {filteredJobs.length > displayedJobs.length && displayedJobs.length < MAX_SHOWN_JOBS ? (
-              <div className="p-4 bg-gray-50/80 dark:bg-gray-900/60 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-950/60 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium font-mono tabular-nums">
                   {lang === 'en'
                     ? `Showing ${displayedJobs.length} of ${Math.min(filteredJobs.length, MAX_SHOWN_JOBS)} offers (${filteredJobs.length > MAX_SHOWN_JOBS ? `capped to ${MAX_SHOWN_JOBS} max` : `${filteredJobs.length} found`})`
                     : `Affichage de ${displayedJobs.length} sur ${Math.min(filteredJobs.length, MAX_SHOWN_JOBS)} offres (${filteredJobs.length > MAX_SHOWN_JOBS ? `limité à ${MAX_SHOWN_JOBS} max` : `${filteredJobs.length} trouvées`})`}
@@ -1416,22 +1411,22 @@ export function JobScraperView({
                   <button
                     type="button"
                     onClick={() => setVisibleCount(prev => Math.min(prev + 25, MAX_SHOWN_JOBS, filteredJobs.length))}
-                    className="px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-3.5 py-1.5 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-md text-xs font-medium font-mono tabular-nums transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                   >
-                    <ChevronDown size={15} className="text-blue-600 dark:text-blue-400" />
+                    <ChevronDown size={14} className="text-blue-600 dark:text-blue-400" />
                     <span>{lang === 'en' ? 'Show more (+25)' : 'Afficher plus (+25)'}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setVisibleCount(Math.min(MAX_SHOWN_JOBS, filteredJobs.length))}
-                    className="px-3.5 py-2 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium font-mono tabular-nums transition-colors duration-150 cursor-pointer"
                   >
                     {lang === 'en' ? `Show all (max ${Math.min(MAX_SHOWN_JOBS, filteredJobs.length)})` : `Tout afficher (max ${Math.min(MAX_SHOWN_JOBS, filteredJobs.length)})`}
                   </button>
                 </div>
               </div>
             ) : displayedJobs.length > 0 ? (
-              <div className="p-3.5 bg-gray-50/50 dark:bg-gray-900/40 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <div className="p-3.5 bg-zinc-50 dark:bg-zinc-950/60 flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 font-mono tabular-nums">
                 <span>
                   {lang === 'en'
                     ? `All ${displayedJobs.length} offers displayed ${displayedJobs.length >= MAX_SHOWN_JOBS ? '(maximum display limit of 100 reached)' : ''}`
@@ -1441,7 +1436,7 @@ export function JobScraperView({
                   <button
                     type="button"
                     onClick={() => setVisibleCount(25)}
-                    className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                    className="text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                   >
                     {lang === 'en' ? 'Show 25 first only' : 'Réduire aux 25 premières'}
                   </button>
@@ -1454,30 +1449,30 @@ export function JobScraperView({
 
       {/* Modal for Detailed Job View */}
       {viewingJob && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="p-5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/50 flex items-start justify-between gap-4">
+            <div className="p-5 bg-zinc-50 dark:bg-zinc-950 flex items-start justify-between gap-4">
               <div className="flex items-start gap-3.5">
-                <div className={`w-11 h-11 rounded-xl ${viewingJob.companyColor} text-white font-black text-base flex items-center justify-center shadow-xs shrink-0`}>
+                <div className={`w-10 h-10 rounded-md ${viewingJob.companyColor} text-white font-semibold text-base flex items-center justify-center shrink-0`}>
                   {viewingJob.companyLogo}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                  <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 leading-tight tracking-tight">
                     {viewingJob.title}
                   </h3>
-                  <div className="text-xs font-semibold text-gray-600 dark:text-gray-300 mt-1 flex items-center gap-2 flex-wrap">
+                  <div className="text-xs font-medium text-zinc-600 dark:text-zinc-300 mt-1 flex items-center gap-2 flex-wrap">
                     <span className="text-blue-600 dark:text-blue-400">{viewingJob.company}</span>
                     <span>•</span>
                     <span>{viewingJob.location}</span>
                     <span>•</span>
-                    <span className={`px-2.5 py-0.5 rounded-md font-bold text-[11px] border ${getContractBadgeStyle(viewingJob.contract)}`}>
+                    <span className={`px-2 py-0.5 rounded-md font-medium text-[11px] ${getContractBadgeStyle(viewingJob.contract)}`}>
                       {viewingJob.contract}
                     </span>
                     {viewingJob.matchedKeyword && (
                       <>
                         <span>•</span>
-                        <span className="px-2 py-0.5 rounded-md font-bold text-[11px] bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800 flex items-center gap-1">
+                        <span className="px-2 py-0.5 rounded-md font-medium text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-300 flex items-center gap-1">
                           <Tag size={10} className="text-blue-500" />
                           <span>{viewingJob.matchedKeyword}</span>
                         </span>
@@ -1490,64 +1485,64 @@ export function JobScraperView({
               <button
                 type="button"
                 onClick={() => setViewingJob(null)}
-                className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-md text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-150"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
               {/* Badges Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 p-3 rounded-md bg-zinc-50 dark:bg-zinc-950/60">
                 <div>
-                  <div className="text-[10px] font-bold uppercase text-gray-400">Pertinence</div>
-                  <div className="font-black text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1">
+                  <div className="text-[10px] font-medium uppercase text-zinc-400">Pertinence</div>
+                  <div className="font-semibold font-mono tabular-nums text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1">
                     <Sparkles size={12} />
                     <span>{viewingJob.relevanceScore || 75}%</span>
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold uppercase text-gray-400">Plateforme</div>
-                  <div className="font-bold text-gray-900 dark:text-white mt-0.5">{viewingJob.platformName}</div>
+                  <div className="text-[10px] font-medium uppercase text-zinc-400">Plateforme</div>
+                  <div className="font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{viewingJob.platformName}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold uppercase text-gray-400">Salaire estimé</div>
-                  <div className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{viewingJob.salary}</div>
+                  <div className="text-[10px] font-medium uppercase text-zinc-400">Salaire estimé</div>
+                  <div className="font-semibold font-mono tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">{viewingJob.salary}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold uppercase text-gray-400">Mode de travail</div>
-                  <div className="font-bold text-gray-900 dark:text-white mt-0.5">{viewingJob.workplaceLabel}</div>
+                  <div className="text-[10px] font-medium uppercase text-zinc-400">Mode de travail</div>
+                  <div className="font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">{viewingJob.workplaceLabel}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-bold uppercase text-gray-400">Publication</div>
-                  <div className="font-bold text-gray-900 dark:text-white mt-0.5">{viewingJob.posted}</div>
+                  <div className="text-[10px] font-medium uppercase text-zinc-400">Publication</div>
+                  <div className="font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 mt-0.5">{viewingJob.posted}</div>
                 </div>
               </div>
 
               {/* Description Content */}
               <div className="space-y-2">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <h4 className="text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                   {lang === 'en' ? 'Job Description & Requirements' : 'Description de l\'offre & Profil'}
                 </h4>
-                <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 whitespace-pre-line font-sans text-xs leading-relaxed max-h-80 overflow-y-auto">
+                <div className="p-4 rounded-md bg-zinc-50 dark:bg-zinc-950/60 whitespace-pre-line font-sans text-xs leading-relaxed max-h-80 overflow-y-auto">
                   {viewingJob.description || (lang === 'en' ? 'No detailed description provided.' : 'Aucune description détaillée fournie.')}
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-900/50 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-950 flex flex-col sm:flex-row items-center justify-between gap-3">
               {viewingJob.url ? (
                 <a
                   href={formatExternalUrl(viewingJob.url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => openExternalLink(viewingJob.url, e)}
-                  className="w-full sm:w-auto px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full sm:w-auto px-3.5 py-2 bg-zinc-200/80 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-md text-xs font-medium transition-colors duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <span>{lang === 'en' ? 'View on Source Website' : 'Voir sur le site officiel'}</span>
-                  <ExternalLink size={14} />
+                  <ExternalLink size={13} />
                 </a>
               ) : <div />}
 
@@ -1559,9 +1554,9 @@ export function JobScraperView({
                       onGoToTailor(viewingJob.description);
                       setViewingJob(null);
                     }}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-md text-xs font-medium transition-colors duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <Sparkles size={14} />
+                    <Sparkles size={13} className="text-blue-600 dark:text-blue-400" />
                     <span>{lang === 'en' ? 'Tailor CV with AI' : 'Adapter mon CV'}</span>
                   </button>
                 )}
@@ -1572,9 +1567,9 @@ export function JobScraperView({
                     handleTransferToApplications(viewingJob);
                     setViewingJob(null);
                   }}
-                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                  className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors duration-150 flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <Plus size={15} />
+                  <Plus size={14} />
                   <span>{lang === 'en' ? 'Transfer to Applications (+)' : 'Transférer dans mes Candidatures (+)'}</span>
                 </button>
               </div>

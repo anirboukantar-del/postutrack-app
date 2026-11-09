@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
 import { 
-  Terminal, 
   Copy, 
   Check, 
-  ExternalLink, 
-  Zap, 
-  ShieldCheck, 
-  HelpCircle, 
-  Globe, 
   ChevronDown, 
   ChevronUp,
-  Cpu,
   Radio,
   AlertCircle,
-  Sparkles
-} from 'lucide-react';
+} from './icons';
 import { isHttpsOrigin, isLocalhostUrl } from './ollamaService';
 
 export default function OllamaBridgeHelper({
@@ -23,7 +15,7 @@ export default function OllamaBridgeHelper({
   lang = 'fr',
   isCompact = false
 }) {
-  const [activeTab, setActiveTab] = useState('cloudflared'); // 'cloudflared' is default because it avoids 403 and has zero interstitials
+  const [activeTab, setActiveTab] = useState('cloudflared');
   const [copiedKey, setCopiedKey] = useState(null);
   const [isExpanded, setIsExpanded] = useState(!isCompact);
 
@@ -44,7 +36,7 @@ export default function OllamaBridgeHelper({
       id: 'cloudflared',
       name: 'Cloudflare Tunnel',
       badge: isEn ? 'Recommended (No 403)' : 'Recommandé (Anti-403)',
-      badgeColor: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800',
+      badgeColor: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
       command: 'cloudflared tunnel --url http://localhost:11434 --http-host-header localhost',
       desc: isEn
         ? 'Best solution: automatically rewrites host headers to bypass 403 errors with zero account required.'
@@ -64,7 +56,7 @@ export default function OllamaBridgeHelper({
       id: 'ngrok',
       name: 'ngrok',
       badge: 'ngrok-free',
-      badgeColor: 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-blue-300 dark:border-blue-800',
+      badgeColor: 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
       command: 'ngrok http 11434 --host-header="localhost"',
       desc: isEn
         ? 'Standard tunneling with host-header rewrite to prevent 403 Forbidden.'
@@ -84,7 +76,7 @@ export default function OllamaBridgeHelper({
       id: 'localtunnel',
       name: 'LocalTunnel',
       badge: isEn ? 'Zero install (npx)' : 'Sans install (npx)',
-      badgeColor: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 dark:border-amber-800',
+      badgeColor: 'bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300',
       command: 'npx localtunnel --port 11434 --local-host 127.0.0.1',
       desc: isEn 
         ? 'Runs instantly using npx (Node.js). Gives a free public HTTPS URL.'
@@ -104,7 +96,7 @@ export default function OllamaBridgeHelper({
       id: 'cors',
       name: isEn ? 'Ollama Origins (CORS)' : 'Autoriser Tout (CORS)',
       badge: 'OLLAMA_ORIGINS',
-      badgeColor: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-300 dark:border-purple-800',
+      badgeColor: 'bg-zinc-200 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200',
       command: 'OLLAMA_ORIGINS="*" ollama serve',
       desc: isEn
         ? 'Instructs Ollama to accept requests from all origins and tunnel domains.'
@@ -125,26 +117,27 @@ export default function OllamaBridgeHelper({
   const currentMethod = methods.find(m => m.id === activeTab) || methods[0];
 
   return (
-    <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-50/70 via-white to-indigo-50/40 dark:from-zinc-900/90 dark:via-zinc-900 dark:to-indigo-950/30 overflow-hidden shadow-xs transition-all">
+    <div className="rounded-lg bg-zinc-100/70 dark:bg-zinc-950/60 overflow-hidden transition-colors duration-150">
       {/* Header bar */}
       <div 
         onClick={() => setIsExpanded(!isExpanded)}
-        className="p-3.5 flex items-center justify-between cursor-pointer select-none border-b border-indigo-100/80 dark:border-zinc-800/80 hover:bg-indigo-50/50 dark:hover:bg-zinc-800/50 transition-colors"
+        className="p-3.5 flex items-center justify-between cursor-pointer select-none hover:bg-zinc-200/50 dark:hover:bg-zinc-900 transition-colors duration-150"
       >
         <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-lg bg-indigo-600 text-white shadow-xs">
-            <Radio size={15} className="animate-pulse" />
+          <div className="p-1.5 rounded-md bg-blue-600 text-white">
+            <Radio size={15} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
+              <span className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                 {isEn ? 'Connect Local Ollama (Anti-403 Bridge)' : 'Connecter Ollama Local (Passerelle Anti-403)'}
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+              <span className="text-zinc-300 dark:text-zinc-700" aria-hidden="true">·</span>
+              <span className="font-mono text-[11px] text-blue-600 dark:text-blue-400">
                 HTTPS Bridge
               </span>
             </div>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400">
+            <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
               {isEn 
                 ? 'Because this app runs online over HTTPS, connect your local GPU in 1 terminal command.'
                 : 'Application en ligne sécurisée : connectez votre modèle local en 1 commande sans erreur 403.'}
@@ -154,7 +147,7 @@ export default function OllamaBridgeHelper({
 
         <button
           type="button"
-          className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1 p-1 hover:underline cursor-pointer"
+          className="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1 p-1 hover:underline cursor-pointer"
         >
           <span>{isExpanded ? (isEn ? 'Hide Guide' : 'Masquer le guide') : (isEn ? 'Show Guide' : 'Afficher le guide')}</span>
           {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
@@ -163,12 +156,12 @@ export default function OllamaBridgeHelper({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="p-4 space-y-4 text-xs animate-in fade-in duration-200">
+        <div className="p-4 pt-1 space-y-3.5 text-xs animate-in fade-in duration-150">
           {/* Solution direct Anti-403 Banner */}
-          <div className="p-3.5 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-700/80 text-amber-900 dark:text-amber-200 space-y-2">
+          <div className="p-3.5 rounded-md bg-amber-500/10 dark:bg-amber-500/15 text-amber-900 dark:text-amber-200 space-y-2">
             <div className="flex items-center gap-2">
-              <AlertCircle size={17} className="text-amber-600 dark:text-amber-400 shrink-0" />
-              <strong className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-100">
+              <AlertCircle size={16} className="text-amber-600 dark:text-amber-400 shrink-0" />
+              <strong className="font-semibold text-xs sm:text-sm text-amber-950 dark:text-amber-100">
                 {isEn ? 'Fixing Error 403 Forbidden (Why Ollama blocks connections)' : 'Résolution de l\'Erreur 403 (Pourquoi Ollama bloque l\'accès)'}
               </strong>
             </div>
@@ -179,8 +172,8 @@ export default function OllamaBridgeHelper({
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 space-y-1">
-                <span className="text-[10px] text-zinc-400 font-semibold block">
+              <div className="p-2.5 rounded-md bg-zinc-950 text-zinc-100 space-y-1">
+                <span className="text-[10px] text-zinc-400 font-medium block">
                   {isEn ? 'Option A: Cloudflare (Easiest)' : 'Option A : Cloudflare Tunnel (Recommandé)'}
                 </span>
                 <div className="font-mono text-[11px] text-emerald-300 select-all flex items-center justify-between gap-1">
@@ -188,7 +181,7 @@ export default function OllamaBridgeHelper({
                   <button
                     type="button"
                     onClick={() => handleCopy('cloudflared tunnel --url http://localhost:11434 --http-host-header localhost', 'cf-quick')}
-                    className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 shrink-0 cursor-pointer"
+                    className="p-1 rounded-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-300 shrink-0 cursor-pointer"
                     title="Copier"
                   >
                     {copiedKey === 'cf-quick' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -196,8 +189,8 @@ export default function OllamaBridgeHelper({
                 </div>
               </div>
 
-              <div className="p-2.5 rounded-lg bg-zinc-950 border border-zinc-800 text-zinc-100 space-y-1">
-                <span className="text-[10px] text-zinc-400 font-semibold block">
+              <div className="p-2.5 rounded-md bg-zinc-950 text-zinc-100 space-y-1">
+                <span className="text-[10px] text-zinc-400 font-medium block">
                   {isEn ? 'Option B: Allow Origins in Ollama' : 'Option B : Lancer Ollama avec OLLAMA_ORIGINS'}
                 </span>
                 <div className="font-mono text-[11px] text-emerald-300 select-all flex items-center justify-between gap-1">
@@ -205,7 +198,7 @@ export default function OllamaBridgeHelper({
                   <button
                     type="button"
                     onClick={() => handleCopy('OLLAMA_ORIGINS="*" ollama serve', 'origins-quick')}
-                    className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 shrink-0 cursor-pointer"
+                    className="p-1 rounded-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-300 shrink-0 cursor-pointer"
                     title="Copier"
                   >
                     {copiedKey === 'origins-quick' ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
@@ -216,62 +209,57 @@ export default function OllamaBridgeHelper({
           </div>
 
           {/* Navigation Tabs */}
-          <div className="flex flex-wrap gap-1.5 border-b border-gray-200 dark:border-zinc-800 pb-2">
+          <div className="flex flex-wrap gap-1.5">
             {methods.map(m => (
               <button
                 key={m.id}
                 type="button"
                 onClick={() => setActiveTab(m.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 ${
                   activeTab === m.id
-                    ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-700 border border-gray-200 dark:border-zinc-700'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'
                 }`}
               >
                 <span>{m.name}</span>
-                {m.id === 'cloudflared' && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-200 font-bold">
-                    ★
-                  </span>
-                )}
               </button>
             ))}
           </div>
 
           {/* Active Tab Panel */}
-          <div className="space-y-3 bg-white dark:bg-zinc-900/90 p-4 rounded-xl border border-gray-200 dark:border-zinc-800">
+          <div className="space-y-3 bg-white dark:bg-zinc-900 p-4 rounded-md">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-gray-900 dark:text-white text-sm">
+                <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">
                   {currentMethod.name}
                 </span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${currentMethod.badgeColor}`}>
+                <span className={`px-2 py-0.5 rounded-sm text-[10px] font-medium ${currentMethod.badgeColor}`}>
                   {currentMethod.badge}
                 </span>
               </div>
-              <span className="text-[11px] text-gray-500 dark:text-gray-400">
+              <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
                 {currentMethod.desc}
               </span>
             </div>
 
             {/* Terminal Command Box */}
             <div className="relative group">
-              <div className="bg-zinc-950 text-emerald-400 font-mono text-xs sm:text-sm p-3.5 rounded-lg border border-zinc-800 flex items-center justify-between gap-3 overflow-x-auto shadow-inner">
+              <div className="bg-zinc-950 text-emerald-400 font-mono text-xs sm:text-sm p-3 rounded-md flex items-center justify-between gap-3 overflow-x-auto">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-zinc-500 select-none">$</span>
-                  <span className="text-emerald-300 select-all font-semibold tracking-wide">
+                  <span className="text-emerald-300 select-all font-medium tracking-wide">
                     {currentMethod.command}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleCopy(currentMethod.command, currentMethod.id)}
-                  className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-sans font-semibold flex items-center gap-1.5 shrink-0 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-sans font-medium flex items-center gap-1.5 shrink-0 transition-colors duration-150 cursor-pointer"
                 >
                   {copiedKey === currentMethod.id ? (
                     <>
                       <Check size={13} className="text-emerald-400" />
-                      <span className="text-emerald-400">{isEn ? 'Copied!' : 'Copié !'}</span>
+                      <span className="text-emerald-400">{isEn ? 'Copied' : 'Copié'}</span>
                     </>
                   ) : (
                     <>
@@ -285,10 +273,10 @@ export default function OllamaBridgeHelper({
 
             {/* Step-by-step instructions */}
             <div className="space-y-1.5 pt-1">
-              <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+              <span className="text-[11px] font-semibold text-zinc-700 dark:text-zinc-300 uppercase tracking-wider">
                 {isEn ? 'Instructions:' : 'Étapes à suivre :'}
               </span>
-              <ol className="list-decimal list-inside space-y-1 text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed">
+              <ol className="list-decimal list-inside space-y-1 text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
                 {currentMethod.steps.map((step, idx) => (
                   <li key={idx} className="pl-1">
                     <span>{step}</span>

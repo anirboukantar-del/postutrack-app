@@ -159,10 +159,49 @@
   }
 }
 
+/* =========================================================================
+   Prompt-Kit Typography (Geist & Geist Mono) & High-Craft Unslop Foundation
+   ========================================================================= */
+:root {
+  --font-geist-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-geist-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html,
+body {
+  font-family: var(--font-geist-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  background-color: #f4f4f5; /* zinc-100 subtle canvas so white blocks need zero borders */
+  color: #18181b; /* zinc-900 */
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-geist-mono) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tabular numerals discipline for tables, KPIs, and numeric counters */
+table td,
+table th,
+.tabular-nums,
+input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Balanced headlines (no orphan trailing words) */
+h1, h2, h3 {
+  text-wrap: balance;
+  letter-spacing: -0.02em;
+}
+
 /* Custom sleek scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.35) transparent;
+  scrollbar-color: rgba(161, 161, 170, 0.35) transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
@@ -175,33 +214,58 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.35);
+  background-color: rgba(161, 161, 170, 0.35);
   border-radius: 9999px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.6);
+  background-color: rgba(161, 161, 170, 0.6);
 }
 
 /* =========================================================================
-   Harmonized Dark Mode Theme (Cohesive Zinc/Neutral Dark UI — NOT BLUE)
+   Unslop Surface & Borderless Block Discipline
    ========================================================================= */
-html.dark,
-.dark body {
-  background-color: #09090b !important; /* zinc-950 deep canvas */
-  color: #f4f4f5 !important; /* zinc-100 */
+/* Eliminate bloated multi-layer shadows on UI blocks */
+.shadow-2xl:not([role="dialog"]):not(.modal-box),
+.shadow-xl:not([role="dialog"]):not(.modal-box),
+.shadow-lg:not(#cv-render):not(#letter-render),
+.shadow-md:not(#cv-render):not(#letter-render),
+.shadow-sm:not(#cv-render):not(#letter-render) {
+  box-shadow: none !important;
 }
 
-/* Base application wrapper in dark mode */
+/* Eradicate borders between UI blocks (preserve A4 resume preview & form controls) */
+aside,
+header,
+nav,
+main section,
+main div:not(#cv-render):not(#cv-render *):not(#letter-render):not(#letter-render *),
+[role="dialog"],
+[role="dialog"] div:not(#cv-render):not(#cv-render *):not(#letter-render):not(#letter-render *),
+table:not(#cv-render table),
+thead:not(#cv-render thead),
+tbody:not(#cv-render tbody),
+tr:not(#cv-render tr),
+th:not(#cv-render th),
+td:not(#cv-render td) {
+  border-color: transparent !important;
+}
+
+/* =========================================================================
+   Harmonized Dark Mode Theme (Cohesive Zinc Luminance Hierarchy)
+   ========================================================================= */
+html.dark,
+.dark body,
 .dark .min-h-screen {
-  background-color: #09090b !important;
+  background-color: #09090b !important; /* zinc-950 deep canvas */
+  color: #f4f4f5 !important; /* zinc-100 */
 }
 
 /* Dark mode main navigation & header bars */
 .dark aside,
 .dark header {
-  background-color: #0c0c0e !important; /* sleek deep neutral surface */
-  border-color: #27272a !important; /* zinc-800 */
+  background-color: #0e0e11 !important;
+  border-color: transparent !important;
 }
 
 /* Containers, modals, tables, and card surfaces in dark mode */
@@ -209,15 +273,15 @@ html.dark,
 .dark [class*="dark:bg-gray-800"],
 .dark [class*="dark:bg-slate-800"],
 .dark [class*="dark:bg-zinc-950"] {
-  background-color: #09090b !important; /* match applications table deep zinc-950 background */
-  border-color: #27272a !important;
+  background-color: #09090b !important;
+  border-color: transparent !important;
 }
 
 .dark .bg-gray-900,
 .dark [class*="dark:bg-gray-900"],
 .dark [class*="dark:bg-zinc-900"] {
   background-color: #121215 !important;
-  border-color: #27272a !important;
+  border-color: transparent !important;
 }
 
 .dark .bg-gray-700,
@@ -225,151 +289,126 @@ html.dark,
 .dark .bg-slate-700,
 .dark [class*="dark:bg-slate-700"] {
   background-color: #18181b !important;
-  border-color: #27272a !important;
+  border-color: transparent !important;
 }
 
-.dark .border-gray-700,
-.dark [class*="dark:border-gray-700"],
-.dark .border-gray-800,
-.dark [class*="dark:border-gray-800"],
-.dark [class*="dark:border-slate-700"],
-.dark [class*="dark:border-slate-800"],
-.dark [class*="dark:border-zinc-800"],
-.dark [class*="dark:divide-gray-700"],
-.dark [class*="dark:divide-zinc-800"] {
-  border-color: #27272a !important;
-}
-
-/* Neutralize blue-tinted dark backgrounds (not blue!) */
+/* Neutralize blue-tinted dark backgrounds */
 .dark [class*="dark:bg-blue-950"]:not(button):not(a),
 .dark [class*="dark:bg-blue-900/40"]:not(button):not(a),
 .dark [class*="dark:bg-blue-900/50"]:not(button):not(a),
 .dark [class*="dark:bg-blue-900/60"]:not(button):not(a) {
-  background-color: #121216 !important;
-  border-color: #27272a !important;
-}
-
-.dark [class*="dark:border-blue-900"],
-.dark [class*="dark:border-blue-800"] {
-  border-color: #27272a !important;
+  background-color: #141418 !important;
+  border-color: transparent !important;
 }
 
 /* Harmonized Buttons in Dark Mode: keep brand blue vibrancy consistent with light mode */
 .dark button.bg-blue-600,
 .dark a.bg-blue-600,
 .dark .bg-blue-600 {
-  background-color: #2563eb !important; /* blue-600 vibrant */
+  background-color: #2563eb !important;
   color: #ffffff !important;
-  border: 1px solid #3b82f6 !important;
+  border-color: transparent !important;
 }
 
 .dark button.bg-blue-600:hover,
 .dark a.bg-blue-600:hover,
 .dark .bg-blue-600:hover {
-  background-color: #1d4ed8 !important; /* blue-700 */
-  border-color: #60a5fa !important;
+  background-color: #1d4ed8 !important;
 }
 
 /* Inputs, textareas, selects in dark mode */
 .dark input,
 .dark textarea,
 .dark select {
-  background-color: #121215 !important;
-  border-color: #27272a !important;
+  background-color: #18181b !important;
+  border-color: transparent !important;
   color: #f4f4f5 !important;
 }
 
 .dark input:focus,
 .dark textarea:focus,
 .dark select:focus {
-  border-color: #3f3f46 !important;
-  --tw-ring-color: #3f3f46 !important;
+  border-color: #3b82f6 !important;
+  --tw-ring-color: rgba(59, 130, 246, 0.25) !important;
 }
 
-/* Harmonized Status Badges & Pills in Dark Mode (Soft, readable contrast without overpowering blue) */
+/* Harmonized Status Badges in Dark Mode */
 .dark [class*="dark:bg-blue-900"],
 .dark [class*="dark:bg-blue-950"] {
-  background-color: rgba(37, 99, 235, 0.16) !important;
-  border-color: rgba(59, 130, 246, 0.3) !important;
+  background-color: rgba(37, 99, 235, 0.14) !important;
+  border-color: transparent !important;
   color: #93c5fd !important;
 }
 
 .dark [class*="dark:bg-emerald-900"],
 .dark [class*="dark:bg-emerald-950"] {
-  background-color: rgba(16, 185, 129, 0.16) !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
+  background-color: rgba(16, 185, 129, 0.14) !important;
+  border-color: transparent !important;
   color: #6ee7b7 !important;
 }
 
 .dark [class*="dark:bg-rose-900"],
 .dark [class*="dark:bg-rose-950"] {
-  background-color: rgba(244, 63, 94, 0.16) !important;
-  border-color: rgba(244, 63, 94, 0.3) !important;
+  background-color: rgba(244, 63, 94, 0.14) !important;
+  border-color: transparent !important;
   color: #fda4af !important;
 }
 
 .dark [class*="dark:bg-amber-900"],
 .dark [class*="dark:bg-amber-950"] {
-  background-color: rgba(245, 158, 11, 0.16) !important;
-  border-color: rgba(245, 158, 11, 0.3) !important;
+  background-color: rgba(245, 158, 11, 0.14) !important;
+  border-color: transparent !important;
   color: #fcd34d !important;
 }
 
 .dark [class*="dark:bg-purple-900"],
 .dark [class*="dark:bg-purple-950"] {
-  background-color: rgba(168, 85, 247, 0.16) !important;
-  border-color: rgba(168, 85, 247, 0.3) !important;
+  background-color: rgba(168, 85, 247, 0.14) !important;
+  border-color: transparent !important;
   color: #d8b4fe !important;
 }
 
 /* =========================================================================
-   Sleek Geometry: Crisp, modern radius instead of bloated round shapes
-   Make edges less round throughout the whole app
+   Prompt-Kit & Unslop Crisp Geometry (6px / 4px subtle radii)
    ========================================================================= */
 .rounded-3xl {
-  border-radius: 6px !important;
+  border-radius: 8px !important;
 }
 
 .rounded-2xl {
-  border-radius: 5px !important;
+  border-radius: 6px !important;
 }
 
 .rounded-xl {
-  border-radius: 4px !important;
+  border-radius: 6px !important;
 }
 
 .rounded-lg {
-  border-radius: 4px !important;
+  border-radius: 5px !important;
 }
 
 .rounded-md {
-  border-radius: 3px !important;
+  border-radius: 4px !important;
 }
 
 .rounded-sm {
-  border-radius: 2px !important;
+  border-radius: 3px !important;
 }
 
-/* Buttons, inputs, selects, textareas have crisp, modern square-ish edges */
 button:not([class*="w-"]):not([class*="h-"]),
 input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
-  border-radius: 4px !important;
+  border-radius: 5px !important;
 }
 
-/* Dialogs & Modals */
 [role="dialog"],
 .modal-box {
-  border-radius: 6px !important;
+  border-radius: 8px !important;
 }
 
-/* Tags and status pills - sleek rectangular tags with subtle rounding instead of pills */
 span.rounded-full:not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]),
 div.rounded-full:not([class*="w-1"]):not([class*="w-2"]):not([class*="h-1"]):not([class*="h-2"]):not([class*="w-5"]):not([class*="w-6"]):not([class*="w-7"]):not([class*="w-8"]):not([class*="w-9"]):not([class*="w-10"]),
 button.rounded-full:not([class*="w-5"]):not([class*="w-6"]):not([class*="w-7"]):not([class*="w-8"]):not([class*="w-9"]):not([class*="w-10"]):not([class*="h-5"]):not([class*="h-6"]):not([class*="h-7"]):not([class*="h-8"]):not([class*="h-9"]):not([class*="h-10"]) {
-  border-radius: 3px !important;
+  border-radius: 4px !important;
 }
-
-
-

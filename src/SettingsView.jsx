@@ -25,9 +25,11 @@ import {
   CheckCircle2,
   AlertTriangle,
   Layers,
-  Zap
-} from 'lucide-react';
-import { BookOpen, HelpCircle, ExternalLink } from 'lucide-react';
+  Zap,
+  BookOpen,
+  HelpCircle,
+  ExternalLink
+} from './icons';
 import { DEFAULT_MASTER_CV_PROMPT, DEFAULT_MASTER_LETTER_PROMPT } from './masterPrompts';
 import { 
   DEFAULT_OLLAMA_URL, 
@@ -251,43 +253,43 @@ export default function SettingsView({
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+    <div className="max-w-4xl mx-auto space-y-4">
       
       {/* Header */}
       <div className="pb-1">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
+        <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
           {t.settingsTitle || (lang === 'en' ? 'Settings & Preferences' : 'Paramètres & Préférences')}
         </h2>
-        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-1">
           {t.settingsSubtitle || (lang === 'en' ? 'Manage your AI credentials, developer tools, and local data.' : 'Gérez vos clés d\'IA, vos outils développeur et vos données locales.')}
         </p>
       </div>
 
       {resetSuccessNotice && (
-        <div className="p-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm font-medium flex items-center gap-2.5 animate-in fade-in">
-          <CheckCircle size={20} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 rounded-md text-xs sm:text-sm font-medium flex items-center gap-2.5">
+          <CheckCircle size={18} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
           <span>{t.resetSuccessNotice}</span>
         </div>
       )}
 
       {/* 1. AI CONFIGURATION */}
-      <div className="space-y-4 pt-2 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h3 className="font-bold text-base text-gray-900 dark:text-white">
+            <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 tracking-tight">
               {t.aiConfigTitle || 'Configuration de l\'IA'}
             </h3>
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">
               {lang === 'en' ? 'Active engine for CV & Cover letter generation' : 'Moteur actif pour la génération de CV et lettres'}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-gray-500 dark:text-zinc-400 hidden sm:inline">
+            <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400 hidden sm:inline">
               {lang === 'en' ? 'Provider:' : 'Fournisseur :'}
             </label>
             <select 
-              className="px-3 py-2 border border-gray-200 dark:border-zinc-800 rounded-md text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 text-gray-900 dark:text-white font-semibold shadow-xs outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
+              className="px-3 py-2 rounded-md text-xs sm:text-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
               value={selectedAiModel}
               onChange={(e) => setSelectedAiModel(e.target.value)}
             >
@@ -302,19 +304,19 @@ export default function SettingsView({
         </div>
 
         {/* Privacy Note */}
-        <div className={`flex items-start gap-2.5 p-3.5 border rounded-md text-xs ${
+        <div className={`flex items-start gap-2.5 p-3.5 rounded-md text-xs ${
           selectedAiModel === 'ollama'
-            ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+            ? 'bg-emerald-50/70 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-200'
             : selectedAiModel === 'groq'
-            ? 'bg-amber-50/80 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200'
-            : 'bg-gray-50/70 dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 text-gray-700 dark:text-zinc-300'
+            ? 'bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200'
+            : 'bg-zinc-50 dark:bg-zinc-950/60 text-zinc-600 dark:text-zinc-400'
         }`}>
           {selectedAiModel === 'ollama' ? (
-            <Server size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+            <Server size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
           ) : selectedAiModel === 'groq' ? (
-            <Zap size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <Zap size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           ) : (
-            <ShieldCheck size={16} className="text-blue-600 dark:text-zinc-400 shrink-0 mt-0.5" />
+            <ShieldCheck size={15} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
           )}
           <span>
             {selectedAiModel === 'ollama'
@@ -333,20 +335,20 @@ export default function SettingsView({
         <div className="space-y-4">
           {/* OLLAMA CONFIGURATION PANEL */}
           {selectedAiModel === 'ollama' && (
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-zinc-200/70 dark:border-zinc-800">
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-950/60 rounded-lg space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg">
-                    <Server size={18} />
+                  <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-md">
+                    <Server size={17} />
                   </div>
                   <div>
-                    <h4 className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                    <h4 className="text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 tracking-tight">
                       <span>Ollama Local Server</span>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300/40">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
                         {t.ollamaBadge || '100% Local'}
                       </span>
                     </h4>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                       {t.ollamaQuickDesc || (lang === 'en' ? 'Run open-weight LLMs locally on your own machine.' : 'Exécutez vos modèles en local sans clé API.')}
                     </p>
                   </div>
@@ -356,7 +358,7 @@ export default function SettingsView({
                   type="button"
                   onClick={handleTestOllama}
                   disabled={testingOllama}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white rounded-lg text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer disabled:opacity-50"
                 >
                   <RefreshCw size={13} className={testingOllama ? 'animate-spin' : ''} />
                   <span>{testingOllama ? (t.ollamaTesting || 'Connexion...') : (t.ollamaTestBtn || 'Tester & Détecter les modèles')}</span>
@@ -365,10 +367,10 @@ export default function SettingsView({
 
               {/* Status Notice */}
               {ollamaStatus && (
-                <div className={`p-3 rounded-lg text-xs font-medium flex items-start gap-2 animate-in fade-in ${
+                <div className={`p-3 rounded-md text-xs font-medium flex items-start gap-2 ${
                   ollamaStatus.success
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
-                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200'
                 }`}>
                   {ollamaStatus.success ? (
                     <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" />
@@ -376,18 +378,18 @@ export default function SettingsView({
                     <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
                   )}
                   <div className="space-y-1.5 flex-1 min-w-0">
-                    <p className="font-semibold">{ollamaStatus.message}</p>
+                    <p className="font-medium">{ollamaStatus.message}</p>
                     {!ollamaStatus.success && String(ollamaStatus.message).includes('403') && (
-                      <div className="mt-2 p-2.5 rounded-lg bg-amber-100/90 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 space-y-1.5">
-                        <span className="font-bold text-amber-950 dark:text-amber-100 block text-[11px]">
+                      <div className="mt-2 p-2.5 rounded-md bg-amber-100/80 dark:bg-amber-900/40 space-y-1.5">
+                        <span className="font-semibold text-amber-950 dark:text-amber-100 block text-[11px]">
                           {lang === 'en' ? 'Quick fix for Error 403:' : 'Comment débloquer l\'Erreur 403 en 1 clic :'}
                         </span>
-                        <div className="font-mono text-[11px] bg-zinc-950 text-emerald-300 p-2 rounded flex items-center justify-between gap-2">
+                        <div className="font-mono text-[11px] bg-zinc-950 text-emerald-300 p-2 rounded-md flex items-center justify-between gap-2">
                           <span className="select-all truncate">OLLAMA_ORIGINS="*" ollama serve</span>
                           <button
                             type="button"
                             onClick={() => navigator.clipboard?.writeText('OLLAMA_ORIGINS="*" ollama serve')}
-                            className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-sans font-bold cursor-pointer shrink-0"
+                            className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-sans font-medium cursor-pointer shrink-0 transition-colors duration-150"
                           >
                             {lang === 'en' ? 'Copy' : 'Copier'}
                           </button>
@@ -413,7 +415,7 @@ export default function SettingsView({
               {/* Host / URL Field */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                  <label className="text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                     <Globe size={13} className="text-emerald-600" />
                     <span>{t.ollamaUrlLabel || "URL du serveur Ollama"}</span>
                   </label>
@@ -430,11 +432,11 @@ export default function SettingsView({
                 <input
                   type="text"
                   placeholder={t.ollamaUrlPlaceholder || "http://localhost:11434"}
-                  className="w-full p-2.5 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  className="w-full p-2.5 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none transition-colors duration-150"
                   value={ollamaUrl}
                   onChange={e => handleKeyChange(e.target.value, setOllamaUrl)}
                 />
-                <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                   {t.ollamaUrlHelp || "Par défaut http://localhost:11434. Fonctionne en direct ou via proxy automatique."}
                 </p>
               </div>
@@ -442,12 +444,12 @@ export default function SettingsView({
               {/* Model Selection */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                  <label className="text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                     <Layers size={13} className="text-emerald-600" />
                     <span>{t.ollamaModelLabel || "Modèle Ollama"}</span>
                   </label>
                   {availableOllamaModels.length > 0 && (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium font-mono tabular-nums">
                       {availableOllamaModels.length} {lang === 'en' ? 'installed models detected' : 'modèles installés détectés'}
                     </span>
                   )}
@@ -456,7 +458,7 @@ export default function SettingsView({
                 {/* Dropdown if detected models exist */}
                 {availableOllamaModels.length > 0 && (
                   <select
-                    className="w-full p-2.5 border border-emerald-300 dark:border-emerald-800 rounded-md bg-emerald-50/50 dark:bg-zinc-900 text-xs sm:text-sm font-mono text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
+                    className="w-full p-2.5 rounded-md bg-emerald-50/50 dark:bg-zinc-900 text-xs sm:text-sm font-mono text-zinc-900 dark:text-zinc-100 focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"
                     value={availableOllamaModels.includes(ollamaModel) ? ollamaModel : ''}
                     onChange={e => {
                       if (e.target.value) handleKeyChange(e.target.value, setOllamaModel);
@@ -473,15 +475,15 @@ export default function SettingsView({
                 <input
                   type="text"
                   placeholder={t.ollamaModelPlaceholder || "ex: llama3.2:3b, mistral, deepseek-r1, qwen2.5..."}
-                  className="w-full p-2.5 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                  className="w-full p-2.5 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500 outline-none transition-colors duration-150"
                   value={ollamaModel}
                   onChange={e => handleKeyChange(e.target.value, setOllamaModel)}
                 />
 
                 {/* Installed models detected on user's machine */}
                 {availableOllamaModels.length > 0 && (
-                  <div className="space-y-1.5 p-2.5 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60">
-                    <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                  <div className="space-y-1.5 p-2.5 rounded-md bg-emerald-50/70 dark:bg-emerald-950/30">
+                    <span className="text-[11px] font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
                       <CheckCircle2 size={13} className="text-emerald-600" />
                       {lang === 'en' ? 'Models detected on your Ollama:' : 'Modèles installés sur votre Ollama (cliquez pour choisir) :'}
                     </span>
@@ -491,10 +493,10 @@ export default function SettingsView({
                           key={m}
                           type="button"
                           onClick={() => handleKeyChange(m, setOllamaModel)}
-                          className={`text-xs px-2.5 py-1 rounded-md border font-mono font-semibold transition-all cursor-pointer ${
+                          className={`text-xs px-2.5 py-1 rounded-md font-mono font-medium transition-colors duration-150 cursor-pointer ${
                             ollamaModel === m
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                              : 'bg-white dark:bg-zinc-800 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-white dark:bg-zinc-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'
                           }`}
                         >
                           ✓ {m}
@@ -506,7 +508,7 @@ export default function SettingsView({
 
                 {/* Popular model shortcuts */}
                 <div className="space-y-1 pt-1">
-                  <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                  <span className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400">
                     {lang === 'en' ? 'Quick select popular models:' : 'Sélection rapide de modèles populaires :'}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
@@ -515,10 +517,10 @@ export default function SettingsView({
                         key={pm.id}
                         type="button"
                         onClick={() => handleKeyChange(pm.id, setOllamaModel)}
-                        className={`text-[11px] px-2.5 py-1 rounded-md border font-mono transition-all cursor-pointer ${
+                        className={`text-[11px] px-2.5 py-1 rounded-md font-mono transition-colors duration-150 cursor-pointer ${
                           ollamaModel === pm.id
-                            ? 'bg-emerald-600 text-white border-emerald-600 font-bold shadow-xs'
-                            : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-zinc-700 hover:border-emerald-400'
+                            ? 'bg-emerald-600 text-white font-semibold'
+                            : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700'
                         }`}
                         title={pm.desc}
                       >
@@ -530,13 +532,13 @@ export default function SettingsView({
               </div>
 
               {/* Quick Terminal Guide */}
-              <div className="p-3 bg-zinc-950 text-zinc-300 rounded-lg text-[11px] font-mono space-y-1.5 border border-zinc-800">
-                <div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-bold tracking-wider">
+              <div className="p-3 bg-zinc-950 text-zinc-300 rounded-md text-[11px] font-mono space-y-1.5">
+                <div className="flex items-center gap-1.5 text-zinc-400 text-[10px] uppercase font-semibold tracking-wider">
                   <Terminal size={12} />
                   <span>{lang === 'en' ? 'Terminal commands to start Ollama' : 'Commandes Terminal pour lancer Ollama'}</span>
                 </div>
                 <div className="space-y-0.5 text-zinc-200">
-                  <div className="text-emerald-400 font-bold">$ ollama run {ollamaModel || 'llama3.2'}</div>
+                  <div className="text-emerald-400 font-semibold">$ ollama run {ollamaModel || 'llama3.2'}</div>
                   <div className="text-zinc-500 text-[10px]">{lang === 'en' ? '# or in background:' : '# ou en arrière-plan :'}</div>
                   <div className="text-zinc-400">$ ollama serve</div>
                 </div>
@@ -546,20 +548,20 @@ export default function SettingsView({
 
           {/* GROQ CLOUD LPU™ CONFIGURATION PANEL */}
           {selectedAiModel === 'groq' && (
-            <div className="p-4 bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 rounded-xl space-y-4">
-              <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-amber-200/60 dark:border-amber-800/40">
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-950/60 rounded-lg space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-lg">
-                    <Zap size={18} />
+                  <div className="p-1.5 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 rounded-md">
+                    <Zap size={17} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-gray-900 dark:text-white">Groq Cloud (LPU™ Inference)</h4>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+                      <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 tracking-tight">Groq Cloud (LPU™ Inference)</h4>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold font-mono tabular-nums bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 uppercase tracking-wider">
                         500+ tok/s
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       {t.groqQuickDesc || (lang === 'en' ? 'Ultra-fast open models powered by Groq LPU™ hardware.' : 'Modèles open source ultra-rapides propulsés par les puces Groq LPU™.')}
                     </p>
                   </div>
@@ -570,7 +572,7 @@ export default function SettingsView({
                     href="https://console.groq.com/keys"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/60 rounded-lg text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-amber-700 dark:text-amber-400 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer"
                   >
                     <span>{lang === 'en' ? 'Get free API key' : 'Obtenir une clé gratuite'}</span>
                     <ExternalLink size={12} />
@@ -580,12 +582,12 @@ export default function SettingsView({
                     type="button"
                     onClick={handleTestGroq}
                     disabled={testingGroq || !groqKey.trim()}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer ${
                       testingGroq
                         ? 'bg-amber-400 text-white cursor-wait opacity-80'
                         : groqKey.trim()
                         ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                        : 'bg-gray-200 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 cursor-not-allowed'
+                        : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 cursor-not-allowed'
                     }`}
                   >
                     <RefreshCw size={13} className={testingGroq ? 'animate-spin' : ''} />
@@ -596,10 +598,10 @@ export default function SettingsView({
 
               {/* Status Alert Banner */}
               {groqStatus && (
-                <div className={`p-3 rounded-lg text-xs flex items-start gap-2 border ${
+                <div className={`p-3 rounded-md text-xs flex items-start gap-2 ${
                   groqStatus.success
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
-                    : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-300 dark:border-red-800'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300'
                 }`}>
                   {groqStatus.success ? (
                     <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
@@ -607,7 +609,7 @@ export default function SettingsView({
                     <AlertTriangle size={16} className="text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
                   )}
                   <div className="space-y-1">
-                    <p className="font-semibold">{groqStatus.message}</p>
+                    <p className="font-medium">{groqStatus.message}</p>
                   </div>
                 </div>
               )}
@@ -615,14 +617,14 @@ export default function SettingsView({
               {/* API Key Input */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                  <label className="block text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                     <Key size={14} className="text-amber-600" />
                     <span>{t.groqKeyLabel || 'Clé API Groq Cloud'}</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowKey(!showKey)}
-                    className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 cursor-pointer"
+                    className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-1 cursor-pointer"
                   >
                     {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
                     <span>{showKey ? (lang === 'en' ? 'Hide' : 'Masquer') : (lang === 'en' ? 'Show' : 'Afficher')}</span>
@@ -631,7 +633,7 @@ export default function SettingsView({
                 <input 
                   type={showKey ? 'text' : 'password'} 
                   placeholder={t.groqKeyPlaceholder || 'gsk_...'} 
-                  className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-amber-500 outline-none transition-all" 
+                  className="w-full p-2.5 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-amber-500 outline-none transition-colors duration-150" 
                   value={groqKey} 
                   onChange={e => handleKeyChange(e.target.value, setGroqKey)} 
                 />
@@ -639,14 +641,14 @@ export default function SettingsView({
 
               {/* Model Selection */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <label className="block text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                   <Cpu size={14} className="text-amber-600" />
                   <span>{t.groqModelLabel || 'Modèle Groq'}</span>
                 </label>
 
                 {/* Dropdown if models detected or presets */}
                 <select
-                  className="w-full p-2.5 border border-gray-200 dark:border-zinc-800 rounded-md text-xs sm:text-sm bg-white dark:bg-zinc-900 text-gray-900 dark:text-white font-mono shadow-xs outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
+                  className="w-full p-2.5 rounded-md text-xs sm:text-sm bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-mono outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer"
                   value={groqModel}
                   onChange={e => handleKeyChange(e.target.value, setGroqModel)}
                 >
@@ -663,7 +665,7 @@ export default function SettingsView({
 
                 {/* Quick Model Chips */}
                 <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                  <span className="text-[11px] font-semibold text-gray-500 dark:text-zinc-400 mr-1">
+                  <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mr-1">
                     {lang === 'en' ? 'Quick select:' : 'Sélection rapide :'}
                   </span>
                   {POPULAR_GROQ_MODELS.map(pm => (
@@ -671,10 +673,10 @@ export default function SettingsView({
                       key={pm.id}
                       type="button"
                       onClick={() => handleKeyChange(pm.id, setGroqModel)}
-                      className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-md text-xs font-mono font-medium transition-colors duration-150 cursor-pointer ${
                         groqModel === pm.id
-                          ? 'bg-amber-600 text-white shadow-2xs font-bold'
-                          : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                          ? 'bg-amber-600 text-white font-semibold'
+                          : 'bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-amber-950/40'
                       }`}
                       title={pm.desc}
                     >
@@ -688,7 +690,7 @@ export default function SettingsView({
                   <input
                     type="text"
                     placeholder={t.groqModelPlaceholder || 'ex: llama-3.3-70b-versatile, llama-3.1-8b-instant...'}
-                    className="w-full p-2 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white text-xs font-mono focus:ring-2 focus:ring-amber-500 outline-none"
+                    className="w-full p-2 rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 text-xs font-mono focus:ring-2 focus:ring-amber-500 outline-none"
                     value={groqModel}
                     onChange={e => handleKeyChange(e.target.value, setGroqModel)}
                   />
@@ -700,13 +702,13 @@ export default function SettingsView({
           {selectedAiModel === 'gemini' && (
             <div>
               <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-                <label className="text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <label className="text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                   <Key size={14} className="text-blue-600" />
                   <span>{t.geminiKeyLabel}</span>
                   <button
                     type="button"
                     onClick={onOpenTutorial}
-                    className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-semibold flex items-center gap-0.5 cursor-pointer ml-1"
+                    className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-medium flex items-center gap-0.5 cursor-pointer ml-1"
                   >
                     <span>({lang === 'en' ? "I don't have an API key" : "Je n'ai pas de clé API"} ↗)</span>
                   </button>
@@ -714,7 +716,7 @@ export default function SettingsView({
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-1 cursor-pointer"
                 >
                   {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
                   <span>{showKey ? (lang === 'en' ? 'Hide' : 'Masquer') : (lang === 'en' ? 'Show' : 'Afficher')}</span>
@@ -723,7 +725,7 @@ export default function SettingsView({
               <input 
                 type={showKey ? 'text' : 'password'} 
                 placeholder={t.geminiKeyPlaceholder} 
-                className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all" 
+                className="w-full p-3 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-600 outline-none transition-colors duration-150" 
                 value={apiKey} 
                 onChange={e => handleKeyChange(e.target.value, setApiKey)} 
               />
@@ -733,14 +735,14 @@ export default function SettingsView({
           {selectedAiModel === 'openai' && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <label className="block text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                   <Key size={14} className="text-blue-600" />
                   <span>{t.openAiKeyLabel}</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-1 cursor-pointer"
                 >
                   {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
                   <span>{showKey ? (lang === 'en' ? 'Hide' : 'Masquer') : (lang === 'en' ? 'Show' : 'Afficher')}</span>
@@ -749,7 +751,7 @@ export default function SettingsView({
               <input 
                 type={showKey ? 'text' : 'password'} 
                 placeholder={t.openAiKeyPlaceholder} 
-                className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all" 
+                className="w-full p-3 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-600 outline-none transition-colors duration-150" 
                 value={openAiKey} 
                 onChange={e => handleKeyChange(e.target.value, setOpenAiKey)} 
               />
@@ -759,14 +761,14 @@ export default function SettingsView({
           {selectedAiModel === 'anthropic' && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <label className="block text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                   <Key size={14} className="text-blue-600" />
                   <span>{t.anthropicKeyLabel}</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-1 cursor-pointer"
                 >
                   {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
                   <span>{showKey ? (lang === 'en' ? 'Hide' : 'Masquer') : (lang === 'en' ? 'Show' : 'Afficher')}</span>
@@ -775,7 +777,7 @@ export default function SettingsView({
               <input 
                 type={showKey ? 'text' : 'password'} 
                 placeholder={t.anthropicKeyPlaceholder} 
-                className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all" 
+                className="w-full p-3 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-600 outline-none transition-colors duration-150" 
                 value={anthropicKey} 
                 onChange={e => handleKeyChange(e.target.value, setAnthropicKey)} 
               />
@@ -785,14 +787,14 @@ export default function SettingsView({
           {selectedAiModel === 'other' && (
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <label className="block text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                   <Key size={14} className="text-blue-600" />
                   <span>{t.otherKeyLabel || (lang === 'en' ? 'API Key / Token (Optional)' : 'Clé API / Token (Optionnelle)')}</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 flex items-center gap-1 cursor-pointer"
                 >
                   {showKey ? <EyeOff size={13} /> : <Eye size={13} />}
                   <span>{showKey ? (lang === 'en' ? 'Hide' : 'Masquer') : (lang === 'en' ? 'Show' : 'Afficher')}</span>
@@ -801,7 +803,7 @@ export default function SettingsView({
               <input 
                 type={showKey ? 'text' : 'password'} 
                 placeholder={t.otherKeyPlaceholder || (lang === 'en' ? 'Paste your API key or Bearer token (leave blank if not required)...' : 'Collez votre clé API personnalisée (laissez vide si non requise)...')} 
-                className="w-full p-3 border border-gray-200 dark:border-zinc-800 rounded-md bg-white dark:bg-zinc-900 dark:text-white text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all" 
+                className="w-full p-3 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-600 outline-none transition-colors duration-150" 
                 value={openAiKey} 
                 onChange={e => handleKeyChange(e.target.value, setOpenAiKey)} 
               />
@@ -810,9 +812,9 @@ export default function SettingsView({
 
           {/* Section URL d'API Personnalisée (Pour Gemini, OpenAI, Claude ou Autre) */}
           {selectedAiModel !== 'ollama' && (
-            <div className="pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1.5">
+            <div className="pt-2 space-y-1.5">
               <div className="flex items-center justify-between gap-2">
-                <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                <label className="block text-xs font-medium text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                   <Globe size={14} className="text-blue-600 dark:text-blue-400" />
                   <span>
                     {selectedAiModel === 'other'
@@ -833,15 +835,11 @@ export default function SettingsView({
               <input 
                 type="text" 
                 placeholder={t.customApiUrlPlaceholder || "ex: https://openrouter.ai/api/v1, https://api.groq.com/openai/v1..."} 
-                className={`w-full p-3 border rounded-md bg-white dark:bg-zinc-900 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-zinc-600 outline-none transition-all dark:text-white ${
-                  selectedAiModel === 'other' && !customApiUrl.trim()
-                    ? 'border-amber-400 dark:border-amber-600 ring-1 ring-amber-400/50'
-                    : 'border-gray-200 dark:border-zinc-800'
-                }`} 
+                className="w-full p-3 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-blue-600 outline-none transition-colors duration-150" 
                 value={customApiUrl} 
                 onChange={e => handleKeyChange(e.target.value, setCustomApiUrl)} 
               />
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed">
                 {selectedAiModel === 'other'
                   ? (lang === 'en' 
                       ? 'Compatible with standard OpenAI API format (e.g., OpenRouter at https://openrouter.ai/api/v1, Groq, LM Studio, vLLM, etc.).' 
@@ -853,7 +851,7 @@ export default function SettingsView({
         </div>
 
         {savedKeyNotice && (
-          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5 animate-in fade-in">
+          <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
             <CheckCircle size={14} />
             <span>{lang === 'en' ? 'Configuration automatically saved in browser' : 'Configuration enregistrée automatiquement dans le navigateur'}</span>
           </div>
@@ -861,40 +859,40 @@ export default function SettingsView({
       </div>
 
       {/* 1b. MASTER AI PROMPT CONFIGURATION & RESTORE */}
-      <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-gray-100 dark:border-gray-800">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-bold text-base text-gray-900 dark:text-white">
+              <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 tracking-tight">
                 {t.masterPromptConfigTitle || (lang === 'en' ? 'Master AI Prompts (System Instructions)' : 'Prompt Maître de l\'IA (Instructions Système)')}
               </h3>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
                   (activePromptTab === 'cv' ? isCvPromptModified : isLetterPromptModified)
-                    ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700'
-                    : 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700'
+                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+                    : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
                 }`}>
                   {(activePromptTab === 'cv' ? isCvPromptModified : isLetterPromptModified)
                     ? (t.masterPromptModifiedBadge || (lang === 'en' ? 'Customized' : 'Personnalisé'))
                     : (t.masterPromptDefaultBadge || (lang === 'en' ? 'Default' : 'Par défaut'))}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 max-w-2xl">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 max-w-2xl">
                 {t.masterPromptConfigSubtitle || (lang === 'en' ? 'Customize the core instructions sent to the AI when generating resumes and cover letters, with the option to restore the original baseline at any time.' : 'Personnalisez les directives fondamentales envoyées à l\'IA lors de la génération de CV et de lettres de motivation, avec option de réinitialisation aux valeurs d\'usine.')}
               </p>
             </div>
 
           {/* Prompt Tabs Switcher */}
-          <div className="flex items-center gap-1 bg-gray-100 dark:bg-zinc-900 p-1 rounded-md border border-gray-200 dark:border-zinc-800">
+          <div className="flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-md">
             <button
               type="button"
               onClick={() => {
                 setActivePromptTab('cv');
                 setShowPromptRestoreConfirm(false);
               }}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 flex items-center gap-1.5 cursor-pointer ${
                 activePromptTab === 'cv'
-                  ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-white shadow-xs'
-                  : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-zinc-100'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
               }`}
             >
               <FileText size={13} />
@@ -907,10 +905,10 @@ export default function SettingsView({
                 setActivePromptTab('letter');
                 setShowPromptRestoreConfirm(false);
               }}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors duration-150 flex items-center gap-1.5 cursor-pointer ${
                 activePromptTab === 'letter'
-                  ? 'bg-white dark:bg-zinc-800 text-blue-600 dark:text-white shadow-xs'
-                  : 'text-gray-600 dark:text-zinc-400 hover:text-gray-900 dark:hover:text-white'
+                  ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-zinc-100'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
               }`}
             >
               <Mail size={13} />
@@ -921,42 +919,42 @@ export default function SettingsView({
         </div>
 
         {/* Dynamic Variables Helper Banner */}
-        <div className="p-3 bg-gray-50/70 dark:bg-zinc-950 border border-gray-200 dark:border-zinc-800 rounded-md space-y-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-gray-800 dark:text-zinc-200">
-            <Info size={14} className="text-blue-600 dark:text-zinc-400 shrink-0" />
+        <div className="p-3 bg-zinc-50 dark:bg-zinc-950/60 rounded-md space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-zinc-800 dark:text-zinc-200">
+            <Info size={14} className="text-blue-600 dark:text-blue-400 shrink-0" />
             <span>{t.masterPromptVariablesTitle || (lang === 'en' ? 'Available Dynamic Variables:' : 'Variables disponibles injectées automatiquement :')}</span>
           </div>
           <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
             {activePromptTab === 'cv' ? (
               <>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{companyName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{roleName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{jobDescription}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateEmail}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidatePhone}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateLocation}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateMasterCV}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{languageDirective}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{densityInstructions}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{modificationInstructions}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{keywordInstructions}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{customInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{companyName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{roleName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{jobDescription}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{candidateName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{candidateEmail}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{candidatePhone}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{candidateLocation}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{candidateMasterCV}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{languageDirective}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{densityInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{modificationInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{keywordInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{customInstructions}"}</span>
               </>
             ) : (
               <>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{companyName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{roleName}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{jobDescription}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateMasterCV}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{candidateMasterLetter}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{languageDirective}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{toneInstructions}"}</span>
-                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-800">{"{customInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{companyName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{roleName}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{jobDescription}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{candidateMasterCV}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{candidateMasterLetter}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{languageDirective}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{toneInstructions}"}</span>
+                <span className="px-2 py-0.5 rounded bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300">{"{customInstructions}"}</span>
               </>
             )}
           </div>
-          <p className="text-[11px] text-gray-600 dark:text-zinc-400 leading-relaxed">
+          <p className="text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
             {t.masterPromptVariablesHelp || (lang === 'en' ? 'Keep tags enclosed in curly braces {variableName} to ensure candidate and job data are injected dynamically.' : 'Conservez les balises entre accolades {nomVariable} pour que les données du candidat et de l\'offre soient injectées.')}
           </p>
         </div>
@@ -974,19 +972,19 @@ export default function SettingsView({
               }
             }}
             placeholder={activePromptTab === 'cv' ? DEFAULT_MASTER_CV_PROMPT : DEFAULT_MASTER_LETTER_PROMPT}
-            className="w-full p-3.5 border border-gray-200 dark:border-zinc-800 rounded-md bg-gray-50/70 dark:bg-zinc-950 dark:text-zinc-100 text-xs font-mono focus:ring-2 focus:ring-zinc-600 outline-none leading-relaxed transition-all shadow-inner resize-y"
+            className="w-full p-3.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-xs font-mono focus:ring-2 focus:ring-blue-600 outline-none leading-relaxed transition-colors duration-150 resize-y"
             spellCheck={false}
           />
         </div>
 
         {/* Action Controls & Notices */}
-        <div className="flex items-center justify-between flex-wrap gap-3 pt-2">
+        <div className="flex items-center justify-between flex-wrap gap-3 pt-1">
           <div className="flex items-center gap-2">
             {/* Save Button */}
             <button
               type="button"
               onClick={handleSavePrompt}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
             >
               <Save size={15} />
               <span>{t.masterPromptSaveBtn || (lang === 'en' ? 'Save Prompt Changes' : 'Enregistrer les modifications du prompt')}</span>
@@ -994,21 +992,21 @@ export default function SettingsView({
 
             {/* Restore Confirmation Dialog or Button */}
             {showPromptRestoreConfirm ? (
-              <div className="flex items-center gap-2 p-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl animate-in fade-in">
-                <span className="text-[11px] font-semibold text-rose-700 dark:text-rose-300 px-2">
+              <div className="flex items-center gap-2 p-1.5 bg-rose-50 dark:bg-rose-950/40 rounded-md">
+                <span className="text-[11px] font-medium text-rose-700 dark:text-rose-300 px-2">
                   {lang === 'en' ? 'Confirm restore to original?' : 'Confirmer la restauration originale ?'}
                 </span>
                 <button
                   type="button"
                   onClick={handleRestorePrompt}
-                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg cursor-pointer transition-colors"
+                  className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-xs font-medium rounded-md cursor-pointer transition-colors duration-150"
                 >
                   {lang === 'en' ? 'Yes, restore' : 'Oui, restaurer'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowPromptRestoreConfirm(false)}
-                  className="px-2 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-medium rounded-lg cursor-pointer transition-colors"
+                  className="px-2 py-1 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 text-xs font-medium rounded-md cursor-pointer transition-colors duration-150"
                 >
                   {t.resetCancelBtn || (lang === 'en' ? 'Cancel' : 'Annuler')}
                 </button>
@@ -1018,10 +1016,10 @@ export default function SettingsView({
                 type="button"
                 onClick={() => setShowPromptRestoreConfirm(true)}
                 disabled={activePromptTab === 'cv' ? !isCvPromptModified : !isLetterPromptModified}
-                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3.5 py-2 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 flex items-center gap-1.5 cursor-pointer ${
                   (activePromptTab === 'cv' ? isCvPromptModified : isLetterPromptModified)
-                    ? 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    : 'border-gray-200 dark:border-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed opacity-60'
+                    ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                    : 'bg-zinc-100/50 dark:bg-zinc-800/40 text-zinc-400 dark:text-zinc-600 cursor-not-allowed opacity-60'
                 }`}
                 title={t.masterPromptResetConfirm}
               >
@@ -1034,13 +1032,13 @@ export default function SettingsView({
           {/* Feedback Notices */}
           <div>
             {promptSavedNotice && (
-              <div className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1.5 animate-in fade-in">
+              <div className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1.5">
                 <CheckCircle size={14} />
                 <span>{t.masterPromptSavedNotice || (lang === 'en' ? 'Master prompt successfully saved!' : 'Prompt maître enregistré avec succès !')}</span>
               </div>
             )}
             {promptRestoredNotice && (
-              <div className="text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-1.5 animate-in fade-in">
+              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1.5">
                 <RotateCcw size={14} />
                 <span>{t.masterPromptRestoredNotice || (lang === 'en' ? 'Original master prompt successfully restored!' : 'Prompt maître restauré avec succès à sa version d\'origine !')}</span>
               </div>
@@ -1050,22 +1048,22 @@ export default function SettingsView({
       </div>
 
       {/* 2. DEV STUDIO SETTINGS */}
-      <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="space-y-1">
-            <h3 className="font-bold text-gray-900 dark:text-white text-base">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm sm:text-base tracking-tight">
               {t.devStudioToggleTitle || 'Dev Studio'}
             </h3>
-            <p className="text-xs text-gray-600 dark:text-gray-400 max-w-xl leading-relaxed">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
               {t.devStudioToggleSubtitle || "Activer ou masquer l'onglet Dev Studio dans la barre de navigation pour concevoir et tester vos CVs sans consommer de tokens API."}
             </p>
           </div>
           
           <div className="flex items-center gap-3 shrink-0 ml-auto sm:ml-0">
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-md ${
               showDevStudio 
-                ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/50 dark:text-amber-200 dark:border-amber-700' 
-                : 'bg-gray-100 text-gray-600 border-gray-300 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200' 
+                : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
             }`}>
               {showDevStudio 
                 ? (t.devStudioEnabled || 'Visible dans le menu') 
@@ -1075,14 +1073,14 @@ export default function SettingsView({
               type="button"
               onClick={handleToggleDevStudio}
               className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                showDevStudio ? 'bg-amber-600' : 'bg-gray-300 dark:bg-gray-600'
+                showDevStudio ? 'bg-amber-600' : 'bg-zinc-300 dark:bg-zinc-700'
               }`}
               role="switch"
               aria-checked={showDevStudio}
               title={t.toggleDevStudioBtn || 'Activer / Désactiver le Dev Studio'}
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white ring-0 transition duration-200 ease-in-out ${
                   showDevStudio ? 'translate-x-5' : 'translate-x-0'
                 }`}
               />
@@ -1093,13 +1091,13 @@ export default function SettingsView({
 
       {/* 3. SAUVEGARDE & TRANSFERT */}
       {(onExportProfile || onExportBackup || onImportData) && (
-        <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-3">
+        <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg space-y-3">
           <div>
-            <h3 className="font-bold text-base text-gray-900 dark:text-white flex items-center gap-2">
-              <Download size={18} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 flex items-center gap-2 tracking-tight">
+              <Download size={16} className="text-blue-600 dark:text-blue-400 shrink-0" />
               <span>{t.backupSettingsSectionTitle || (lang === 'en' ? 'Backup & Transfer (Profile, CVs & Keys)' : 'Sauvegarde & Transfert (Profil, CVs & Clés)')}</span>
             </h3>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 max-w-2xl leading-relaxed">
+            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5 max-w-2xl leading-relaxed">
               {t.backupSettingsSectionSubtitle || (lang === 'en' ? 'Export or import your profile, CV library, API keys, and all local settings.' : 'Exportez ou importez votre profil, votre bibliothèque de CVs, vos clés API et l\'ensemble de vos paramètres locaux.')}
             </p>
           </div>
@@ -1109,7 +1107,7 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={onExportProfile}
-                className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                 title={t.exportProfileTooltip}
               >
                 <Download size={15} />
@@ -1121,7 +1119,7 @@ export default function SettingsView({
               <button
                 type="button"
                 onClick={onExportBackup}
-                className="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                 title={t.exportDataTooltip}
               >
                 <Download size={15} />
@@ -1130,8 +1128,8 @@ export default function SettingsView({
             )}
 
             {onImportData && (
-              <label className="cursor-pointer px-3.5 py-2.5 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-gray-800 dark:text-zinc-200 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-xl text-xs sm:text-sm font-semibold shadow-xs transition-colors flex items-center gap-1.5">
-                <Upload size={15} className="text-gray-600 dark:text-zinc-400" />
+              <label className="cursor-pointer px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 flex items-center gap-1.5">
+                <Upload size={15} className="text-zinc-600 dark:text-zinc-400" />
                 <span>{t.importBackupBtn || (lang === 'en' ? 'Import Backup / Profile (.json)' : 'Importer Sauvegarde / Profil (.json)')}</span>
                 <input type="file" accept=".json" className="hidden" onChange={onImportData} />
               </label>
@@ -1141,12 +1139,12 @@ export default function SettingsView({
       )}
 
       {/* 4. MODE DEMO */}
-      <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-2">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg space-y-2">
         <div>
-          <h3 className="font-bold text-base text-gray-900 dark:text-white">
+          <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100 tracking-tight">
             {t.demoConfirmTitle || (lang === 'en' ? 'Demo Environment (John DEMO)' : 'Environnement de Démo (John DEMO)')}
           </h3>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5 max-w-2xl leading-relaxed">
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5 max-w-2xl leading-relaxed">
             {t.demoConfirmSubtitle || (lang === 'en' ? 'Quickly populate the app with 200 applications across 3 years, the complete profile of John DEMO, and tailored CVs in the library.' : 'Remplissez instantanément l\'application avec 200 candidatures sur 3 ans, le profil complet de John DEMO et plusieurs CVs stylisés dans la bibliothèque.')}
           </p>
         </div>
@@ -1155,24 +1153,24 @@ export default function SettingsView({
           <button
             type="button"
             onClick={onOpenDemoConfirm}
-            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-xs hover:shadow-md transition-all cursor-pointer flex items-center gap-2"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-2"
           >
-            <Sparkles size={16} />
+            <Sparkles size={15} />
             <span>{t.demoConfirmBtn || (lang === 'en' ? 'Load Demo Data (200 applications)' : 'Charger la démo (200 candidatures)')}</span>
           </button>
         </div>
       </div>
 
-      {/* 4. DANGER ZONE / RESET */}
-      <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-2">
+      {/* 5. DANGER ZONE / RESET */}
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg space-y-2">
         <div className="flex items-center gap-2">
-          <AlertOctagon size={18} className="text-rose-600 dark:text-rose-400 shrink-0" />
-          <h3 className="font-bold text-base text-rose-600 dark:text-rose-400">
+          <AlertOctagon size={17} className="text-rose-600 dark:text-rose-400 shrink-0" />
+          <h3 className="font-semibold text-sm sm:text-base text-rose-600 dark:text-rose-400 tracking-tight">
             {t.dangerZoneTitle || 'Zone de Danger / Réinitialisation'}
           </h3>
         </div>
         
-        <p className="text-xs text-gray-600 dark:text-gray-400 max-w-2xl leading-relaxed">
+        <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-2xl leading-relaxed">
           {t.dangerZoneSubtitle || 'Effacez toutes les données stockées localement pour remettre l\'application à zéro.'}
         </p>
 
@@ -1180,9 +1178,9 @@ export default function SettingsView({
           <button
             type="button"
             onClick={onOpenResetConfirm}
-            className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-sm transition-colors cursor-pointer flex items-center gap-2"
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-2"
           >
-            <Trash2 size={16} />
+            <Trash2 size={15} />
             <span>{t.resetDataBtn || 'Supprimer les données et réinitialiser'}</span>
           </button>
         </div>

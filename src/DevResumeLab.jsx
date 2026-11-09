@@ -27,7 +27,7 @@ import {
   FlaskConical,
   Zap,
   Loader2
-} from 'lucide-react';
+} from './icons';
 import { ResumeRenderer, RESUME_TEMPLATES, ACCENT_COLORS } from './ResumeTemplates';
 import { HIRING_WEATHER_MONTHS } from './HiringWeather';
 import { downloadElementAsPDF } from './pdfExport';
@@ -37,7 +37,7 @@ import { generateYearOfExampleApplications } from './sampleApplications';
 // Preset sample resumes for instant 0-token testing
 const SAMPLE_TECH_CV = {
   fullName: "Alexandre Martin",
-  photo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+  photo: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='%231e3a8a'/><circle cx='100' cy='78' r='36' fill='%2393c5fd'/><path d='M36 188c0-35 29-60 64-60s64 25 64 60' fill='%2393c5fd'/></svg>",
   location: "Paris, France",
   email: "alexandre.martin@example.com",
   phone: "+33 6 12 34 56 78",
@@ -97,7 +97,7 @@ const SAMPLE_TECH_CV = {
 
 const SAMPLE_PRODUCT_CV = {
   fullName: "Camille Laurent",
-  photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80",
+  photo: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><rect width='200' height='200' fill='%23312e81'/><circle cx='100' cy='78' r='36' fill='%23a5b4fc'/><path d='M36 188c0-35 29-60 64-60s64 25 64 60' fill='%23a5b4fc'/></svg>",
   location: "Lyon, France",
   email: "camille.laurent@example.com",
   phone: "+33 6 98 76 54 32",

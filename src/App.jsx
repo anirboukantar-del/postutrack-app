@@ -72,8 +72,19 @@ import {
   Server,
   RefreshCw,
   AlignLeft,
-  CheckCircle2
-} from 'lucide-react';
+  CheckCircle2,
+  Cpu
+} from './icons';
+import {
+  PromptInput,
+  PromptInputTextarea,
+  PromptInputActions,
+  PromptInputAction,
+  PromptSuggestion,
+  AgentThinkingTrace,
+  StructuredRecordCard,
+  SegmentedControl
+} from './components/PromptKitUI';
 import { translations } from './i18n';
 import HiringWeatherSection from './HiringWeather';
 import { importJobFromUrl, detectSourceFromUrl, detectContractType, cleanJobDescription, normalizeJobUrl, extractHintsFromUrl } from './urlJobExtractor';
@@ -660,33 +671,33 @@ function AddApplicationModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-xs">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg p-5 sm:p-6 dark:text-white border border-gray-100 dark:border-gray-700 max-h-[92vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4 pb-2 border-b dark:border-gray-700">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg w-full max-w-lg p-5 sm:p-6 dark:text-zinc-100 max-h-[92vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-4 pb-1">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
               {editingApp ? t.editApplication : t.addApplication}
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               {t.importFromUrlSubtitle || "Collez le lien d'une offre pour auto-remplir l'entreprise, le poste et le contrat."}
             </p>
           </div>
           <button 
             type="button"
             onClick={onClose} 
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors duration-150 p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
           >
-            <XCircle size={22} />
+            <XCircle size={20} />
           </button>
         </div>
 
         {/* Section Smart Import from URL */}
-        <div className="mb-5 p-3.5 sm:p-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/70 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/80 dark:border-blue-800/60 rounded-xl space-y-2.5">
+        <div className="mb-5 p-3.5 sm:p-4 bg-zinc-50 dark:bg-zinc-950/60 rounded-lg space-y-2.5">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-bold text-blue-950 dark:text-blue-200 flex items-center gap-1.5">
-              <Sparkles size={15} className="text-blue-600 dark:text-blue-400" />
+            <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+              <Sparkles size={14} className="text-blue-600 dark:text-blue-400" />
               {t.importFromUrlTitle || "Importation automatique depuis l'URL"}
             </span>
-            <span className="text-[11px] text-blue-700/80 dark:text-blue-300">
+            <span className="text-[11px] text-zinc-500 dark:text-zinc-400">
               WTTJ, LinkedIn, Lever, Greenhouse...
             </span>
           </div>
@@ -704,13 +715,13 @@ function AddApplicationModal({
                   }
                 }}
                 placeholder={t.importUrlPlaceholder || "Collez l'URL de l'offre..."}
-                className="w-full pl-3 pr-14 py-2 text-xs sm:text-sm bg-white dark:bg-gray-900 border border-blue-200 dark:border-blue-800 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+                className="w-full pl-3 pr-14 py-2 text-xs sm:text-sm bg-white dark:bg-zinc-900 rounded-md outline-none focus:ring-2 focus:ring-blue-600 text-zinc-900 dark:text-zinc-100"
               />
               <button
                 type="button"
                 onClick={handlePasteFromClipboard}
                 title={t.pasteUrl || "Coller"}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded transition-colors cursor-pointer"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2 py-1 text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors duration-150 cursor-pointer"
               >
                 {t.pasteUrl || "Coller"}
               </button>
@@ -720,7 +731,7 @@ function AddApplicationModal({
               type="button"
               disabled={isImporting || !importUrlInput.trim()}
               onClick={() => handlePerformImport(importUrlInput)}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 shrink-0"
             >
               {isImporting ? (
                 <>
@@ -737,17 +748,17 @@ function AddApplicationModal({
           </div>
 
           {importFeedback && (
-            <div className={`text-xs p-2 rounded-lg flex items-center gap-1.5 animate-in fade-in duration-200 ${
+            <div className={`text-xs p-2 rounded-md flex items-center gap-1.5 animate-in fade-in duration-150 ${
               importFeedback.success 
-                ? 'bg-emerald-100/90 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800' 
-                : 'bg-rose-100/90 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200 border border-rose-300 dark:border-rose-800'
+                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200' 
+                : 'bg-rose-50 dark:bg-rose-950/60 text-rose-900 dark:text-rose-200'
             }`}>
               {importFeedback.success ? (
                 <>
                   <CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span className="font-medium truncate flex-1">{importFeedback.message}</span>
                   {importFeedback.isAi && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white shrink-0">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-600 text-white shrink-0">
                       IA
                     </span>
                   )}
@@ -765,13 +776,13 @@ function AddApplicationModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {t.company} <span className="text-rose-500">*</span>
               </label>
               <input 
                 required 
                 type="text" 
-                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-blue-600 outline-none" 
                 value={formData.company} 
                 onChange={e => setFormData({...formData, company: e.target.value})} 
                 placeholder={t.companyPlaceholder} 
@@ -779,13 +790,13 @@ function AddApplicationModal({
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {t.role} <span className="text-rose-500">*</span>
               </label>
               <input 
                 required 
                 type="text" 
-                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-blue-600 outline-none" 
                 value={formData.role} 
                 onChange={e => setFormData({...formData, role: e.target.value})} 
                 placeholder={t.rolePlaceholder} 
@@ -796,11 +807,11 @@ function AddApplicationModal({
           {/* Contract Type & Platform */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {t.contractType}
               </label>
               <select 
-                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer"
+                className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-blue-600 outline-none font-medium cursor-pointer"
                 value={formData.type} 
                 onChange={e => setFormData({...formData, type: e.target.value})}
               >
@@ -811,11 +822,11 @@ function AddApplicationModal({
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {t.source}
               </label>
               <select 
-                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer"
+                className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-blue-600 outline-none font-medium cursor-pointer"
                 value={formData.source}
                 onChange={e => setFormData({...formData, source: e.target.value})}
               >
@@ -830,7 +841,7 @@ function AddApplicationModal({
             <div>
               <input
                 type="text"
-                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-blue-600 outline-none"
                 placeholder={t.sourceCustomPlaceholder || "Préciser la plateforme..."}
                 value={formData.customSource}
                 onChange={e => setFormData({...formData, customSource: e.target.value})}
@@ -840,23 +851,23 @@ function AddApplicationModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {t.date}
               </label>
               <input 
                 type="date" 
-                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none" 
+                className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 dark:text-zinc-100 text-sm font-mono tabular-nums focus:ring-2 focus:ring-blue-600 outline-none" 
                 value={formData.date} 
                 onChange={e => setFormData({...formData, date: e.target.value})} 
               />
             </div>
 
             <div>
-              <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              <label className="block text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {t.status}
               </label>
               <select 
-                className="w-full p-2.5 border rounded-xl bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none font-medium cursor-pointer"
+                className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 dark:text-zinc-100 text-sm focus:ring-2 focus:ring-blue-600 outline-none font-medium cursor-pointer"
                 value={formData.status} 
                 onChange={e => handleStatusChange(e.target.value)}
               >
@@ -869,13 +880,13 @@ function AddApplicationModal({
 
           {/* Response Date (shown if answered status) */}
           {isAnsweredStatus && (
-            <div className="p-3 bg-blue-50/70 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl">
-              <label className="block text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1 flex items-center gap-1.5">
+            <div className="p-3 bg-blue-50/70 dark:bg-blue-950/30 rounded-md">
+              <label className="block text-xs font-medium text-blue-900 dark:text-blue-300 mb-1 flex items-center gap-1.5">
                 <Timer size={14} /> {t.responseDate}
               </label>
               <input 
                 type="date" 
-                className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-xs focus:ring-2 focus:ring-blue-500 outline-none" 
+                className="w-full p-2 rounded-md bg-white dark:bg-zinc-900 dark:text-zinc-100 text-xs font-mono tabular-nums focus:ring-2 focus:ring-blue-600 outline-none" 
                 value={formData.responseDate} 
                 onChange={e => setFormData({...formData, responseDate: e.target.value})} 
               />
@@ -884,13 +895,13 @@ function AddApplicationModal({
           )}
 
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-xs sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
               {t.offerUrl}
             </label>
             <div className="flex items-center gap-2">
               <input 
                 type="url" 
-                className="w-full p-2.5 border rounded-xl bg-white text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" 
+                className="w-full p-2.5 rounded-md bg-zinc-50 text-sm dark:bg-zinc-950/60 dark:text-zinc-100 focus:ring-2 focus:ring-blue-600 outline-none" 
                 value={formData.url || ''} 
                 onChange={e => setFormData({...formData, url: e.target.value})} 
                 placeholder={t.urlPlaceholder} 
@@ -900,9 +911,9 @@ function AddApplicationModal({
                   type="button"
                   onClick={() => handlePerformImport(formData.url)}
                   title={t.extractBtn || "Extraire"}
-                  className="p-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium cursor-pointer transition-colors shrink-0"
+                  className="p-2.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium cursor-pointer transition-colors duration-150 shrink-0"
                 >
-                  <Wand2 size={16} />
+                  <Wand2 size={15} />
                 </button>
               )}
             </div>
@@ -913,14 +924,14 @@ function AddApplicationModal({
               <button 
                 type="button" 
                 onClick={() => onGoToTailor(editingApp.id)} 
-                className="w-full py-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-xl font-medium text-sm hover:bg-indigo-100 dark:hover:bg-indigo-900/50 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                className="w-full py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-md font-medium text-sm hover:bg-zinc-200 dark:hover:bg-zinc-700 flex items-center justify-center gap-2 transition-colors duration-150 cursor-pointer"
               >
-                <Sparkles size={16} /> {t.viewAdaptCV}
+                <Sparkles size={15} className="text-blue-600 dark:text-blue-400" /> {t.viewAdaptCV}
               </button>
             </div>
           )}
 
-          <div className="pt-3 flex items-center justify-between gap-2.5 border-t dark:border-gray-700">
+          <div className="pt-3 flex items-center justify-between gap-2.5">
             {editingApp && onDelete ? (
               isConfirmingDelete ? (
                 <div className="flex items-center gap-1.5 animate-in fade-in duration-150">
@@ -930,15 +941,15 @@ function AddApplicationModal({
                       onDelete(editingApp.id);
                       setIsConfirmingDelete(false);
                     }} 
-                    className="px-3 py-2 bg-rose-600 hover:bg-rose-700 active:scale-98 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                    className="px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors duration-150 cursor-pointer"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={14} />
                     <span>{lang === 'en' ? 'Confirm delete?' : 'Confirmer la suppression ?'}</span>
                   </button>
                   <button 
                     type="button" 
                     onClick={() => setIsConfirmingDelete(false)} 
-                    className="px-2.5 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-xs font-medium cursor-pointer"
+                    className="px-2.5 py-2 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 text-xs font-medium cursor-pointer"
                   >
                     {t.cancel || 'Annuler'}
                   </button>
@@ -947,10 +958,10 @@ function AddApplicationModal({
                 <button 
                   type="button" 
                   onClick={() => setIsConfirmingDelete(true)} 
-                  className="px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-3 py-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md text-xs sm:text-sm font-medium flex items-center gap-1.5 transition-colors duration-150 cursor-pointer"
                   title={t.deleteApplication || t.delete}
                 >
-                  <Trash2 size={15} />
+                  <Trash2 size={14} />
                   <span>{t.deleteApplication || t.delete}</span>
                 </button>
               )
@@ -962,13 +973,13 @@ function AddApplicationModal({
               <button 
                 type="button" 
                 onClick={onClose} 
-                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium cursor-pointer transition-colors"
+                className="px-4 py-2 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-sm font-medium cursor-pointer transition-colors duration-150"
               >
                 {t.cancel}
               </button>
               <button 
                 type="submit" 
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-xs transition-colors"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium cursor-pointer transition-colors duration-150"
               >
                 {t.save}
               </button>
@@ -1182,65 +1193,69 @@ function OnboardingStartingPage({
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 py-2">
+    <div className="max-w-5xl mx-auto space-y-4 py-2">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 text-white rounded-3xl p-8 sm:p-10 shadow-xl border border-indigo-800/40">
-        <div className="relative z-10 space-y-4">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg p-5 sm:p-6 space-y-4">
+        <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-200 text-xs font-semibold tracking-wide">
-              <Rocket size={14} className="text-indigo-400" />
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-medium">
+              <Rocket size={13} className="text-blue-600 dark:text-blue-400" />
               {t.onboardingIntroBadge}
             </div>
 
             {/* Profile Import Button in Header */}
             <label 
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold backdrop-blur-xs transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 text-xs font-medium transition-colors duration-150 cursor-pointer"
               title={t.onboardingImportProfileTooltip}
             >
-              <Upload size={14} className="text-indigo-300" />
+              <Upload size={13} className="text-blue-600 dark:text-blue-400" />
               <span>{t.onboardingImportProfileBtn}</span>
               <input type="file" accept=".json" className="hidden" onChange={handleImportProfileFile} />
             </label>
           </div>
           
           <div className="max-w-3xl">
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-2">
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 mb-1.5">
               {t.welcomeTitle}
             </h1>
-            <p className="text-indigo-100/90 text-sm sm:text-base leading-relaxed">
+            <p className="text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm leading-relaxed">
               {t.welcomeSubtitle}
             </p>
           </div>
 
           {importNotice && (
-            <div className="p-3.5 bg-emerald-500/20 border border-emerald-400/40 text-emerald-100 rounded-2xl text-xs sm:text-sm font-semibold flex items-center gap-2.5 backdrop-blur-xs shadow-lg animate-in fade-in">
-              <CheckCircle size={18} className="text-emerald-300 shrink-0" />
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 rounded-md text-xs sm:text-sm font-medium flex items-center gap-2">
+              <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{importNotice}</span>
             </div>
           )}
 
           {/* Quick Real-Time Status Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
             {/* CV Status */}
             <div 
               onClick={() => setActiveStep(1)} 
-              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${activeStep === 1 ? 'ring-2 ring-indigo-400 bg-white/10' : 'bg-white/5 hover:bg-white/10'} ${hasCv ? 'border-emerald-400/40' : 'border-white/10'}`}
+              className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer ${
+                activeStep === 1
+                  ? 'bg-zinc-100 dark:bg-zinc-800 ring-1 ring-blue-500/40'
+                  : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60'
+              }`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-indigo-200 flex items-center gap-1.5">
-                  <FileText size={14} /> 1. {t.onboardingStep1Title}
+                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                  <FileText size={13} className="text-blue-600 dark:text-blue-400" /> 1. {t.onboardingStep1Title}
                 </span>
                 {hasCv ? (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                     <Check size={10} /> {t.onboardingCvSuccessBadge}
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300">
                     {t.onboardingCvPendingBadge}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-indigo-100/80 truncate">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate font-mono tabular-nums">
                 {hasCv ? `${profile.fullName || (lang === 'en' ? 'Candidate' : 'Candidat')} • ${cvWords} ${t.onboardingWordsCount || (lang === 'en' ? 'words' : 'mots')}` : (lang === 'en' ? 'PDF or TXT format' : 'Format PDF ou TXT')}
               </p>
             </div>
@@ -1248,23 +1263,27 @@ function OnboardingStartingPage({
             {/* Letter Status */}
             <div 
               onClick={() => setActiveStep(2)} 
-              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${activeStep === 2 ? 'ring-2 ring-indigo-400 bg-white/10' : 'bg-white/5 hover:bg-white/10'} ${hasLetter ? 'border-emerald-400/40' : 'border-white/10'}`}
+              className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer ${
+                activeStep === 2
+                  ? 'bg-zinc-100 dark:bg-zinc-800 ring-1 ring-blue-500/40'
+                  : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60'
+              }`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-indigo-200 flex items-center gap-1.5">
-                  <Mail size={14} /> 2. {t.onboardingStep2Title}
+                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                  <Mail size={13} className="text-blue-600 dark:text-blue-400" /> 2. {t.onboardingStep2Title}
                 </span>
                 {hasLetter ? (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                     <Check size={10} /> {t.onboardingLetterSuccessBadge}
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-white/10 text-gray-300 border border-white/10">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                     {t.onboardingLetterPendingBadge}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-indigo-100/80 truncate">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate font-mono tabular-nums">
                 {hasLetter ? `${letterWords} ${t.onboardingWordsCount || (lang === 'en' ? 'words' : 'mots')}` : (lang === 'en' ? 'Standard reference letter' : 'Lettre modèle de référence')}
               </p>
             </div>
@@ -1272,58 +1291,58 @@ function OnboardingStartingPage({
             {/* API Key Status */}
             <div 
               onClick={() => setActiveStep(3)} 
-              className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${activeStep === 3 ? 'ring-2 ring-indigo-400 bg-white/10' : 'bg-white/5 hover:bg-white/10'} ${hasKey ? 'border-emerald-400/40' : 'border-white/10'}`}
+              className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer ${
+                activeStep === 3
+                  ? 'bg-zinc-100 dark:bg-zinc-800 ring-1 ring-blue-500/40'
+                  : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60'
+              }`}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-semibold text-indigo-200 flex items-center gap-1.5">
-                  <Key size={14} /> 3. {t.onboardingStep3Title}
+                <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                  <Key size={13} className="text-blue-600 dark:text-blue-400" /> 3. {t.onboardingStep3Title}
                 </span>
                 {hasKey ? (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                     <Check size={10} /> {selectedAiModel.toUpperCase()}
                   </span>
                 ) : (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300">
                     {t.onboardingKeyPendingBadge}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-indigo-100/80 truncate">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">
                 {hasKey ? (lang === 'en' ? 'Stored locally & secured' : 'Enregistrée localement') : (lang === 'en' ? 'Free Gemini, OpenAI, Claude' : 'Gemini gratuit, OpenAI, Claude')}
               </p>
             </div>
           </div>
         </div>
-
-        {/* Decorative Background Glow */}
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-1/3 -mb-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
       </div>
 
       {/* Main Stepper Container */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200/80 dark:border-gray-700 overflow-hidden transition-colors">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden transition-colors duration-150">
         {/* Step Navigation Tabs */}
-        <div className="grid grid-cols-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-850">
+        <div className="grid grid-cols-3 bg-zinc-50 dark:bg-zinc-950/60 p-1 gap-1">
           <button
             onClick={() => setActiveStep(1)}
-            className={`py-4 px-4 sm:px-6 text-left flex items-center gap-3 transition-colors cursor-pointer border-b-2 ${
+            className={`py-3 px-4 text-left flex items-center gap-3 rounded-md transition-colors duration-150 cursor-pointer ${
               activeStep === 1
-                ? 'border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+            <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-semibold font-mono tabular-nums shrink-0 ${
               hasCv 
                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' 
                 : activeStep === 1 
-                ? 'bg-indigo-600 text-white dark:bg-indigo-500' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                ? 'bg-blue-600 text-white' 
+                : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
             }`}>
-              {hasCv ? <Check size={14} /> : '1'}
+              {hasCv ? <Check size={13} /> : '1'}
             </div>
             <div className="hidden sm:block min-w-0">
               <p className="text-xs font-semibold leading-none">{t.onboardingStep1Title}</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-1">
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate mt-1">
                 {hasCv ? t.onboardingCvSuccessBadge : t.onboardingCvPendingBadge}
               </p>
             </div>
@@ -1331,24 +1350,24 @@ function OnboardingStartingPage({
 
           <button
             onClick={() => setActiveStep(2)}
-            className={`py-4 px-4 sm:px-6 text-left flex items-center gap-3 transition-colors cursor-pointer border-b-2 ${
+            className={`py-3 px-4 text-left flex items-center gap-3 rounded-md transition-colors duration-150 cursor-pointer ${
               activeStep === 2
-                ? 'border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+            <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-semibold font-mono tabular-nums shrink-0 ${
               hasLetter 
                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' 
                 : activeStep === 2 
-                ? 'bg-indigo-600 text-white dark:bg-indigo-500' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                ? 'bg-blue-600 text-white' 
+                : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
             }`}>
-              {hasLetter ? <Check size={14} /> : '2'}
+              {hasLetter ? <Check size={13} /> : '2'}
             </div>
             <div className="hidden sm:block min-w-0">
               <p className="text-xs font-semibold leading-none">{t.onboardingStep2Title}</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-1">
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate mt-1">
                 {hasLetter ? t.onboardingLetterSuccessBadge : t.onboardingLetterPendingBadge}
               </p>
             </div>
@@ -1356,24 +1375,24 @@ function OnboardingStartingPage({
 
           <button
             onClick={() => setActiveStep(3)}
-            className={`py-4 px-4 sm:px-6 text-left flex items-center gap-3 transition-colors cursor-pointer border-b-2 ${
+            className={`py-3 px-4 text-left flex items-center gap-3 rounded-md transition-colors duration-150 cursor-pointer ${
               activeStep === 3
-                ? 'border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-semibold'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-800/50'
+                ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+            <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-semibold font-mono tabular-nums shrink-0 ${
               hasKey 
                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' 
                 : activeStep === 3 
-                ? 'bg-indigo-600 text-white dark:bg-indigo-500' 
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                ? 'bg-blue-600 text-white' 
+                : 'bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
             }`}>
-              {hasKey ? <Check size={14} /> : '3'}
+              {hasKey ? <Check size={13} /> : '3'}
             </div>
             <div className="hidden sm:block min-w-0">
               <p className="text-xs font-semibold leading-none">{t.onboardingStep3Title}</p>
-              <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate mt-1">
+              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 truncate mt-1">
                 {hasKey ? t.onboardingKeySuccessBadge : t.onboardingKeyPendingBadge}
               </p>
             </div>
@@ -1381,16 +1400,16 @@ function OnboardingStartingPage({
         </div>
 
         {/* Step Body Content */}
-        <div className="p-6 sm:p-8">
+        <div className="p-5 sm:p-6">
           {/* STEP 1: IMPORT CV */}
           {activeStep === 1 && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <FileText className="text-indigo-600 dark:text-indigo-400" size={20} />
+                <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 tracking-tight">
+                  <FileText className="text-blue-600 dark:text-blue-400" size={18} />
                   {t.onboardingStep1Title}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
                   {t.onboardingStep1Subtitle}
                 </p>
               </div>
@@ -1400,35 +1419,35 @@ function OnboardingStartingPage({
                 onDragOver={(e) => { e.preventDefault(); setIsCvDragging(true); }}
                 onDragLeave={() => setIsCvDragging(false)}
                 onDrop={handleCvDrop}
-                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+                className={`rounded-lg p-6 text-center transition-colors duration-150 ${
                   isCvDragging 
-                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 scale-[1.01]' 
+                    ? 'bg-blue-50/60 dark:bg-blue-950/30 ring-1 ring-blue-500' 
                     : hasCv 
-                    ? 'border-emerald-300 dark:border-emerald-800/60 bg-emerald-50/30 dark:bg-emerald-950/10' 
-                    : 'border-gray-300 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-750 hover:bg-gray-100/50 dark:hover:bg-gray-700/50'
+                    ? 'bg-emerald-50/40 dark:bg-emerald-950/20' 
+                    : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/70 dark:hover:bg-zinc-950'
                 }`}
               >
                 <div className="max-w-md mx-auto space-y-3">
-                  <div className={`w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shadow-xs ${
+                  <div className={`w-12 h-12 mx-auto rounded-lg flex items-center justify-center ${
                     hasCv 
                       ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' 
-                      : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                      : 'bg-zinc-200/70 dark:bg-zinc-800 text-blue-600 dark:text-blue-400'
                   }`}>
-                    {hasCv ? <FileCheck size={28} /> : <Upload size={28} />}
+                    {hasCv ? <FileCheck size={24} /> : <Upload size={24} />}
                   </div>
 
                   <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
                       {t.onboardingDragOrClick}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
                       {t.onboardingSupportedFormats}
                     </p>
                   </div>
 
-                  <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
-                    <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer">
-                      <Upload size={15} />
+                  <div className="pt-1 flex items-center justify-center gap-2.5 flex-wrap">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer">
+                      <Upload size={14} />
                       {t.importCVBtn}
                       <input 
                         type="file" 
@@ -1444,10 +1463,10 @@ function OnboardingStartingPage({
                     </label>
 
                     <label 
-                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-650 text-indigo-600 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700/60 rounded-xl text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                      className="inline-flex items-center gap-2 px-3.5 py-2 bg-zinc-200/80 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer"
                       title={t.onboardingImportProfileTooltip}
                     >
-                      <UserCheck size={15} className="text-indigo-500 dark:text-indigo-400" />
+                      <UserCheck size={14} className="text-blue-600 dark:text-blue-400" />
                       {t.onboardingImportProfileBtn}
                       <input 
                         type="file" 
@@ -1461,14 +1480,14 @@ function OnboardingStartingPage({
               </div>
 
               {/* Extracted Profile Details Preview */}
-              <div className="p-5 bg-slate-50 dark:bg-gray-700/60 border border-slate-200 dark:border-gray-700 rounded-2xl space-y-4">
+              <div className="p-4 sm:p-5 bg-zinc-50 dark:bg-zinc-950/60 rounded-lg space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                     {t.onboardingExtractedProfileTitle}
                   </h4>
                   {hasCv && (
-                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle size={14} /> {t.onboardingCvSuccessBadge} ({cvWords} {lang === 'en' ? 'words' : 'mots'})
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium font-mono tabular-nums flex items-center gap-1">
+                      <CheckCircle size={13} /> {t.onboardingCvSuccessBadge} ({cvWords} {lang === 'en' ? 'words' : 'mots'})
                     </span>
                   )}
                 </div>
@@ -1485,10 +1504,10 @@ function OnboardingStartingPage({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.fullName}</label>
+                    <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">{t.fullName}</label>
                     <input 
                       type="text" 
-                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-2.5 text-xs rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                       value={profile.fullName || ''} 
                       placeholder="Jean Dupont"
                       onChange={(e) => setProfile(prev => ({ ...prev, fullName: e.target.value }))}
@@ -1496,10 +1515,10 @@ function OnboardingStartingPage({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.email}</label>
+                    <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">{t.email}</label>
                     <input 
                       type="email" 
-                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-2.5 text-xs rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                       value={profile.email || ''} 
                       placeholder="jean.dupont@email.com"
                       onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
@@ -1507,10 +1526,10 @@ function OnboardingStartingPage({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.phone}</label>
+                    <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">{t.phone}</label>
                     <input 
                       type="text" 
-                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-2.5 text-xs rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                       value={profile.phone || ''} 
                       placeholder="+33 6 12 34 56 78"
                       onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
@@ -1518,10 +1537,10 @@ function OnboardingStartingPage({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.location}</label>
+                    <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">{t.location}</label>
                     <input 
                       type="text" 
-                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-2.5 text-xs rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                       value={profile.location || ''} 
                       placeholder="Paris, France"
                       onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
@@ -1529,10 +1548,10 @@ function OnboardingStartingPage({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">{t.website}</label>
+                    <label className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">{t.website}</label>
                     <input 
                       type="text" 
-                      className="w-full p-2.5 text-xs rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-2.5 text-xs rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                       value={profile.website || ''} 
                       placeholder="https://linkedin.com/in/jean-dupont"
                       onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
@@ -1544,29 +1563,29 @@ function OnboardingStartingPage({
               {/* Master CV Raw Textarea */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                     {t.onboardingOrPasteDirectly}
                   </label>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                  <span className="text-xs font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
                     {cvWords} {lang === 'en' ? 'words' : 'mots'} • {profile.masterCV?.length || 0} {lang === 'en' ? 'chars' : 'caractères'}
                   </span>
                 </div>
                 <textarea 
                   rows={6}
-                  className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 text-xs font-mono rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                   placeholder={lang === 'en' ? "Paste your full resume text here (Experiences, Education, Skills, Projects)..." : "Collez le texte brut complet de votre CV ici (Expériences, Formations, Compétences, Projets)..."}
                   value={profile.masterCV || ''}
                   onChange={(e) => setProfile(prev => ({ ...prev, masterCV: e.target.value }))}
                 />
               </div>
 
-              <div className="pt-2 flex justify-end">
+              <div className="pt-1 flex justify-end">
                 <button
                   type="button"
                   onClick={() => setActiveStep(2)}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-2 transition-colors duration-150 cursor-pointer"
                 >
-                  {t.onboardingNextBtn} <ArrowRight size={15} />
+                  {t.onboardingNextBtn} <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1574,13 +1593,13 @@ function OnboardingStartingPage({
 
           {/* STEP 2: IMPORT COVER LETTER */}
           {activeStep === 2 && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Mail className="text-indigo-600 dark:text-indigo-400" size={20} />
+                <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-2 tracking-tight">
+                  <Mail className="text-blue-600 dark:text-blue-400" size={18} />
                   {t.onboardingStep2Title}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
                   {t.onboardingStep2Subtitle}
                 </p>
               </div>
@@ -1590,35 +1609,35 @@ function OnboardingStartingPage({
                 onDragOver={(e) => { e.preventDefault(); setIsLetterDragging(true); }}
                 onDragLeave={() => setIsLetterDragging(false)}
                 onDrop={handleLetterDrop}
-                className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${
+                className={`rounded-lg p-6 text-center transition-colors duration-150 ${
                   isLetterDragging 
-                    ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20 scale-[1.01]' 
+                    ? 'bg-blue-50/60 dark:bg-blue-950/30 ring-1 ring-blue-500' 
                     : hasLetter 
-                    ? 'border-emerald-300 dark:border-emerald-800/60 bg-emerald-50/30 dark:bg-emerald-950/10' 
-                    : 'border-gray-300 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-750 hover:bg-gray-100/50 dark:hover:bg-gray-700/50'
+                    ? 'bg-emerald-50/40 dark:bg-emerald-950/20' 
+                    : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/70 dark:hover:bg-zinc-950'
                 }`}
               >
                 <div className="max-w-md mx-auto space-y-3">
-                  <div className={`w-14 h-14 mx-auto rounded-2xl flex items-center justify-center shadow-xs ${
+                  <div className={`w-12 h-12 mx-auto rounded-lg flex items-center justify-center ${
                     hasLetter 
                       ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' 
-                      : 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400'
+                      : 'bg-zinc-200/70 dark:bg-zinc-800 text-blue-600 dark:text-blue-400'
                   }`}>
-                    {hasLetter ? <FileCheck size={28} /> : <Upload size={28} />}
+                    {hasLetter ? <FileCheck size={24} /> : <Upload size={24} />}
                   </div>
 
                   <div>
-                    <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                    <p className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
                       {t.onboardingDragOrClick}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
                       {t.onboardingSupportedFormats}
                     </p>
                   </div>
 
-                  <div className="pt-2">
-                    <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer">
-                      <Upload size={15} />
+                  <div className="pt-1">
+                    <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer">
+                      <Upload size={14} />
                       {t.importLetterBtn}
                       <input 
                         type="file" 
@@ -1639,27 +1658,27 @@ function OnboardingStartingPage({
               {/* Master Letter Textarea */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                     {t.masterLetterLabel}
                   </label>
-                  <span className="text-xs text-gray-400 dark:text-gray-500">
+                  <span className="text-xs font-mono tabular-nums text-zinc-400 dark:text-zinc-500">
                     {letterWords} {lang === 'en' ? 'words' : 'mots'} • {profile.masterLetter?.length || 0} {lang === 'en' ? 'chars' : 'caractères'}
                   </span>
                 </div>
                 <textarea 
                   rows={7}
-                  className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 text-xs font-mono rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                   placeholder={t.masterLetterPlaceholder || (lang === 'en' ? "Paste your favorite cover letter template here (or leave blank to let AI draft from scratch)..." : "Collez votre lettre type de motivation ici (ou laissez vide pour que l'IA génère de zéro)...")}
                   value={profile.masterLetter || ''}
                   onChange={(e) => setProfile(prev => ({ ...prev, masterLetter: e.target.value }))}
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-between">
+              <div className="pt-1 flex items-center justify-between">
                 <button
                   type="button"
                   onClick={() => setActiveStep(1)}
-                  className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                 >
                   <ArrowLeft size={14} /> {t.onboardingPrevBtn}
                 </button>
@@ -1667,9 +1686,9 @@ function OnboardingStartingPage({
                 <button
                   type="button"
                   onClick={() => setActiveStep(3)}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-2 transition-colors duration-150 cursor-pointer"
                 >
-                  {t.onboardingNextBtn} <ArrowRight size={15} />
+                  {t.onboardingNextBtn} <ArrowRight size={14} />
                 </button>
               </div>
             </div>
@@ -1677,35 +1696,35 @@ function OnboardingStartingPage({
 
           {/* STEP 3: CONFIGURE API KEY */}
           {activeStep === 3 && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Key className="text-indigo-600 dark:text-indigo-400" size={20} />
+                <h3 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                  <Key className="text-blue-600 dark:text-blue-400" size={18} />
                   {t.onboardingStep3Title}
                 </h3>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
                   {t.onboardingStep3Subtitle}
                 </p>
               </div>
 
               {/* Provider Selection Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
                 {/* Google Gemini Card */}
                 <div
                   onClick={() => setSelectedAiModel('gemini')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer relative ${
+                  className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer relative ${
                     selectedAiModel === 'gemini'
-                      ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
+                      ? 'bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-600 dark:ring-blue-500'
+                      : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-900 dark:text-white">Google Gemini</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Google Gemini</span>
+                    <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
                       {lang === 'en' ? 'Free & Rec.' : 'Gratuit'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {lang === 'en' ? 'Fast, generous free tier via Google AI Studio.' : 'Rapide, quota gratuit sans carte bancaire.'}
                   </p>
                 </div>
@@ -1713,19 +1732,19 @@ function OnboardingStartingPage({
                 {/* OpenAI Card */}
                 <div
                   onClick={() => setSelectedAiModel('openai')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer ${
                     selectedAiModel === 'openai'
-                      ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
+                      ? 'bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-600 dark:ring-blue-500'
+                      : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-900 dark:text-white">OpenAI ChatGPT</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">OpenAI ChatGPT</span>
+                    <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-mono tabular-nums font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                       GPT-4o
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {lang === 'en' ? 'Requires an OpenAI platform API account.' : 'Nécessite un compte API OpenAI actif.'}
                   </p>
                 </div>
@@ -1733,19 +1752,19 @@ function OnboardingStartingPage({
                 {/* Anthropic Card */}
                 <div
                   onClick={() => setSelectedAiModel('anthropic')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer ${
                     selectedAiModel === 'anthropic'
-                      ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
+                      ? 'bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-600 dark:ring-blue-500'
+                      : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-900 dark:text-white">Anthropic Claude</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">Anthropic Claude</span>
+                    <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-mono tabular-nums font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                       Claude 3.5
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {lang === 'en' ? 'Requires an Anthropic Claude console key.' : 'Nécessite une clé Anthropic Console.'}
                   </p>
                 </div>
@@ -1753,22 +1772,22 @@ function OnboardingStartingPage({
                 {/* Groq Cloud Card */}
                 <div
                   onClick={() => setSelectedAiModel('groq')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer ${
                     selectedAiModel === 'groq'
-                      ? 'border-amber-500 dark:border-amber-400 bg-amber-50/60 dark:bg-amber-900/30 ring-2 ring-amber-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
+                      ? 'bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-600 dark:ring-blue-500'
+                      : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
                       <Zap size={13} className="text-amber-500" />
                       <span>Groq Cloud</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300">
+                    <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-mono tabular-nums font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300">
                       500+ tok/s
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {lang === 'en' ? 'Llama 3.3 & DeepSeek at 500+ tok/s. Free tier on console.groq.com.' : 'Llama 3.3 & DeepSeek à 500+ tok/s. Clé gratuite sur console.groq.com.'}
                   </p>
                 </div>
@@ -1776,22 +1795,22 @@ function OnboardingStartingPage({
                 {/* Ollama Card */}
                 <div
                   onClick={() => setSelectedAiModel('ollama')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer ${
                     selectedAiModel === 'ollama'
-                      ? 'border-emerald-600 dark:border-emerald-400 bg-emerald-50/60 dark:bg-emerald-900/30 ring-2 ring-emerald-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
+                      ? 'bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-600 dark:ring-blue-500'
+                      : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
                       <Server size={13} className="text-emerald-600" />
                       <span>Ollama</span>
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">
+                    <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-mono tabular-nums font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
                       {lang === 'en' ? 'Local & Free' : '100% Local'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {lang === 'en' ? 'Llama 3.2, Mistral, DeepSeek without any API key.' : 'Llama 3.2, Mistral, DeepSeek sans clé API.'}
                   </p>
                 </div>
@@ -1799,21 +1818,21 @@ function OnboardingStartingPage({
                 {/* Other (Custom / Compatible) Card */}
                 <div
                   onClick={() => setSelectedAiModel('other')}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-3.5 rounded-md transition-colors duration-150 cursor-pointer ${
                     selectedAiModel === 'other'
-                      ? 'border-indigo-600 dark:border-indigo-400 bg-indigo-50/60 dark:bg-indigo-900/30 ring-2 ring-indigo-500/20'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-700/50'
+                      ? 'bg-blue-50/80 dark:bg-blue-950/40 ring-1 ring-blue-600 dark:ring-blue-500'
+                      : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100/80 dark:hover:bg-zinc-800/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-900 dark:text-white">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                       {lang === 'en' ? 'Other' : 'Autre'}
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">
+                    <span className="px-1.5 py-0.5 rounded-sm text-[10px] font-mono tabular-nums font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                       v1 / Proxy
                     </span>
                   </div>
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {lang === 'en' ? 'Custom API Key & URL (OpenRouter, Groq, etc.).' : 'Clé & URL personnalisées (OpenRouter, Groq...).'}
                   </p>
                 </div>
@@ -1821,12 +1840,12 @@ function OnboardingStartingPage({
 
               {/* Free Gemini Helper Banner & Beginner Guide Link */}
               {selectedAiModel === 'gemini' && (
-                <div className="p-4 bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl flex items-center justify-between flex-wrap gap-3">
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
+                <div className="p-3.5 bg-zinc-50 dark:bg-zinc-950/60 rounded-md flex items-center justify-between flex-wrap gap-3">
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                       {t.onboardingFreeGeminiHelp}
                     </p>
-                    <p className="text-[11px] text-indigo-700 dark:text-indigo-300/80">
+                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                       {lang === 'en' ? 'Follow our quick step-by-step beginner guide to generate your free key in 30 seconds.' : 'Consultez notre tutoriel pas-à-pas pour créer votre clé gratuite en 30 secondes.'}
                     </p>
                   </div>
@@ -1835,7 +1854,7 @@ function OnboardingStartingPage({
                       <button
                         type="button"
                         onClick={onOpenTutorial}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-bold shadow-xs transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer"
                       >
                         <Sparkles size={13} />
                         <span>{lang === 'en' ? "I don't have an API key" : "Je n'ai pas de clé API"}</span>
@@ -1847,41 +1866,41 @@ function OnboardingStartingPage({
 
               {/* Ollama Configuration Fields */}
               {selectedAiModel === 'ollama' && (
-                <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl space-y-3.5">
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-950/60 rounded-md space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Server size={16} className="text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                      <Server size={15} className="text-emerald-600 dark:text-emerald-400" />
+                      <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                         {lang === 'en' ? 'Ollama Local Configuration' : 'Configuration Ollama Local'}
                       </span>
                     </div>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
                       {lang === 'en' ? 'Zero Cloud Keys Needed' : 'Aucune clé requise'}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                      <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
                         {t.ollamaUrlLabel || "URL Ollama"}
                       </label>
                       <input
                         type="text"
                         placeholder={t.ollamaUrlPlaceholder || "http://localhost:11434"}
-                        className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full p-2.5 text-xs font-mono rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                         value={ollamaUrl}
                         onChange={e => setOllamaUrl && setOllamaUrl(e.target.value)}
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                      <label className="text-[11px] font-medium text-zinc-700 dark:text-zinc-300">
                         {t.ollamaModelLabel || "Modèle Ollama"}
                       </label>
                       <input
                         type="text"
                         placeholder={t.ollamaModelPlaceholder || "ex: llama3.2, mistral"}
-                        className="w-full p-3 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-emerald-500"
+                        className="w-full p-2.5 text-xs font-mono rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                         value={ollamaModel}
                         onChange={e => setOllamaModel && setOllamaModel(e.target.value)}
                       />
@@ -1890,7 +1909,7 @@ function OnboardingStartingPage({
 
                   {/* Quick popular model pills */}
                   <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                    <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium">
                       {lang === 'en' ? 'Models:' : 'Modèles :'}
                     </span>
                     {POPULAR_OLLAMA_MODELS.slice(0, 4).map(pm => (
@@ -1898,10 +1917,10 @@ function OnboardingStartingPage({
                         key={pm.id}
                         type="button"
                         onClick={() => setOllamaModel && setOllamaModel(pm.id)}
-                        className={`text-[10px] px-2 py-0.5 rounded-md border font-mono transition-all cursor-pointer ${
+                        className={`text-[10px] px-2 py-0.5 rounded-sm font-mono transition-colors duration-150 cursor-pointer ${
                           ollamaModel === pm.id
-                            ? 'bg-emerald-600 text-white border-emerald-600 font-bold'
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:border-emerald-400'
+                            ? 'bg-blue-600 text-white font-medium'
+                            : 'bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/70 dark:hover:bg-zinc-800'
                         }`}
                       >
                         {pm.id}
@@ -1923,8 +1942,8 @@ function OnboardingStartingPage({
 
               {/* Selected Key Input (For non-Ollama models) */}
               {selectedAiModel !== 'ollama' && (
-                <div className="space-y-2">
-                  <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
                     {selectedAiModel === 'gemini' 
                       ? t.geminiKeyLabel 
                       : selectedAiModel === 'groq'
@@ -1950,7 +1969,7 @@ function OnboardingStartingPage({
                           ? t.anthropicKeyPlaceholder
                           : (t.otherKeyPlaceholder || (lang === 'en' ? 'Paste your API key...' : 'Collez votre clé API personnalisée...'))
                       }
-                      className="w-full p-3.5 pr-11 text-xs font-mono rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-3 pr-10 text-xs font-mono rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600"
                       value={
                         selectedAiModel === 'gemini'
                           ? apiKey
@@ -1970,10 +1989,10 @@ function OnboardingStartingPage({
                     <button
                       type="button"
                       onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer p-1"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer p-1"
                       title={showApiKey ? 'Hide' : 'Show'}
                     >
-                      {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
 
@@ -1983,7 +2002,7 @@ function OnboardingStartingPage({
                         href="https://console.groq.com/keys"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
+                        className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium inline-flex items-center gap-1"
                       >
                         <span>{lang === 'en' ? 'Get a free Groq API key at console.groq.com' : 'Obtenir une clé API Groq gratuite sur console.groq.com'}</span>
                         <ExternalLink size={11} />
@@ -1997,8 +2016,8 @@ function OnboardingStartingPage({
               {selectedAiModel !== 'ollama' && (
                 <div className="space-y-1.5 pt-1">
                   <div className="flex items-center justify-between gap-2">
-                    <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                      <Globe size={13} className="text-indigo-600 dark:text-indigo-400" />
+                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                      <Globe size={13} className="text-blue-600 dark:text-blue-400" />
                       <span>
                         {selectedAiModel === 'other'
                           ? (lang === 'en' ? 'Custom API Endpoint / Base URL (Required)' : "URL d'API / Endpoint personnalisé (Requis)")
@@ -2009,7 +2028,7 @@ function OnboardingStartingPage({
                       <button
                         type="button"
                         onClick={() => setCustomApiUrl && setCustomApiUrl('')}
-                        className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                        className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                       >
                         {t.resetDefaultUrl || 'Réinitialiser'}
                       </button>
@@ -2018,15 +2037,15 @@ function OnboardingStartingPage({
                   <input
                     type="text"
                     placeholder={t.customApiUrlPlaceholder || "ex: https://openrouter.ai/api/v1..."}
-                    className={`w-full p-3 text-xs font-mono rounded-xl border bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-indigo-500 ${
+                    className={`w-full p-2.5 text-xs font-mono rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-blue-600 ${
                       selectedAiModel === 'other' && !customApiUrl.trim()
-                        ? 'border-amber-400 dark:border-amber-500 ring-1 ring-amber-400/40'
-                        : 'border-gray-200 dark:border-gray-600'
+                        ? 'ring-1 ring-amber-500/60'
+                        : ''
                     }`}
                     value={customApiUrl || ''}
                     onChange={(e) => setCustomApiUrl && setCustomApiUrl(e.target.value)}
                   />
-                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
                     {selectedAiModel === 'other'
                       ? (lang === 'en'
                           ? 'Compatible with standard OpenAI API format (e.g., OpenRouter at https://openrouter.ai/api/v1, Groq, LM Studio, etc.).'
@@ -2037,11 +2056,11 @@ function OnboardingStartingPage({
               )}
 
               {/* Privacy / Security Notice */}
-              <div className="p-4 bg-emerald-50/80 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-2xl flex items-start gap-3">
-                <ShieldCheck size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div className="text-xs text-emerald-900 dark:text-emerald-300 space-y-0.5">
-                  <p className="font-semibold">{t.apiKeyPrivacyNote}</p>
-                  <p className="text-emerald-700 dark:text-emerald-400 text-[11px]">
+              <div className="p-3.5 bg-zinc-50 dark:bg-zinc-950/60 rounded-md flex items-start gap-2.5">
+                <ShieldCheck size={17} className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <div className="text-xs text-zinc-800 dark:text-zinc-200 space-y-0.5">
+                  <p className="font-medium">{t.apiKeyPrivacyNote}</p>
+                  <p className="text-zinc-500 dark:text-zinc-400 text-[11px]">
                     {lang === 'en' 
                       ? 'All AI calls are executed securely directly from your browser session.' 
                       : 'Les requêtes IA sont exécutées de manière sécurisée directement depuis votre session de navigation.'}
@@ -2050,12 +2069,12 @@ function OnboardingStartingPage({
               </div>
 
               {/* Navigation & Launch */}
-              <div className="pt-4 flex items-center justify-between flex-wrap gap-4 border-t border-gray-100 dark:border-gray-700">
+              <div className="pt-2 flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setActiveStep(2)}
-                    className="px-5 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                    className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                   >
                     <ArrowLeft size={14} /> {t.onboardingPrevBtn}
                   </button>
@@ -2063,7 +2082,7 @@ function OnboardingStartingPage({
                     <button
                       type="button"
                       onClick={onOpenTutorial}
-                      className="px-3.5 py-2.5 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                      className="px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 font-medium flex items-center gap-1.5 transition-colors duration-150 cursor-pointer"
                     >
                       <BookOpen size={14} />
                       <span>{lang === 'en' ? 'Beginner Guide' : 'Guide Débutant'}</span>
@@ -2074,9 +2093,9 @@ function OnboardingStartingPage({
                 <button
                   type="button"
                   onClick={onComplete}
-                  className="px-7 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium flex items-center gap-2 transition-colors duration-150 cursor-pointer"
                 >
-                  <Rocket size={16} /> {t.onboardingCompleteBtn}
+                  <Rocket size={15} /> {t.onboardingCompleteBtn}
                 </button>
               </div>
             </div>
@@ -2084,15 +2103,15 @@ function OnboardingStartingPage({
         </div>
 
         {/* Global Footer Actions */}
-        <div className="px-6 sm:px-8 py-4 bg-gray-50 dark:bg-gray-850 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-32 bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+        <div className="px-5 sm:px-6 py-3.5 bg-zinc-50 dark:bg-zinc-950/60 flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-28 bg-zinc-200 dark:bg-zinc-800 h-1.5 rounded-sm overflow-hidden">
               <div 
-                className="bg-indigo-600 dark:bg-indigo-400 h-full rounded-full transition-all duration-300"
+                className="bg-blue-600 h-full transition-all duration-300"
                 style={{ width: `${completionPercent}%` }}
               />
             </div>
-            <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+            <span className="text-[11px] font-mono tabular-nums font-medium text-zinc-500 dark:text-zinc-400">
               {completionPercent}% {lang === 'en' ? 'ready' : 'configuré'}
             </span>
           </div>
@@ -2101,7 +2120,7 @@ function OnboardingStartingPage({
             <button
               type="button"
               onClick={onSkip}
-              className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 underline cursor-pointer"
+              className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 underline cursor-pointer"
             >
               {t.onboardingSkipBtn}
             </button>
@@ -2110,7 +2129,7 @@ function OnboardingStartingPage({
               <button
                 type="button"
                 onClick={onComplete}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer"
               >
                 {t.onboardingCompleteBtn}
               </button>
@@ -4607,99 +4626,107 @@ ${formattedLetter}`;
   };
 
   const renderSidebar = () => (
-    <aside className="w-64 xl:w-72 2xl:w-80 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-zinc-800 h-screen hidden md:flex flex-col sticky top-0 no-print print:hidden transition-colors duration-200 shrink-0 overflow-hidden">
-      <div className="p-5 xl:p-6 2xl:p-8 shrink-0">
-        <h1 className="text-2xl xl:text-3xl font-bold text-blue-600 dark:text-white flex items-center gap-2.5 tracking-tight">
+    <aside className="w-60 xl:w-64 bg-white dark:bg-zinc-900 h-screen hidden md:flex flex-col sticky top-0 no-print print:hidden transition-colors duration-150 shrink-0 overflow-hidden">
+      <div className="px-5 py-4 shrink-0 flex items-center justify-between">
+        <h1 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight whitespace-nowrap shrink-0 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
           <span>PostuTrack</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 dark:bg-zinc-800 text-blue-700 dark:text-zinc-200 border border-blue-200 dark:border-zinc-700 font-mono tracking-normal shrink-0">
-            v0.5.6
-          </span>
         </h1>
+        <span className="font-mono tabular-nums text-[11px] text-zinc-400 dark:text-zinc-500">
+          v0.5.8
+        </span>
       </div>
-      <nav className="flex-1 min-h-0 overflow-y-auto px-3 xl:px-4 py-1 space-y-1 xl:space-y-1.5 custom-scrollbar">
+      <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-0.5 custom-scrollbar">
         {(!isOnboardingCompleted || activeTab === 'onboarding') && (
-          <button onClick={() => setActiveTab('onboarding')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-zinc-800 text-indigo-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-            <Rocket size={18} className="text-indigo-500 shrink-0" /> 
+          <button onClick={() => setActiveTab('onboarding')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'onboarding' ? 'bg-blue-600 text-white font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/60 font-medium'}`}>
+            <Rocket size={15} className={activeTab === 'onboarding' ? 'text-white shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
             <span className="truncate">{t.onboarding}</span>
           </button>
         )}
-        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <LayoutDashboard size={18} className="text-sky-500 dark:text-zinc-300 shrink-0" /> 
+        <button onClick={() => setActiveTab('dashboard')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'dashboard' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <LayoutDashboard size={15} className={activeTab === 'dashboard' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
           <span className="truncate">{t.dashboard}</span>
         </button>
-        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <UserCheck size={18} className="text-emerald-500 dark:text-zinc-300 shrink-0" /> 
+        <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'profile' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <UserCheck size={15} className={activeTab === 'profile' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
           <span className="truncate">{t.profile}</span>
         </button>
-        <button onClick={() => setActiveTab('stats')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <BarChart2 size={18} className="text-indigo-500 dark:text-zinc-300 shrink-0" /> 
+        <button onClick={() => setActiveTab('stats')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'stats' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <BarChart2 size={15} className={activeTab === 'stats' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
           <span className="truncate">{t.statsTab || t.stats || 'Statistiques'}</span>
         </button>
-        <button onClick={() => setActiveTab('scraper')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <Compass size={18} className="text-cyan-500 dark:text-zinc-300 shrink-0" />
-          <span className="truncate">{t.scraper || (lang === 'en' ? 'Job Scraper (WIP)' : "Scraper d'offres (WIP)")}</span>
+        <button onClick={() => setActiveTab('scraper')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'scraper' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <Compass size={15} className={activeTab === 'scraper' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} />
+          <span className="truncate">{t.scraper || (lang === 'en' ? 'Job Scraper' : "Scraper d'offres")}</span>
         </button>
-        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <ListTodo size={18} className="text-blue-500 dark:text-zinc-300 shrink-0" /> 
-          <span className="truncate">{t.applications}</span>
+        <button onClick={() => setActiveTab('applications')} className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'applications' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <ListTodo size={15} className={activeTab === 'applications' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
+            <span className="truncate">{t.applications}</span>
+          </div>
+          {applications.length > 0 && (
+            <span className="font-mono tabular-nums text-[11px] text-zinc-400 dark:text-zinc-500 shrink-0">
+              {applications.length}
+            </span>
+          )}
         </button>
-        <button onClick={() => setActiveTab('cvLibrary')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'cvLibrary' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <div className="flex items-center gap-3 min-w-0">
-            <Library size={18} className="text-teal-500 dark:text-zinc-300 shrink-0" /> 
+        <button onClick={() => setActiveTab('cvLibrary')} className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'cvLibrary' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Library size={15} className={activeTab === 'cvLibrary' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
             <span className="truncate">{t.cvLibrary || 'Bibliothèque CV'}</span>
           </div>
           {cvLibrary.length > 0 && (
-            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-teal-100 dark:bg-zinc-700 text-teal-800 dark:text-zinc-200 shrink-0">
+            <span className="font-mono tabular-nums text-[11px] text-zinc-400 dark:text-zinc-500 shrink-0">
               {cvLibrary.length}
             </span>
           )}
         </button>
-        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <Sparkles size={18} className="text-amber-500 dark:text-zinc-300 shrink-0" /> 
+        <button onClick={() => setActiveTab('tailor')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'tailor' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <Sparkles size={15} className={activeTab === 'tailor' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
           <span className="truncate">{t.tailor}</span>
         </button>
         {showDevStudio && (
-          <button onClick={() => setActiveTab('dev')} className={`w-full flex items-center justify-between px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-zinc-800 text-amber-700 dark:text-white font-semibold border border-amber-300/60 dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-            <div className="flex items-center gap-3 min-w-0">
-              <Code size={18} className="text-orange-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('dev')} className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'dev' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Code size={15} className={activeTab === 'dev' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} />
               <span className="truncate">{t.dev || 'Dev Studio'}</span>
             </div>
           </button>
         )}
-        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'settings' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <Settings size={18} className="text-rose-500 dark:text-zinc-300 shrink-0" /> 
+        <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'settings' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <Settings size={15} className={activeTab === 'settings' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
           <span className="truncate">{t.settings || (lang === 'en' ? 'Settings' : 'Paramètres')}</span>
         </button>
-        <button onClick={() => setActiveTab('credits')} className={`w-full flex items-center gap-3 px-3.5 xl:px-4 py-2 xl:py-2.5 2xl:py-3 rounded-md text-left text-sm xl:text-base transition-colors cursor-pointer ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-zinc-800 text-purple-700 dark:text-white font-semibold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-zinc-800/60 font-medium'}`}>
-          <Award size={18} className="text-purple-500 dark:text-zinc-300 shrink-0" /> 
+        <button onClick={() => setActiveTab('credits')} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-left text-xs transition-colors duration-150 cursor-pointer whitespace-nowrap ${activeTab === 'credits' ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-medium' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 font-medium'}`}>
+          <Award size={15} className={activeTab === 'credits' ? 'text-blue-600 dark:text-blue-400 shrink-0' : 'text-zinc-400 dark:text-zinc-500 shrink-0'} /> 
           <span className="truncate">{t.credits || (lang === 'en' ? 'Credits' : 'Crédits')}</span>
         </button>
       </nav>
 
       {/* Sidebar Bottom Profile Card */}
-      <div className="p-3 xl:p-3.5 border-t border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-950 shrink-0">
+      <div className="p-3 bg-zinc-50 dark:bg-zinc-950/60 shrink-0">
         <div 
           onClick={() => setActiveTab('profile')}
-          className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800/70 transition-colors cursor-pointer"
+          className="flex items-center gap-2.5 p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors duration-150 cursor-pointer"
           title={t.profile}
         >
           {profile.photo ? (
             <img 
               src={profile.photo} 
               alt={profile.fullName || 'User'} 
-              className="w-8 h-8 xl:w-9 xl:h-9 rounded-md object-cover object-top shrink-0 ring-1 ring-indigo-500/30 shadow-2xs" 
+              className="w-7 h-7 rounded-md object-cover object-top shrink-0" 
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-8 h-8 xl:w-9 xl:h-9 bg-indigo-600 dark:bg-indigo-500 rounded-md flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-2xs">
+            <div className="w-7 h-7 bg-blue-600 rounded-md flex items-center justify-center text-white font-medium font-mono text-xs shrink-0">
               {getInitials(profile.fullName)}
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <div className="text-xs xl:text-sm font-bold text-gray-900 dark:text-white truncate">
+            <div className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
               {profile.fullName || (lang === 'en' ? 'User' : 'Utilisateur')}
             </div>
-            <div className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+            <div className="text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
               {profile.email || (lang === 'en' ? 'Edit profile' : 'Modifier profil')}
             </div>
           </div>
@@ -4709,179 +4736,161 @@ ${formattedLetter}`;
   );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-zinc-950 font-sans flex text-gray-900 dark:text-zinc-100 transition-colors duration-200">
+    <div className="min-h-screen bg-zinc-100/70 dark:bg-zinc-950 font-sans flex text-zinc-900 dark:text-zinc-100 transition-colors duration-150">
       {renderSidebar()}
       <main className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 sticky top-0 z-20 px-3.5 sm:px-6 lg:px-8 2xl:px-10 py-3 sm:py-4 2xl:py-5 flex justify-between items-center no-print print:hidden transition-colors duration-200">
-          <div className="flex items-center gap-3">
-            {/* Mobile Title Icon */}
-            <div className="md:hidden font-extrabold text-blue-600 dark:text-white text-lg tracking-tight flex items-center gap-1.5">
+        <header className="bg-white dark:bg-zinc-900 sticky top-0 z-20 px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center gap-6 no-print print:hidden transition-colors duration-150">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="md:hidden font-semibold text-zinc-900 dark:text-zinc-100 text-sm tracking-tight whitespace-nowrap shrink-0 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0" />
               <span>PostuTrack</span>
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-zinc-800 text-blue-700 dark:text-zinc-200 border border-blue-200 dark:border-zinc-700 font-mono tracking-normal shrink-0">
-                v0.5.6
-              </span>
             </div>
-            <h2 className="text-lg sm:text-xl 2xl:text-2xl font-bold text-gray-800 dark:text-white hidden md:block">
+            <h2 className="text-sm sm:text-base font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight hidden md:block truncate">
               {getTabHeading()}
             </h2>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* BOUTON GITHUB */}
+          <div className="flex items-center gap-2">
+            {/* GitHub Button */}
             <a
               href="https://github.com/anirboukantar-del/postutrack-app"
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => openExternalLink("https://github.com/anirboukantar-del/postutrack-app", e)}
-              className="p-1.5 sm:p-2 rounded-md border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-900 dark:hover:text-white transition-all flex items-center justify-center cursor-pointer shadow-xs shrink-0"
+              className="p-1.5 sm:p-2 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 flex items-center justify-center cursor-pointer shrink-0"
               title={t.viewOnGithub || "GitHub"}
               aria-label={t.viewOnGithub || "GitHub"}
             >
-              <Github size={18} className="text-gray-800 dark:text-zinc-200 shrink-0" />
+              <Github size={16} className="shrink-0" />
             </a>
 
-            {/* BOUTON DE CHANGEMENT DE LANGUE (FR / EN) */}
+            {/* Language Switcher (FR / EN) */}
             <button 
               onClick={toggleLanguage} 
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 2xl:py-2 text-xs 2xl:text-sm font-semibold rounded-md border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all cursor-pointer shadow-xs shrink-0"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer shrink-0"
               title={t.switchLanguage}
               aria-label={t.switchLanguage}
             >
-              <Languages size={15} className="text-blue-600 dark:text-zinc-200 shrink-0" />
-              <span className="flex items-center gap-1 tracking-wider text-[11px] sm:text-xs">
-                <span className={lang === 'fr' ? 'font-bold text-blue-600 dark:text-white' : 'text-gray-400 dark:text-zinc-500'}>FR</span>
-                <span className="text-gray-300 dark:text-zinc-600 text-[10px]">|</span>
-                <span className={lang === 'en' ? 'font-bold text-blue-600 dark:text-white' : 'text-gray-400 dark:text-zinc-500'}>EN</span>
+              <Languages size={14} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
+              <span className="flex items-center gap-1 font-mono text-[11px]">
+                <span className={lang === 'fr' ? 'font-semibold text-blue-600 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}>FR</span>
+                <span className="text-zinc-300 dark:text-zinc-600">/</span>
+                <span className={lang === 'en' ? 'font-semibold text-blue-600 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-500'}>EN</span>
               </span>
             </button>
 
-            {/* BOUTON DU THÈME */}
+            {/* Theme Toggle */}
             <button 
               onClick={toggleTheme} 
-              className="p-1.5 sm:p-2 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-md transition-colors flex items-center justify-center cursor-pointer shrink-0"
+              className="p-1.5 sm:p-2 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 flex items-center justify-center cursor-pointer shrink-0"
               title={t.toggleTheme}
             >
-              {theme === 'dark' ? <Sun size={18} className="text-yellow-400" /> : <Moon size={18} />}
+              {theme === 'dark' ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} />}
             </button>
 
-            {/* PROFIL AVATAR */}
-            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-1.5 sm:gap-2 cursor-pointer bg-blue-50 dark:bg-zinc-800 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md border border-blue-100 dark:border-zinc-700 hover:bg-blue-100 dark:hover:bg-zinc-700 transition-colors shrink-0">
+            {/* Profile Avatar */}
+            <div onClick={() => setActiveTab('profile')} className="flex items-center gap-2 cursor-pointer bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 shrink-0">
               {profile.photo ? (
                 <img 
                   src={profile.photo} 
                   alt={profile.fullName || 'User'} 
-                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-sm object-cover object-top shrink-0 ring-1 ring-blue-400 dark:ring-zinc-600" 
+                  className="w-6 h-6 rounded-sm object-cover object-top shrink-0" 
                   referrerPolicy="no-referrer"
                 />
               ) : (
-                <div className="w-6 h-6 sm:w-7 sm:h-7 bg-blue-600 dark:bg-zinc-700 rounded-sm flex items-center justify-center text-white font-bold text-[10px] sm:text-xs shrink-0">
+                <div className="w-6 h-6 bg-blue-600 rounded-sm flex items-center justify-center text-white font-medium font-mono text-[10px] shrink-0">
                   {getInitials(profile.fullName)}
                 </div>
               )}
-              <span className="text-xs 2xl:text-sm font-semibold text-blue-900 dark:text-zinc-200 max-w-[80px] xs:max-w-[120px] sm:max-w-[160px] truncate">{profile.fullName || t.user}</span>
+              <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200 max-w-[90px] sm:max-w-[140px] truncate">{profile.fullName || t.user}</span>
             </div>
           </div>
         </header>
 
         {/* Mobile Navigation Tabs */}
-        <div className="md:hidden flex items-center gap-1 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2 py-1.5 overflow-x-auto scrollbar-none no-print print:hidden sticky top-[53px] z-10">
+        <div className="md:hidden flex items-center gap-1 bg-zinc-50 dark:bg-zinc-900/80 px-2 py-1.5 overflow-x-auto scrollbar-none no-print print:hidden sticky top-[49px] z-10">
           {(!isOnboardingCompleted || activeTab === 'onboarding') && (
-            <button onClick={() => setActiveTab('onboarding')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'onboarding' ? 'bg-indigo-50 dark:bg-zinc-800 text-indigo-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-              <Rocket size={14} className="text-indigo-500 shrink-0" />
+            <button onClick={() => setActiveTab('onboarding')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'onboarding' ? 'bg-blue-600 text-white' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+              <Rocket size={13} className="shrink-0" />
               <span>{t.onboarding}</span>
             </button>
           )}
-          <button onClick={() => setActiveTab('dashboard')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'dashboard' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <LayoutDashboard size={14} className="text-sky-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('dashboard')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'dashboard' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <LayoutDashboard size={13} className="shrink-0" />
             <span>{t.dashboard}</span>
           </button>
-          <button onClick={() => setActiveTab('profile')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'profile' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <UserCheck size={14} className="text-emerald-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('profile')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'profile' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <UserCheck size={13} className="shrink-0" />
             <span>{t.profile}</span>
           </button>
-          <button onClick={() => setActiveTab('stats')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'stats' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <BarChart2 size={14} className="text-indigo-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('stats')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'stats' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <BarChart2 size={13} className="shrink-0" />
             <span>{t.statsTab || t.stats || 'Statistiques'}</span>
           </button>
-          <button onClick={() => setActiveTab('scraper')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'scraper' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs font-bold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <Compass size={14} className="text-cyan-500 dark:text-zinc-300 shrink-0" />
-            <span>{t.scraper || (lang === 'en' ? 'Job Scraper (WIP)' : "Scraper d'offres (WIP)")}</span>
+          <button onClick={() => setActiveTab('scraper')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'scraper' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <Compass size={13} className="shrink-0" />
+            <span>{t.scraper || (lang === 'en' ? 'Job Scraper' : "Scraper d'offres")}</span>
           </button>
-          <button onClick={() => setActiveTab('applications')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'applications' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <ListTodo size={14} className="text-blue-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('applications')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'applications' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <ListTodo size={13} className="shrink-0" />
             <span>{t.applications}</span>
           </button>
-          <button onClick={() => setActiveTab('cvLibrary')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'cvLibrary' ? 'bg-teal-50 dark:bg-zinc-800 text-teal-700 dark:text-white shadow-2xs font-bold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <Library size={14} className="text-teal-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('cvLibrary')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'cvLibrary' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <Library size={13} className="shrink-0" />
             <span>{t.cvLibrary || 'Bibliothèque CV'}</span>
             {cvLibrary.length > 0 && (
-              <span className="ml-0.5 text-[10px] px-1.5 py-0.2 rounded bg-teal-200 dark:bg-zinc-700 text-teal-900 dark:text-zinc-200 font-bold">
+              <span className="ml-0.5 font-mono tabular-nums text-[10px] px-1.5 py-0.2 rounded-sm bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200 font-medium">
                 {cvLibrary.length}
               </span>
             )}
           </button>
-          <button onClick={() => setActiveTab('tailor')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'tailor' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <Sparkles size={14} className="text-amber-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('tailor')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'tailor' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <Sparkles size={13} className="shrink-0" />
             <span>{t.tailor}</span>
           </button>
           {showDevStudio && (
-            <button onClick={() => setActiveTab('dev')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'dev' ? 'bg-amber-50 dark:bg-zinc-800 text-amber-600 dark:text-white shadow-2xs border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-              <Code size={14} className="text-orange-500 dark:text-zinc-300 shrink-0" />
+            <button onClick={() => setActiveTab('dev')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'dev' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+              <Code size={13} className="shrink-0" />
               <span>{t.dev || 'Dev Studio'}</span>
             </button>
           )}
-          <button onClick={() => setActiveTab('settings')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'settings' ? 'bg-blue-50 dark:bg-zinc-800 text-blue-600 dark:text-white shadow-2xs font-bold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <Settings size={14} className="text-rose-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('settings')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'settings' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <Settings size={13} className="shrink-0" />
             <span>{t.settings || (lang === 'en' ? 'Settings' : 'Paramètres')}</span>
           </button>
-          <button onClick={() => setActiveTab('credits')} className={`px-2.5 py-1.5 text-xs font-semibold rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[34px] transition-colors ${activeTab === 'credits' ? 'bg-purple-50 dark:bg-zinc-800 text-purple-600 dark:text-white shadow-2xs font-bold border dark:border-zinc-700' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-zinc-800/50'}`}>
-            <Award size={14} className="text-purple-500 dark:text-zinc-300 shrink-0" />
+          <button onClick={() => setActiveTab('credits')} className={`px-2.5 py-1.5 text-xs font-medium rounded-md whitespace-nowrap flex items-center gap-1.5 min-h-[32px] transition-colors duration-150 ${activeTab === 'credits' ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100' : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800'}`}>
+            <Award size={13} className="shrink-0" />
             <span>{t.credits || (lang === 'en' ? 'Credits' : 'Crédits')}</span>
           </button>
         </div>
 
-        <div className="flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 2xl:p-10 overflow-auto">
-          {/* AVERTISSEMENT DE CONFIDENTIALITÉ & STOCKAGE LOCAL AU DÉMARRAGE */}
+        <div className="flex-1 p-3.5 sm:p-5 md:p-6 lg:p-8 overflow-auto">
+          {/* Startup Local Privacy Banner */}
           {!isStartupWarningDismissed && (
-            <div className="mb-6 p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-amber-500/10 dark:from-amber-950/40 dark:via-amber-900/20 dark:to-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-2xl shadow-xs max-w-6xl mx-auto animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className="p-2.5 bg-amber-500/20 dark:bg-amber-500/30 text-amber-700 dark:text-amber-300 rounded-xl shrink-0 mt-0.5 border border-amber-400/30">
-                    <ShieldAlert size={22} className="text-amber-600 dark:text-amber-400" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm sm:text-base font-bold text-amber-950 dark:text-amber-200 flex items-center gap-1.5">
-                        <Lock size={15} className="text-amber-600 dark:text-amber-400" />
-                        {t.startupPrivacyWarningTitle}
-                      </h3>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                        100% Local
-                      </span>
+            <div className="mb-5 p-4 bg-white dark:bg-zinc-900 rounded-lg max-w-6xl mx-auto">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <Lock size={16} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      <span>{t.startupPrivacyWarningTitle}</span>
+                      <span className="text-zinc-300 dark:text-zinc-700" aria-hidden="true">·</span>
+                      <span className="font-mono text-xs text-blue-600 dark:text-blue-400">100% Local</span>
                     </div>
-                    <p className="text-xs sm:text-sm text-amber-900/90 dark:text-amber-200/90 leading-relaxed max-w-4xl">
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed max-w-4xl">
                       {t.startupPrivacyWarningText}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 justify-end">
                   <button
                     type="button"
                     onClick={handleDismissStartupWarning}
-                    className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
                   >
                     <Check size={14} />
                     <span>{t.startupPrivacyWarningGotIt}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDismissStartupWarning}
-                    className="p-1.5 text-amber-700/80 hover:text-amber-950 dark:text-amber-400 dark:hover:text-amber-200 hover:bg-amber-200/50 dark:hover:bg-amber-900/50 rounded-lg transition-colors cursor-pointer"
-                    title={t.startupPrivacyWarningGotIt}
-                    aria-label={t.startupPrivacyWarningGotIt}
-                  >
-                    <X size={16} />
                   </button>
                 </div>
               </div>
@@ -4889,25 +4898,25 @@ ${formattedLetter}`;
           )}
 
           {resetSuccessNotice && (
-            <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl text-sm font-medium flex items-center gap-2 max-w-4xl mx-auto shadow-xs">
-              <CheckCircle size={20} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <div className="mb-5 p-3.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded-lg text-xs sm:text-sm font-medium flex items-center gap-2 max-w-4xl mx-auto">
+              <CheckCircle size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>{t.resetSuccessNotice}</span>
             </div>
           )}
 
           {demoSuccessNotice && (
-            <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 rounded-2xl text-sm font-medium flex items-center justify-between gap-3 max-w-4xl mx-auto shadow-sm animate-in fade-in slide-in-from-top-2">
+            <div className="mb-5 p-3.5 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 rounded-lg text-xs sm:text-sm font-medium flex items-center justify-between gap-3 max-w-4xl mx-auto">
               <div className="flex items-center gap-2.5">
-                <Sparkles size={20} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                <Sparkles size={18} className="text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>{t.demoSuccessNotice}</span>
               </div>
               <button 
                 type="button" 
                 onClick={() => setDemoSuccessNotice(false)} 
-                className="text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-white p-1 rounded-lg transition-colors cursor-pointer"
+                className="text-amber-700 hover:text-amber-900 dark:text-amber-300 dark:hover:text-white p-1 rounded-md transition-colors duration-150 cursor-pointer"
                 aria-label="Fermer"
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
           )}
@@ -4948,7 +4957,7 @@ ${formattedLetter}`;
           )}
 
           {activeTab === 'dashboard' && (
-            <div className="space-y-6 sm:space-y-8 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
+            <div className="space-y-5 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
               {/* Hiring Weather & Optimal Application Timing (Top of Dashboard) */}
               <HiringWeatherSection 
                 t={t} 
@@ -4957,42 +4966,42 @@ ${formattedLetter}`;
                 onResetDate={() => setSimulatedMonth(null)} 
               />
 
-              {/* Dashboard: Exactly 3 Stats (Total applications, Rejections, Offers) - Clickable to open Detailed Stats */}
+              {/* Dashboard: Key Metrics Strip (Borderless Surface Luminance Blocks) */}
               <div>
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <h3 className="text-sm sm:text-base font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                    <span>{lang === 'en' ? 'Key Metrics' : 'Indicateurs Clés'}</span>
+                <div className="flex items-center justify-between gap-3 mb-2.5">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+                    {lang === 'en' ? 'Key Metrics' : 'Indicateurs Clés'}
                   </h3>
                   <button
                     type="button"
                     onClick={() => setActiveTab('stats')}
-                    className="text-xs sm:text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 cursor-pointer transition-colors"
+                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer transition-colors duration-150"
                   >
                     <span>{t.viewDetailedStatsBanner || (lang === 'en' ? 'Detailed analytics & charts' : 'Statistiques détaillées & graphiques')}</span>
-                    <ArrowRight size={14} />
+                    <ArrowRight size={13} />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 2xl:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* 1. Total Applications */}
                   <div 
                     onClick={() => setActiveTab('stats')}
-                    className="p-4 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between hover:border-blue-400 transition-all cursor-pointer group"
+                    className="p-4 sm:p-5 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between hover:bg-zinc-50 dark:hover:bg-zinc-800/70 transition-colors duration-150 cursor-pointer group"
                     title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-150">
                         {t.totalApplications}
                       </span>
-                      <div className="text-blue-600 dark:text-blue-400 shrink-0">
-                        <Briefcase className="w-4 h-4" />
-                      </div>
+                      <Briefcase size={15} className="text-blue-600 dark:text-blue-400 shrink-0" />
                     </div>
                     <div className="flex items-baseline justify-between mt-1">
-                      <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
-                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">
+                        {totalApplications}
+                      </p>
+                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span>{t.stats || 'Détails'}</span>
-                        <ArrowRight size={13} />
+                        <ArrowRight size={12} />
                       </span>
                     </div>
                   </div>
@@ -5000,22 +5009,22 @@ ${formattedLetter}`;
                   {/* 2. Rejections */}
                   <div 
                     onClick={() => setActiveTab('stats')}
-                    className="p-4 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between hover:border-rose-400 transition-all cursor-pointer group"
+                    className="p-4 sm:p-5 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between hover:bg-zinc-50 dark:hover:bg-zinc-800/70 transition-colors duration-150 cursor-pointer group"
                     title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors duration-150">
                         {t.rejections}
                       </span>
-                      <div className="text-rose-600 dark:text-rose-400 shrink-0">
-                        <XCircle className="w-4 h-4" />
-                      </div>
+                      <XCircle size={15} className="text-rose-600 dark:text-rose-400 shrink-0" />
                     </div>
                     <div className="flex items-baseline justify-between mt-1">
-                      <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
-                      <span className="text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">
+                        {rejectionsCount}
+                      </p>
+                      <span className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span>{t.stats || 'Détails'}</span>
-                        <ArrowRight size={13} />
+                        <ArrowRight size={12} />
                       </span>
                     </div>
                   </div>
@@ -5023,22 +5032,22 @@ ${formattedLetter}`;
                   {/* 3. Offers */}
                   <div 
                     onClick={() => setActiveTab('stats')}
-                    className="p-4 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between hover:border-emerald-400 transition-all cursor-pointer group"
+                    className="p-4 sm:p-5 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between hover:bg-zinc-50 dark:hover:bg-zinc-800/70 transition-colors duration-150 cursor-pointer group"
                     title={t.clickToViewDetailedStats || 'Cliquer pour voir l\'analyse détaillée'}
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300 leading-snug group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors duration-150">
                         {t.offersReceived}
                       </span>
-                      <div className="text-emerald-600 dark:text-emerald-400 shrink-0">
-                        <CheckCircle className="w-4 h-4" />
-                      </div>
+                      <CheckCircle size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     </div>
                     <div className="flex items-baseline justify-between mt-1">
-                      <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
-                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <p className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">
+                        {offersCount}
+                      </p>
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                         <span>{t.stats || 'Détails'}</span>
-                        <ArrowRight size={13} />
+                        <ArrowRight size={12} />
                       </span>
                     </div>
                   </div>
@@ -5089,61 +5098,61 @@ ${formattedLetter}`;
             <div className="space-y-4 w-full mx-auto">
               <div className="flex justify-between items-start sm:items-center flex-col sm:flex-row gap-3.5 sm:gap-4 pb-1">
                 <div>
-                  <h3 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">{t.applications}</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    {totalApplications} {t.totalApplications.toLowerCase()} • {answeredApps.length} {t.answered.toLowerCase()}
-                    {ghostedCount > 0 ? ` • ${ghostedCount} ${lang === 'en' ? 'ghosted' : 'sans réponse'}` : ''}
+                  <h3 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">{t.applications}</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 font-mono tabular-nums">
+                    {totalApplications} {t.totalApplications.toLowerCase()} · {answeredApps.length} {t.answered.toLowerCase()}
+                    {ghostedCount > 0 ? ` · ${ghostedCount} ${lang === 'en' ? 'ghosted' : 'sans réponse'}` : ''}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap w-full sm:w-auto">
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                   <button 
                     type="button"
                     onClick={() => setIsImportModalOpen(true)} 
-                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-zinc-200 rounded-md text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    className="flex-1 sm:flex-none justify-center px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 rounded-md text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                     title={t.importApplicationsModalTitle || "Importer des candidatures (Excel, CSV, JSON)"}
                   >
-                    <Upload size={15} className="text-blue-600 dark:text-zinc-300 shrink-0" />
+                    <Upload size={14} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
                     <span>{t.importApplicationsBtn || "Importer"}</span>
                   </button>
                   <button 
                     onClick={handleExportCSV} 
-                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 2xl:px-4 2xl:py-2.5 bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-800 text-gray-700 dark:text-zinc-200 rounded-md text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer shadow-2xs flex items-center gap-1.5"
+                    className="flex-1 sm:flex-none justify-center px-3 py-2 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-200 rounded-md text-xs font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                     title={t.exportDataTooltip}
                   >
-                    <Download size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <Download size={14} className="text-zinc-500 dark:text-zinc-400 shrink-0" />
                     <span>{t.exportCSVBtn}</span>
                   </button>
                   <button 
                     onClick={() => { setEditingApplication(null); setInitialModalUrl(''); setIsAddModalOpen(true); }} 
-                    className="flex-1 sm:flex-none justify-center px-4 py-2 2xl:px-5 2xl:py-2.5 bg-blue-600 text-white rounded-md text-xs sm:text-sm 2xl:text-base font-semibold hover:bg-blue-700 transition-colors cursor-pointer shadow-xs flex items-center gap-1.5"
+                    className="flex-1 sm:flex-none justify-center px-3.5 py-2 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                   >
-                    <Plus size={16} className="shrink-0" />
+                    <Plus size={15} className="shrink-0" />
                     <span>{t.newApplication}</span>
                   </button>
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-zinc-950 rounded-md shadow-xs border border-gray-200 dark:border-zinc-800/80 overflow-hidden transition-colors w-full">
+              <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden transition-colors duration-150 w-full">
 
               {/* Search & Filter Bar */}
-              <div className="p-3 sm:p-4 bg-white dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800/80 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
+              <div className="p-3 sm:p-4 bg-white dark:bg-zinc-900 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 sm:gap-3">
                 {/* Search Input */}
                 <div className="relative flex-1 min-w-0">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-zinc-500">
-                    <Search size={15} />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400 dark:text-zinc-500">
+                    <Search size={14} />
                   </div>
                   <input
                     type="text"
                     value={appSearchQuery}
                     onChange={(e) => setAppSearchQuery(e.target.value)}
                     placeholder={t.searchApplicationsPlaceholder || "Rechercher par entreprise, poste, plateforme, statut..."}
-                    className="w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-900 dark:text-zinc-100 placeholder-gray-400 dark:placeholder-zinc-500 transition-colors shadow-2xs"
+                    className="w-full pl-9 pr-9 py-2 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-1 focus:ring-blue-600 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 transition-colors duration-150"
                   />
                   {appSearchQuery && (
                     <button
                       type="button"
                       onClick={() => setAppSearchQuery('')}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 transition-colors cursor-pointer"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors duration-150 cursor-pointer"
                       title={t.clearFilters || "Effacer"}
                     >
                       <X size={14} />
@@ -5158,7 +5167,7 @@ ${formattedLetter}`;
                     <select
                       value={appStatusFilter}
                       onChange={(e) => setAppStatusFilter(e.target.value)}
-                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-700 dark:text-zinc-200 font-medium cursor-pointer shadow-2xs"
+                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-1 focus:ring-blue-600 text-zinc-700 dark:text-zinc-200 font-medium cursor-pointer"
                     >
                       <option value="all">{t.allStatuses || "Tous les statuts"}</option>
                       {STATUS_KEYS.map(statusKey => (
@@ -5174,7 +5183,7 @@ ${formattedLetter}`;
                     <select
                       value={appContractFilter}
                       onChange={(e) => setAppContractFilter(e.target.value)}
-                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-700 dark:text-zinc-200 font-medium cursor-pointer shadow-2xs"
+                      className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-1 focus:ring-blue-600 text-zinc-700 dark:text-zinc-200 font-medium cursor-pointer"
                     >
                       <option value="all">{t.allContracts || "Tous les contrats"}</option>
                       {CONTRACT_KEYS.map(contractKey => (
@@ -5191,7 +5200,7 @@ ${formattedLetter}`;
                       <select
                         value={`${appSortField}-${appSortOrder}`}
                         onChange={(e) => handleSortSelectChange(e.target.value)}
-                        className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md outline-none focus:ring-2 focus:ring-zinc-600 text-gray-700 dark:text-zinc-200 font-medium cursor-pointer shadow-2xs"
+                        className="w-full sm:w-auto px-2.5 sm:px-3 py-2 text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 rounded-md outline-none focus:ring-1 focus:ring-blue-600 text-zinc-700 dark:text-zinc-200 font-medium cursor-pointer"
                         title={t.sortBy || "Trier par"}
                         aria-label={t.sortBy || "Trier par"}
                       >
@@ -5215,7 +5224,7 @@ ${formattedLetter}`;
                         setAppSortOrder(nextOrder);
                         try { localStorage.setItem('postutrack_app_sort_order', nextOrder); } catch (e) {}
                       }}
-                      className="p-2 text-gray-600 dark:text-zinc-300 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                      className="p-2 text-zinc-600 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-950/60 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors duration-150 cursor-pointer shrink-0"
                       title={appSortOrder === 'asc' ? (t.sortAscending || "Ordre croissant") : (t.sortDescending || "Ordre décroissant")}
                       aria-label={appSortOrder === 'asc' ? (t.sortAscending || "Ordre croissant") : (t.sortDescending || "Ordre décroissant")}
                     >
@@ -5238,7 +5247,7 @@ ${formattedLetter}`;
                           localStorage.setItem('postutrack_app_sort_order', 'desc');
                         } catch (e) {}
                       }}
-                      className="px-2.5 sm:px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                      className="px-2.5 sm:px-3 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 rounded-md hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-colors duration-150 flex items-center gap-1 cursor-pointer shrink-0"
                       title={t.clearFilters || "Effacer"}
                     >
                       <RotateCcw size={13} />
@@ -5248,7 +5257,7 @@ ${formattedLetter}`;
 
                   {/* Showing matching count indicator */}
                   {(appSearchQuery || appStatusFilter !== 'all' || appContractFilter !== 'all') && (
-                    <span className="text-[11px] font-semibold px-2.5 py-1 bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg whitespace-nowrap">
+                    <span className="text-[11px] font-mono tabular-nums font-medium px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md whitespace-nowrap">
                       {filteredApplications.length} / {applications.length}
                     </span>
                   )}
@@ -5257,11 +5266,11 @@ ${formattedLetter}`;
 
               {/* Import Feedback Banner */}
               {importSuccessNotice && (
-                <div className="mx-3 sm:mx-4 mt-3 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-xl text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 flex items-center justify-between gap-2 shadow-2xs animate-in fade-in duration-200">
+                <div className="mx-3 sm:mx-4 mt-2 p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-md text-xs sm:text-sm text-emerald-800 dark:text-emerald-200 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={18} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                    <CheckCircle size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <span>
-                      <strong>{importSuccessNotice.count}</strong> {t.importSuccessNotification || "candidatures importées avec succès !"}
+                      <strong className="font-mono tabular-nums">{importSuccessNotice.count}</strong> {t.importSuccessNotification || "candidatures importées avec succès !"}
                       {importSuccessNotice.fileName && <span className="opacity-75 text-2xs ml-1 font-mono">({importSuccessNotice.fileName})</span>}
                     </span>
                   </div>
@@ -5270,18 +5279,18 @@ ${formattedLetter}`;
                     onClick={() => setImportSuccessNotice(null)}
                     className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 p-1 rounded-md cursor-pointer"
                   >
-                    <X size={15} />
+                    <X size={14} />
                   </button>
                 </div>
               )}
 
               {/* Mobile Card List (< 640px) */}
-              <div className="block sm:hidden divide-y divide-gray-100 dark:divide-zinc-800/80 bg-white dark:bg-zinc-950">
-                {filteredApplications.map(app => (
-                  <div key={app.id} className="p-4 space-y-2.5 hover:bg-gray-50/80 dark:hover:bg-zinc-900/70 transition-colors">
+              <div className="block sm:hidden space-y-1 p-2 bg-white dark:bg-zinc-900">
+                {filteredApplications.map((app, idx) => (
+                  <div key={app.id} className={`p-3.5 rounded-md space-y-2.5 hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors duration-150 ${idx % 2 === 1 ? 'bg-zinc-50/60 dark:bg-zinc-950/30' : 'bg-white dark:bg-zinc-900'}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <div className="font-bold text-sm text-gray-900 dark:text-white flex items-center gap-1.5">
+                        <div className="font-semibold text-sm text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
                           <span>{app.company}</span>
                           {app.url && (
                             <a 
@@ -5289,30 +5298,30 @@ ${formattedLetter}`;
                               target="_blank" 
                               rel="noopener noreferrer" 
                               onClick={(e) => openExternalLink(app.url, e)}
-                              className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer p-0.5 hover:bg-blue-50 dark:hover:bg-zinc-800 rounded transition-colors" 
+                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer p-0.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-sm transition-colors duration-150" 
                               title={app.url}
                               aria-label={app.url}
                             >
-                              <ExternalLink size={13} />
+                              <ExternalLink size={12} />
                             </a>
                           )}
                         </div>
-                        <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mt-0.5">{app.role}</div>
+                        <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400 mt-0.5">{app.role}</div>
                       </div>
-                      <span className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
+                      <span className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-sm text-[10px] font-medium shrink-0 ${getSourceBadgeStyle(app.source || 'LinkedIn')}`}>
                         {getSourceLabel(app.source || 'LinkedIn', t)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between gap-2 text-xs flex-wrap">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-full text-[10px] font-medium border border-gray-200 dark:border-zinc-700 shrink-0">
+                        <span className="inline-flex items-center whitespace-nowrap px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-sm text-[10px] font-medium shrink-0">
                           {getContractLabel(app.type, t)}
                         </span>
-                        <span className="text-gray-500 dark:text-gray-400 text-[11px] whitespace-nowrap">{app.date}</span>
+                        <span className="text-zinc-500 dark:text-zinc-400 font-mono tabular-nums text-[11px] whitespace-nowrap">{app.date}</span>
                       </div>
                       {getResponseDays(app) !== null && (
-                        <span className="inline-flex items-center whitespace-nowrap text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 shrink-0 gap-1">
+                        <span className="inline-flex items-center whitespace-nowrap font-mono tabular-nums text-[10px] font-medium px-1.5 py-0.5 rounded-sm bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 shrink-0 gap-1">
                           <Timer size={10} /> {getResponseDays(app)} {lang === 'en' ? 'd' : 'j'}
                         </span>
                       )}
@@ -5322,11 +5331,11 @@ ${formattedLetter}`;
                       <select
                         value={app.status}
                         onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                        className={`inline-flex items-center justify-center text-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-[11px] font-semibold cursor-pointer outline-none appearance-none shadow-2xs transition-opacity hover:opacity-85 ${getStatusColor(app.status)}`}
+                        className={`inline-flex items-center justify-center text-center whitespace-nowrap px-2.5 py-0.5 rounded-sm text-[11px] font-medium cursor-pointer outline-none appearance-none transition-opacity hover:opacity-85 ${getStatusColor(app.status)}`}
                         style={{ textAlignLast: 'center', textAlign: 'center' }}
                       >
                         {STATUS_KEYS.map(statusKey => (
-                          <option key={statusKey} value={statusKey} className="bg-white dark:bg-zinc-900 text-gray-900 dark:text-gray-100 font-medium text-center">
+                          <option key={statusKey} value={statusKey} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-medium text-center">
                             {getStatusLabel(statusKey, t)}
                           </option>
                         ))}
@@ -5336,18 +5345,18 @@ ${formattedLetter}`;
                         <button 
                           type="button"
                           onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
-                          className="p-1.5 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 text-gray-700 dark:text-zinc-200 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center shadow-2xs"
+                          className="p-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-md transition-colors duration-150 cursor-pointer inline-flex items-center justify-center"
                           title={t.editApplication || t.edit}
                           aria-label={t.editApplication || t.edit}
                         >
-                          <Pencil size={14} />
+                          <Pencil size={13} />
                         </button>
                       </div>
                     </div>
                   </div>
                 ))}
                 {filteredApplications.length === 0 && (
-                  <div className="p-8 text-center text-gray-400 dark:text-zinc-500 text-sm">
+                  <div className="p-8 text-center text-zinc-400 dark:text-zinc-500 text-xs sm:text-sm">
                     {applications.length === 0 ? t.noApplications : (t.noMatchingApplications || "Aucune candidature ne correspond à vos critères de recherche.")}
                   </div>
                 )}
@@ -5357,99 +5366,99 @@ ${formattedLetter}`;
               <div className="hidden sm:block w-full overflow-hidden">
                 <table className="w-full table-fixed text-left border-collapse text-xs md:text-sm">
                   <thead>
-                    <tr className="bg-gray-100/70 dark:bg-zinc-900 text-gray-600 dark:text-zinc-400 text-xs uppercase tracking-wider border-b border-gray-200 dark:border-zinc-800/80">
+                    <tr className="bg-zinc-50 dark:bg-zinc-950/60 text-zinc-500 dark:text-zinc-400 text-[11px] uppercase tracking-wider">
                       <th 
                         onClick={() => handleSortChange('company')}
-                        className={`w-[20%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'company' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
+                        className={`w-[20%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors duration-150 group hover:bg-zinc-100 dark:hover:bg-zinc-800/80 ${appSortField === 'company' ? 'text-blue-600 dark:text-zinc-100 bg-zinc-100/70 dark:bg-zinc-800/60' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.company}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.company}</span>
                           <span className="shrink-0">
                             {appSortField === 'company' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
+                              appSortOrder === 'asc' ? <ArrowUp size={12} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={12} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={11} className="text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('role')}
-                        className={`w-[27%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'role' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
+                        className={`w-[27%] px-3 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors duration-150 group hover:bg-zinc-100 dark:hover:bg-zinc-800/80 ${appSortField === 'role' ? 'text-blue-600 dark:text-zinc-100 bg-zinc-100/70 dark:bg-zinc-800/60' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.role}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.role}</span>
                           <span className="shrink-0">
                             {appSortField === 'role' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
+                              appSortOrder === 'asc' ? <ArrowUp size={12} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={12} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={11} className="text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('source')}
-                        className={`w-[15%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'source' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
+                        className={`w-[15%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors duration-150 group hover:bg-zinc-100 dark:hover:bg-zinc-800/80 ${appSortField === 'source' ? 'text-blue-600 dark:text-zinc-100 bg-zinc-100/70 dark:bg-zinc-800/60' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.platformHeader || t.source}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.platformHeader || t.source}</span>
                           <span className="shrink-0">
                             {appSortField === 'source' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
+                              appSortOrder === 'asc' ? <ArrowUp size={12} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={12} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={11} className="text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('type')}
-                        className={`w-[13%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'type' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
+                        className={`w-[13%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors duration-150 group hover:bg-zinc-100 dark:hover:bg-zinc-800/80 ${appSortField === 'type' ? 'text-blue-600 dark:text-zinc-100 bg-zinc-100/70 dark:bg-zinc-800/60' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.contractHeader || t.contract}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.contractHeader || t.contract}</span>
                           <span className="shrink-0">
                             {appSortField === 'type' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
+                              appSortOrder === 'asc' ? <ArrowUp size={12} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={12} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={11} className="text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('date')}
-                        className={`w-[11%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'date' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
+                        className={`w-[11%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors duration-150 group hover:bg-zinc-100 dark:hover:bg-zinc-800/80 ${appSortField === 'date' ? 'text-blue-600 dark:text-zinc-100 bg-zinc-100/70 dark:bg-zinc-800/60' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.dateHeader || t.date}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.dateHeader || t.date}</span>
                           <span className="shrink-0">
                             {appSortField === 'date' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
+                              appSortOrder === 'asc' ? <ArrowUp size={12} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={12} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={11} className="text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
                       </th>
                       <th 
                         onClick={() => handleSortChange('status')}
-                        className={`w-[10%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors group hover:bg-gray-200/60 dark:hover:bg-zinc-800 ${appSortField === 'status' ? 'text-blue-600 dark:text-white font-bold bg-blue-50/50 dark:bg-zinc-800/90' : ''}`}
+                        className={`w-[10%] px-2 py-2.5 font-semibold truncate cursor-pointer select-none transition-colors duration-150 group hover:bg-zinc-100 dark:hover:bg-zinc-800/80 ${appSortField === 'status' ? 'text-blue-600 dark:text-zinc-100 bg-zinc-100/70 dark:bg-zinc-800/60' : ''}`}
                         title={`${t.sortBy || 'Trier par'} ${t.statusHeader || t.status}`}
                       >
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className="truncate">{t.statusHeader || t.status}</span>
                           <span className="shrink-0">
                             {appSortField === 'status' ? (
-                              appSortOrder === 'asc' ? <ArrowUp size={13} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={13} className="text-blue-600 dark:text-zinc-200" />
+                              appSortOrder === 'asc' ? <ArrowUp size={12} className="text-blue-600 dark:text-zinc-200" /> : <ArrowDown size={12} className="text-blue-600 dark:text-zinc-200" />
                             ) : (
-                              <ArrowUpDown size={12} className="text-gray-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ArrowUpDown size={11} className="text-zinc-400 dark:text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                             )}
                           </span>
                         </div>
@@ -5457,10 +5466,10 @@ ${formattedLetter}`;
                       <th className="w-[4%] px-2 py-2.5 text-center font-semibold truncate">{t.actions}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-zinc-800/80 bg-white dark:bg-zinc-950">
-                    {filteredApplications.map(app => (
-                      <tr key={app.id} className="hover:bg-gray-50/80 dark:hover:bg-zinc-900/70 transition-colors">
-                        <td className="w-[20%] px-3 py-2 font-semibold text-gray-900 dark:text-gray-100 overflow-hidden">
+                  <tbody className="bg-white dark:bg-zinc-900">
+                    {filteredApplications.map((app, idx) => (
+                      <tr key={app.id} className={`hover:bg-zinc-100/70 dark:hover:bg-zinc-800/60 transition-colors duration-150 ${idx % 2 === 1 ? 'bg-zinc-50/50 dark:bg-zinc-950/30' : ''}`}>
+                        <td className="w-[20%] px-3 py-2.5 font-medium text-zinc-900 dark:text-zinc-100 overflow-hidden">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="truncate" title={app.company}>{app.company}</span>
                             {app.url && (
@@ -5469,7 +5478,7 @@ ${formattedLetter}`;
                                 target="_blank" 
                                 rel="noopener noreferrer" 
                                 onClick={(e) => openExternalLink(app.url, e)}
-                                className="text-blue-500 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer shrink-0 p-0.5 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded transition-colors" 
+                                className="text-blue-600 hover:text-blue-700 dark:text-blue-400 inline-flex items-center cursor-pointer shrink-0 p-0.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-sm transition-colors duration-150" 
                                 title={app.url}
                                 aria-label={app.url}
                               >
@@ -5478,24 +5487,24 @@ ${formattedLetter}`;
                             )}
                           </div>
                         </td>
-                        <td className="w-[27%] px-3 py-2 text-gray-700 dark:text-gray-300 font-medium overflow-hidden">
+                        <td className="w-[27%] px-3 py-2.5 text-zinc-600 dark:text-zinc-400 font-medium overflow-hidden">
                           <div className="truncate" title={app.role}>{app.role}</div>
                         </td>
-                        <td className="w-[15%] px-2 py-2 overflow-hidden">
+                        <td className="w-[15%] px-2 py-2.5 overflow-hidden">
                           <div className="min-w-0">
-                            <span className={`inline-flex items-center max-w-full px-1.5 py-0.5 rounded-full text-[10.5px] font-semibold border truncate ${getSourceBadgeStyle(app.source || 'LinkedIn')}`} title={getSourceLabel(app.source || 'LinkedIn', t)}>
+                            <span className={`inline-flex items-center max-w-full px-1.5 py-0.5 rounded-sm text-[10.5px] font-medium truncate ${getSourceBadgeStyle(app.source || 'LinkedIn')}`} title={getSourceLabel(app.source || 'LinkedIn', t)}>
                               <span className="truncate">{getSourceLabel(app.source || 'LinkedIn', t)}</span>
                             </span>
                           </div>
                         </td>
-                        <td className="w-[13%] px-2 py-2 overflow-hidden">
+                        <td className="w-[13%] px-2 py-2.5 overflow-hidden">
                           <div className="min-w-0">
-                            <span className="inline-flex items-center max-w-full px-1.5 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 rounded-full text-[10.5px] font-medium border border-gray-200 dark:border-zinc-700 truncate" title={getContractLabel(app.type, t)}>
+                            <span className="inline-flex items-center max-w-full px-1.5 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-sm text-[10.5px] font-medium truncate" title={getContractLabel(app.type, t)}>
                               <span className="truncate">{getContractLabel(app.type, t)}</span>
                             </span>
                           </div>
                         </td>
-                        <td className="w-[11%] px-2 py-2 text-gray-500 dark:text-gray-400 text-xs overflow-hidden">
+                        <td className="w-[11%] px-2 py-2.5 text-zinc-500 dark:text-zinc-400 font-mono tabular-nums text-xs overflow-hidden">
                           <div className="truncate" title={app.date}>{app.date}</div>
                           {app.responseDate && (
                             <div className="text-[10px] text-amber-600 dark:text-amber-400 flex items-center gap-0.5 mt-0.5 truncate" title={`${t.responseDate}: ${app.responseDate}`}>
@@ -5503,33 +5512,33 @@ ${formattedLetter}`;
                             </div>
                           )}
                         </td>
-                        <td className="w-[10%] px-2 py-2 overflow-hidden">
+                        <td className="w-[10%] px-2 py-2.5 overflow-hidden">
                           <div className="flex flex-col items-start gap-0.5 min-w-0">
                             <select
                               value={app.status}
                               onChange={(e) => handleInlineStatusChange(app.id, e.target.value)}
-                              className={`inline-flex max-w-full text-center truncate px-2 py-0.5 rounded-full text-[10.5px] font-semibold cursor-pointer outline-none appearance-none hover:opacity-85 transition-opacity shadow-2xs ${getStatusColor(app.status)}`}
+                              className={`inline-flex max-w-full text-center truncate px-2 py-0.5 rounded-sm text-[10.5px] font-medium cursor-pointer outline-none appearance-none hover:opacity-85 transition-opacity ${getStatusColor(app.status)}`}
                               style={{ textAlignLast: 'center', textAlign: 'center' }}
                               title={getStatusLabel(app.status, t)}
                             >
                               {STATUS_KEYS.map(statusKey => (
-                                <option key={statusKey} value={statusKey} className="bg-white dark:bg-zinc-900 text-gray-900 dark:text-gray-100 font-medium text-center">
+                                <option key={statusKey} value={statusKey} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-medium text-center">
                                   {getStatusLabel(statusKey, t)}
                                 </option>
                               ))}
                             </select>
                             {getResponseDays(app) !== null && (
-                              <span className="inline-flex items-center text-[9.5px] font-semibold px-1 py-0.2 rounded bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 gap-0.5 truncate" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
+                              <span className="inline-flex items-center font-mono tabular-nums text-[9.5px] font-medium px-1 py-0.2 rounded-sm bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 gap-0.5 truncate" title={`${t.avgResponseTime}: ${getResponseDays(app)} ${t.avgDays}`}>
                                 <Timer size={8.5} className="shrink-0" /> {getResponseDays(app)}{lang === 'en' ? 'd' : 'j'}
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="w-[4%] px-2 py-2 text-center overflow-hidden">
+                        <td className="w-[4%] px-2 py-2.5 text-center overflow-hidden">
                           <button 
                             type="button"
                             onClick={() => { setEditingApplication(app); setIsAddModalOpen(true); }} 
-                            className="p-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 rounded-lg text-xs font-medium cursor-pointer transition-colors inline-flex items-center justify-center shadow-2xs"
+                            className="p-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 rounded-md text-xs font-medium cursor-pointer transition-colors duration-150 inline-flex items-center justify-center"
                             title={t.editApplication || t.edit}
                             aria-label={t.editApplication || t.edit}
                           >
@@ -5540,7 +5549,7 @@ ${formattedLetter}`;
                     ))}
                     {filteredApplications.length === 0 && (
                       <tr>
-                        <td colSpan="7" className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+                        <td colSpan="7" className="p-8 text-center text-zinc-400 dark:text-zinc-500 text-xs sm:text-sm">
                           {applications.length === 0 ? t.noApplications : (t.noMatchingApplications || "Aucune candidature ne correspond à vos critères de recherche.")}
                         </td>
                       </tr>
@@ -5566,34 +5575,29 @@ ${formattedLetter}`;
           )}
 
           {activeTab === 'tailor' && (
-            <div className="space-y-4 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
+            <div className="space-y-5 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-1 print:hidden">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">{t.tailor}</h2>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">{t.tailorSubtitle}</p>
+                  <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">{t.tailor}</h2>
+                  <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{t.tailorSubtitle}</p>
                 </div>
-                <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-full sm:w-auto border border-gray-200 dark:border-gray-700">
-                  <button 
-                    onClick={() => setGenerationMode('cv')} 
-                    className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${generationMode === 'cv' ? 'bg-white dark:bg-gray-700 shadow-xs text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                  >
-                    {t.cvMode}
-                  </button>
-                  <button 
-                    onClick={() => setGenerationMode('letter')} 
-                    className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-xs sm:text-sm font-semibold transition-colors cursor-pointer ${generationMode === 'letter' ? 'bg-white dark:bg-gray-700 shadow-xs text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                  >
-                    {t.letterMode}
-                  </button>
-                </div>
+                <SegmentedControl
+                  value={generationMode}
+                  onChange={setGenerationMode}
+                  options={[
+                    { value: 'cv', label: t.cvMode, icon: FileText },
+                    { value: 'letter', label: t.letterMode, icon: Mail },
+                  ]}
+                />
               </div>
 
-              <div className={`pt-2 print:hidden ${isPrinting ? 'print:hidden' : ''}`}>
-                <form onSubmit={handleGenerateAI} className="space-y-4 sm:space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 2xl:gap-6">
+              <div className={`pt-1 print:hidden ${isPrinting ? 'print:hidden' : ''}`}>
+                <form onSubmit={handleGenerateAI} className="space-y-4">
+                  {/* Parameter Controls Row */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 rounded-lg bg-white dark:bg-zinc-900">
                     <div>
-                      <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.associatedJob}</label>
-                      <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={selectedAppId} onChange={(e) => handleSelectAssociatedApplication(e.target.value)}>
+                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.associatedJob}</label>
+                      <select className="w-full p-2 rounded-md text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-blue-600" value={selectedAppId} onChange={(e) => handleSelectAssociatedApplication(e.target.value)}>
                         <option value="">{t.noJobLinked}</option>
                         {applications.map(app => <option key={app.id} value={app.id}>{app.company} - {app.role}</option>)}
                       </select>
@@ -5602,24 +5606,24 @@ ${formattedLetter}`;
                     {generationMode === 'cv' ? (
                       <>
                         <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.strategyFidelity}</label>
-                          <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={modificationStrategy} onChange={(e) => setModificationStrategy(e.target.value)}>
+                          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.strategyFidelity}</label>
+                          <select className="w-full p-2 rounded-md text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-blue-600" value={modificationStrategy} onChange={(e) => setModificationStrategy(e.target.value)}>
                             <option value="strict">{t.strategyStrict}</option>
                             <option value="balanced">{t.strategyBalanced}</option>
                             <option value="rewrite">{t.strategyRewrite}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.atsKeywordsDensity}</label>
-                          <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={keywordDensity} onChange={(e) => setKeywordDensity(e.target.value)}>
+                          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.atsKeywordsDensity}</label>
+                          <select className="w-full p-2 rounded-md text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-blue-600" value={keywordDensity} onChange={(e) => setKeywordDensity(e.target.value)}>
                             <option value="low">{t.atsLow}</option>
                             <option value="moderate">{t.atsModerate}</option>
                             <option value="high">{t.atsHigh}</option>
                           </select>
                         </div>
                         <div>
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.cvTextDensity}</label>
-                          <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={cvDensity} onChange={(e) => setCvDensity(e.target.value)}>
+                          <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.cvTextDensity}</label>
+                          <select className="w-full p-2 rounded-md text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-blue-600" value={cvDensity} onChange={(e) => setCvDensity(e.target.value)}>
                             <option value="expanded">{t.densityExpanded}</option>
                             <option value="standard">{t.densityStandard}</option>
                             <option value="compact">{t.densityCompact}</option>
@@ -5628,8 +5632,8 @@ ${formattedLetter}`;
                       </>
                     ) : (
                       <div className="sm:col-span-2 lg:col-span-3">
-                        <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.letterTone}</label>
-                        <select className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs" value={letterTone} onChange={(e) => setLetterTone(e.target.value)}>
+                        <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.letterTone}</label>
+                        <select className="w-full p-2 rounded-md text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-blue-600" value={letterTone} onChange={(e) => setLetterTone(e.target.value)}>
                           <option value="professional">{t.toneProfessional}</option>
                           <option value="audacious">{t.toneAudacious}</option>
                           <option value="original">{t.toneOriginal}</option>
@@ -5638,71 +5642,197 @@ ${formattedLetter}`;
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 2xl:gap-6">
-                    {generationMode === 'cv' ? (
-                      <div>
-                        <div className="flex justify-between items-end mb-1">
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.sourceMasterCV}</label>
-                          <button type="button" onClick={() => setBaseCV(profile.masterCV)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">{t.restore}</button>
-                        </div>
-                        <textarea rows={5} className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs font-mono bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={baseCV} onChange={(e) => setBaseCV(e.target.value)} />
+                  {/* Two-Column Source & Prompt-Kit Job Offer Composer */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Left: Master Document Source */}
+                    <div className="flex flex-col rounded-lg bg-white dark:bg-zinc-900 overflow-hidden">
+                      <div className="flex items-center justify-between px-3.5 py-2.5 bg-zinc-50 dark:bg-zinc-950/60">
+                        <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                          <FileText size={14} className="text-blue-600 dark:text-blue-400" />
+                          <span>{generationMode === 'cv' ? t.sourceMasterCV : t.sourceMasterLetter}</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => generationMode === 'cv' ? setBaseCV(profile.masterCV) : setBaseLetter(profile.masterLetter)}
+                          className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center gap-1"
+                        >
+                          <RotateCcw size={12} />
+                          <span>{t.restore}</span>
+                        </button>
                       </div>
-                    ) : (
-                      <div>
-                        <div className="flex justify-between items-end mb-1">
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.sourceMasterLetter}</label>
-                          <button type="button" onClick={() => setBaseLetter(profile.masterLetter)} className="text-xs text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">{t.restore}</button>
-                        </div>
-                        <textarea rows={5} className="w-full p-2.5 2xl:p-3 border rounded-xl text-xs font-mono bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={baseLetter} onChange={(e) => setBaseLetter(e.target.value)} placeholder={t.masterLetterPlaceholder} />
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex justify-between items-end mb-1 flex-wrap gap-1">
+                      {generationMode === 'cv' ? (
+                        <textarea
+                          rows={6}
+                          className="w-full flex-1 p-3.5 text-xs font-mono bg-transparent text-zinc-900 dark:text-zinc-100 outline-none resize-none leading-relaxed custom-scrollbar"
+                          value={baseCV}
+                          onChange={(e) => setBaseCV(e.target.value)}
+                        />
+                      ) : (
+                        <textarea
+                          rows={6}
+                          className="w-full flex-1 p-3.5 text-xs font-mono bg-transparent text-zinc-900 dark:text-zinc-100 outline-none resize-none leading-relaxed custom-scrollbar"
+                          value={baseLetter}
+                          onChange={(e) => setBaseLetter(e.target.value)}
+                          placeholder={t.masterLetterPlaceholder}
+                        />
+                      )}
+                    </div>
+
+                    {/* Right: Prompt-Kit Job Description Composer with URL Extractor */}
+                    <PromptInput
+                      value={jobDescription}
+                      onValueChange={setJobDescription}
+                      isLoading={isLoadingAI || isExtracting}
+                      onSubmit={() => {
+                        if (!isLoadingAI) handleGenerateAI({ preventDefault: () => {} });
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2 px-3.5 py-2 bg-zinc-50 dark:bg-zinc-950/60 flex-wrap">
                         <div className="flex items-center gap-2">
-                          <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">{t.jobDescription}</label>
+                          <Briefcase size={14} className="text-blue-600 dark:text-blue-400" />
+                          <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">{t.jobDescription}</span>
                           {jobDescription.trim().length > 30 && (
                             <button
                               type="button"
                               onClick={() => setJobDescription(cleanJobDescription(jobDescription))}
                               title={t.cleanJobDescTooltip}
-                              className="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600 cursor-pointer flex items-center gap-1 transition-colors"
+                              className="text-[11px] px-2 py-0.5 rounded-sm bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 cursor-pointer flex items-center gap-1 transition-colors duration-150"
                             >
-                              <Wand2 size={11} className="text-amber-500" />
-                              {t.cleanJobDescBtn}
+                              <Wand2 size={11} className="text-blue-600 dark:text-blue-400" />
+                              <span>{t.cleanJobDescBtn}</span>
                             </button>
                           )}
                         </div>
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <input type="url" placeholder={t.urlExtractorPlaceholder} className="px-2.5 py-1 text-xs border rounded-lg w-28 sm:w-36 bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" value={jobUrl} onChange={(e) => setJobUrl(e.target.value)} />
-                          <button type="button" onClick={handleExtractUrl} disabled={isExtracting || !jobUrl} className="text-xs bg-gray-100 dark:bg-gray-700 px-2.5 py-1 rounded-lg border dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-50 cursor-pointer">
-                            {isExtracting ? <Loader2 size={13} className="animate-spin" /> : t.extractBtn}
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative flex items-center">
+                            <Link size={12} className="absolute left-2 text-zinc-400 pointer-events-none" />
+                            <input
+                              type="url"
+                              placeholder={t.urlExtractorPlaceholder}
+                              className="pl-6 pr-2 py-1 text-xs rounded-sm bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 w-36 sm:w-44 outline-none focus:ring-1 focus:ring-blue-600"
+                              value={jobUrl}
+                              onChange={(e) => setJobUrl(e.target.value)}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleExtractUrl}
+                            disabled={isExtracting || !jobUrl}
+                            className="text-xs bg-white dark:bg-zinc-800 px-2.5 py-1 rounded-sm hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-medium disabled:opacity-50 cursor-pointer flex items-center gap-1 transition-colors duration-150"
+                          >
+                            {isExtracting ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                            <span>{t.extractBtn}</span>
                           </button>
                         </div>
                       </div>
-                      <textarea rows={5} className="w-full p-2.5 sm:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" placeholder={t.jobDescPlaceholder} value={jobDescription} onChange={(e) => setJobDescription(e.target.value)} />
-                    </div>
+                      <PromptInputTextarea
+                        minRows={6}
+                        maxHeight={260}
+                        placeholder={t.jobDescPlaceholder}
+                      />
+                    </PromptInput>
                   </div>
 
-                  <div>
-                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.customInstructionsLabel}</label>
-                    <textarea 
-                      rows={2} 
-                      className="w-full p-2.5 sm:p-3 border rounded-xl text-xs sm:text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" 
-                      placeholder={t.customInstructionsPlaceholder} 
-                      value={customInstruction} 
-                      onChange={(e) => setCustomInstruction(e.target.value)} 
-                    />
+                  {/* Prompt-Kit Custom Instructions Composer + Quick Suggestions + Action Bar */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                        {t.customInstructionsLabel}
+                      </label>
+                      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+                        {(lang === 'en'
+                          ? [
+                              'Highlight quantified achievements',
+                              'Emphasize technical leadership',
+                              'Strictly concise 1-page phrasing',
+                            ]
+                          : [
+                              'Valoriser les résultats chiffrés',
+                              'Mettre en avant le leadership technique',
+                              'Style synthétique et impactant',
+                            ]
+                        ).map((suggestion) => (
+                          <PromptSuggestion
+                            key={suggestion}
+                            icon={Sparkles}
+                            active={customInstruction.includes(suggestion)}
+                            onClick={() => {
+                              setCustomInstruction((prev) =>
+                                prev.includes(suggestion)
+                                  ? prev.replace(suggestion, '').trim()
+                                  : prev
+                                  ? `${prev.trim()} · ${suggestion}`
+                                  : suggestion
+                              );
+                            }}
+                          >
+                            {suggestion}
+                          </PromptSuggestion>
+                        ))}
+                      </div>
+                    </div>
+
+                    <PromptInput
+                      value={customInstruction}
+                      onValueChange={setCustomInstruction}
+                      isLoading={isLoadingAI}
+                      maxHeight={140}
+                      onSubmit={() => {
+                        if (!isLoadingAI) handleGenerateAI({ preventDefault: () => {} });
+                      }}
+                    >
+                      <PromptInputTextarea
+                        minRows={2}
+                        maxHeight={120}
+                        placeholder={t.customInstructionsPlaceholder}
+                      />
+                      <PromptInputActions>
+                        <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                          <Cpu size={14} className="text-blue-600 dark:text-blue-400" />
+                          <span className="font-mono text-[11px] text-zinc-700 dark:text-zinc-300">
+                            {selectedAiModel.toUpperCase()}
+                          </span>
+                          <span className="hidden sm:inline text-zinc-300 dark:text-zinc-700" aria-hidden="true">·</span>
+                          <span className="hidden sm:inline text-[11px]">
+                            {lang === 'en' ? 'Press Ctrl+Enter to generate' : 'Ctrl+Entrée pour générer'}
+                          </span>
+                        </div>
+
+                        <PromptInputAction tooltip={generationMode === 'cv' ? t.optimizeCV : t.optimizeLetter}>
+                          <button
+                            type="submit"
+                            disabled={isLoadingAI}
+                            className="inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 cursor-pointer transition-colors duration-150 text-xs sm:text-sm whitespace-nowrap"
+                          >
+                            {isLoadingAI ? <Loader2 className="animate-spin" size={15} /> : <Sparkles size={15} />}
+                            <span>{isLoadingAI ? t.generating : (generationMode === 'cv' ? t.optimizeCV : t.optimizeLetter)}</span>
+                          </button>
+                        </PromptInputAction>
+                      </PromptInputActions>
+                    </PromptInput>
                   </div>
+
+                  {/* Beautiful UI Agent Reasoning & Tool-Call Trace during URL Extraction or AI Generation */}
+                  {(isExtracting || isLoadingAI) && (
+                    <AgentThinkingTrace
+                      isActive={isExtracting || isLoadingAI}
+                      mode={isExtracting ? 'scrape' : generationMode}
+                      providerName={selectedAiModel.toUpperCase()}
+                      companyName={applications.find(a => String(a.id) === String(selectedAppId))?.company || ''}
+                      roleName={applications.find(a => String(a.id) === String(selectedAppId))?.role || ''}
+                      lang={lang}
+                    />
+                  )}
 
                   {aiError && (
-                    <div className="p-3.5 sm:p-4 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-xl text-xs sm:text-sm space-y-2">
+                    <div className="p-3.5 sm:p-4 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 rounded-lg text-xs sm:text-sm space-y-2">
                       <div className="flex items-start gap-2">
-                        <AlertTriangle size={18} className="shrink-0 mt-0.5" />
-                        <span className="font-semibold">{aiError}</span>
+                        <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                        <span className="font-medium">{aiError}</span>
                       </div>
                       {String(aiError).includes('403') && (
-                        <div className="mt-2 p-2.5 rounded-lg bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-200 space-y-1.5">
-                          <span className="font-bold text-xs block">
+                        <div className="mt-2 p-2.5 rounded-md bg-amber-100/80 dark:bg-amber-950/60 text-amber-950 dark:text-amber-200 space-y-1.5">
+                          <span className="font-semibold text-xs block">
                             {lang === 'en' ? 'How to unblock Error 403 in Ollama:' : 'Comment débloquer l\'Erreur 403 dans Ollama :'}
                           </span>
                           <p className="text-[11px] leading-relaxed">
@@ -5710,59 +5840,65 @@ ${formattedLetter}`;
                               ? 'Ollama blocks web requests by default. Start Ollama with OLLAMA_ORIGINS="*" in your terminal, or use Cloudflare tunnel with --http-host-header localhost:'
                               : 'Ollama bloque par défaut les connexions via tunnel ou navigateur. Démarrez Ollama avec OLLAMA_ORIGINS="*" dans votre terminal :'}
                           </p>
-                          <div className="font-mono text-xs bg-zinc-950 text-emerald-300 p-2 rounded flex items-center justify-between gap-2">
+                          <div className="font-mono text-xs bg-zinc-950 text-emerald-300 p-2 rounded-md flex items-center justify-between gap-2">
                             <span className="select-all">OLLAMA_ORIGINS="*" ollama serve</span>
                             <button
                               type="button"
                               onClick={() => navigator.clipboard?.writeText('OLLAMA_ORIGINS="*" ollama serve')}
-                              className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-sans font-bold cursor-pointer shrink-0"
+                              className="px-2 py-0.5 rounded-sm bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-sans font-medium cursor-pointer shrink-0"
                             >
                               {lang === 'en' ? 'Copy' : 'Copier'}
                             </button>
                           </div>
                         </div>
                       )}
-                      <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 pl-6.5">
+                      <div className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400 pl-6">
                         <Info size={14} className="shrink-0 mt-0.5" />
                         <span>{t.pasteOfferManuallyTip}</span>
                       </div>
                     </div>
                   )}
-                  <div className="flex justify-end pt-1">
-                    <button type="submit" disabled={isLoadingAI} className="w-full sm:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold shadow-md disabled:opacity-50 cursor-pointer transition-all text-xs sm:text-sm 2xl:text-base">
-                      {isLoadingAI ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />} {isLoadingAI ? t.generating : (generationMode === 'cv' ? t.optimizeCV : t.optimizeLetter)}
-                    </button>
-                  </div>
                 </form>
               </div>
 
               {/* Empty / Placeholder State when no document has been generated */}
               {!aiResult && !isLoadingAI && (
-                <div className="py-12 text-center max-w-xl mx-auto">
-                  <h3 className="text-base font-bold text-gray-800 dark:text-white mb-1">{t.noDocumentGeneratedTitle}</h3>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 leading-relaxed max-w-lg mx-auto">{t.noDocumentGeneratedDesc}</p>
+                <div className="py-10 px-4 text-center rounded-lg bg-white dark:bg-zinc-900 max-w-2xl mx-auto">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mb-1">{t.noDocumentGeneratedTitle}</h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-lg mx-auto">{t.noDocumentGeneratedDesc}</p>
                 </div>
+              )}
+
+              {/* Beautiful UI Structured Alignment Record (Match Score, Analysis & Injected Keywords) */}
+              {aiResult && (aiResult.analysisSummary || aiResult.matchScore) && (
+                <StructuredRecordCard
+                  matchScore={aiResult.matchScore || 88}
+                  analysisSummary={aiResult.analysisSummary || ''}
+                  injectedKeywords={aiResult.injectedKeywords || []}
+                  providerLabel={selectedAiModel.toUpperCase()}
+                  lang={lang}
+                />
               )}
 
               {/* Display CV Result */}
               {aiResult && generationMode === 'cv' && aiResult.cv && (
-                <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-4 sm:space-y-5">
                   {/* CV Customization & Toolbar */}
-                  <div className="pb-4 border-b border-gray-200 dark:border-gray-700 space-y-4 print:hidden">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 border-b border-gray-100 dark:border-gray-700 pb-3.5">
+                  <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 space-y-4 print:hidden">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-1">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <LayoutTemplate className="text-blue-600 dark:text-blue-400" size={18} />
-                          <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white">
+                          <LayoutTemplate className="text-blue-600 dark:text-blue-400" size={16} />
+                          <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100">
                             {t.resumeTemplatesTitle || 'Modèle de CV'}
                           </h3>
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          <span className="text-[11px] font-medium px-2 py-0.5 rounded-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                             {RESUME_TEMPLATES.find(tpl => tpl.id === selectedResumeTemplate)?.name || 'RenderCV Classic'}
                           </span>
                           <button
                             type="button"
                             onClick={() => setActiveTab('cvLibrary')}
-                            className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800/60 hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-0.5 rounded-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer"
                             title={t.cvLibrary}
                           >
                             <Library size={12} />
@@ -5770,7 +5906,7 @@ ${formattedLetter}`;
                             <ArrowRight size={11} />
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                           {selectedResumeTemplate === 'rendercv' 
                             ? (lang === 'en' ? 'Original academic serif template' : 'Modèle original académique en typographie serif') 
                             : (lang === 'en' ? 'Modern template inspired by Reactive Resume' : 'Modèle moderne inspiré de Reactive Resume')}
@@ -5779,24 +5915,24 @@ ${formattedLetter}`;
 
                       <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
                         {selectedResumeTemplate === 'rendercv' && (
-                          <button onClick={handleExportRenderCV} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 font-semibold cursor-pointer transition-colors">
-                            <Download size={15} /> {t.yamlExport}
+                          <button onClick={handleExportRenderCV} className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm bg-zinc-100 dark:bg-zinc-800 rounded-md text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-medium cursor-pointer transition-colors duration-150">
+                            <Download size={14} /> {t.yamlExport}
                           </button>
                         )}
                         <button 
                           onClick={handleDownloadCVPDF} 
                           disabled={isExportingPdf}
-                          className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs cursor-pointer transition-all disabled:opacity-60"
+                          className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium cursor-pointer transition-colors duration-150 disabled:opacity-60"
                         >
-                          {isExportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                          {isExportingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                           <span>{isExportingPdf ? (lang === 'en' ? 'Generating PDF...' : 'Création PDF...') : (lang === 'en' ? 'Download PDF' : 'Télécharger PDF')}</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Template Picker Pills/Cards */}
+                    {/* Template Picker Cards */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-2">
                         {lang === 'en' ? 'Choose Resume Template' : 'Sélectionner le modèle de CV'}
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -5807,23 +5943,25 @@ ${formattedLetter}`;
                               key={tpl.id}
                               type="button"
                               onClick={() => setSelectedResumeTemplate(tpl.id)}
-                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                              className={`p-3 rounded-md text-left transition-colors duration-150 cursor-pointer flex flex-col justify-between ${
                                 isSelected 
-                                  ? 'border-blue-600 dark:border-blue-500 bg-blue-50/70 dark:bg-blue-900/30 ring-2 ring-blue-500/20' 
-                                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                                  ? 'bg-blue-600 text-white' 
+                                  : 'bg-zinc-50 dark:bg-zinc-950/60 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100'
                               }`}
                             >
                               <div>
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className={`text-xs font-bold ${isSelected ? 'text-blue-900 dark:text-blue-200' : 'text-gray-900 dark:text-white'}`}>
+                                  <span className={`text-xs font-semibold ${isSelected ? 'text-white' : 'text-zinc-900 dark:text-zinc-100'}`}>
                                     {tpl.name}
                                   </span>
-                                  {isSelected && <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400" />}
+                                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
                                 </div>
-                                <span className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
-                                  tpl.id === 'rendercv' 
-                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' 
-                                    : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                                <span className={`text-[10px] font-mono uppercase font-medium tracking-wider px-1.5 py-0.5 rounded-sm ${
+                                  isSelected
+                                    ? 'bg-blue-700 text-blue-100'
+                                    : tpl.id === 'rendercv' 
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300' 
+                                    : 'bg-zinc-200/70 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300'
                                 }`}>
                                   {tpl.badge}
                                 </span>
@@ -5834,22 +5972,22 @@ ${formattedLetter}`;
                       </div>
                     </div>
 
-                    {/* Secondary Controls: Color Palette, Page Format (1 page / Multi-page), Density, Photo Toggle & Photo Size */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 pt-2 border-t border-gray-100 dark:border-gray-700">
-                      {/* Accent Color Picker (disabled for classic monochrome rendercv) */}
+                    {/* Secondary Controls: Color Palette, Page Format, Density, Photo Toggle & Photo Size */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5 pt-2">
+                      {/* Accent Color Picker */}
                       <div>
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <Palette size={14} className="text-gray-500 dark:text-gray-400" />
-                          <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          <Palette size={13} className="text-zinc-500 dark:text-zinc-400" />
+                          <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             {t.accentColorTitle || "Couleur d'accent"}
                           </label>
                           {selectedResumeTemplate === 'rendercv' && (
-                            <span className="text-[10px] text-gray-400 italic">
+                            <span className="text-[10px] text-zinc-400">
                               ({lang === 'en' ? 'Monochrome' : 'Monochrome'})
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap min-h-[36px]">
+                        <div className="flex items-center gap-2 flex-wrap min-h-[34px]">
                           {ACCENT_COLORS.map((c) => {
                             const isActive = resumeAccentColor === c.hex;
                             return (
@@ -5859,12 +5997,12 @@ ${formattedLetter}`;
                                 onClick={() => setResumeAccentColor(c.hex)}
                                 disabled={selectedResumeTemplate === 'rendercv'}
                                 title={c.name}
-                                className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
-                                  isActive ? 'ring-2 ring-offset-2 ring-gray-900 dark:ring-white scale-110' : 'hover:scale-105'
+                                className={`w-6 h-6 rounded-full flex items-center justify-center transition-opacity cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                                  isActive ? 'ring-2 ring-offset-2 ring-zinc-900 dark:ring-zinc-100' : 'opacity-80 hover:opacity-100'
                                 }`}
                                 style={{ backgroundColor: c.hex }}
                               >
-                                {isActive && <span className="w-2 h-2 rounded-full bg-white shadow-xs" />}
+                                {isActive && <span className="w-2 h-2 rounded-full bg-white" />}
                               </button>
                             );
                           })}
@@ -5875,26 +6013,26 @@ ${formattedLetter}`;
                       <div>
                         <div className="flex items-center justify-between gap-1.5 mb-1.5">
                           <div className="flex items-center gap-1.5">
-                            <Files size={14} className="text-gray-500 dark:text-gray-400" />
-                            <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                            <Files size={13} className="text-zinc-500 dark:text-zinc-400" />
+                            <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                               {t.pageFormatTitle || 'Format (A4)'}
                             </label>
                           </div>
                           {!isMultiPageResume && (
-                            <span className="text-[9.5px] px-1.5 py-0.2 font-bold rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60" title="Anti-blank page active">
+                            <span className="font-mono tabular-nums text-[9.5px] px-1.5 py-0.2 font-medium rounded-sm bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300" title="Anti-blank page active">
                               1p
                             </span>
                           )}
                         </div>
-                        <div className="flex gap-1.5 min-h-[36px] items-center">
+                        <div className="flex gap-1.5 min-h-[34px] items-center">
                           <button
                             type="button"
                             title={t.singlePageTip || 'Strictement 1 page A4 (évite toute 2ème page blanche)'}
                             onClick={() => setIsMultiPageResume(false)}
-                            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                            className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap ${
                               !isMultiPageResume
-                                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-50 dark:bg-zinc-950/60 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                             }`}
                           >
                             {t.singlePageBadge || '1 Page'}
@@ -5903,10 +6041,10 @@ ${formattedLetter}`;
                             type="button"
                             title={t.multiPageTip || 'Autorise le CV à s’étendre sur plusieurs pages'}
                             onClick={() => setIsMultiPageResume(true)}
-                            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                            className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap ${
                               isMultiPageResume
-                                ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-zinc-50 dark:bg-zinc-950/60 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                             }`}
                           >
                             {t.multiPageBadge || 'Multi-pages'}
@@ -5917,12 +6055,12 @@ ${formattedLetter}`;
                       {/* Density / Spacing Selector */}
                       <div>
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <SlidersHorizontal size={14} className="text-gray-500 dark:text-gray-400" />
-                          <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          <SlidersHorizontal size={13} className="text-zinc-500 dark:text-zinc-400" />
+                          <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             {t.pageDensityTitle || 'Densité de page (A4)'}
                           </label>
                         </div>
-                        <div className="flex gap-1.5 min-h-[36px] items-center">
+                        <div className="flex gap-1.5 min-h-[34px] items-center">
                           {[
                             { id: 'compact', label: t.densityCompactShort || 'Compact', title: t.densityCompact },
                             { id: 'normal', label: t.densityNormalShort || 'Standard', title: t.densityNormal },
@@ -5933,10 +6071,10 @@ ${formattedLetter}`;
                               type="button"
                               title={d.title}
                               onClick={() => setResumeDensity(d.id)}
-                              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer whitespace-nowrap ${
+                              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer whitespace-nowrap ${
                                 resumeDensity === d.id
-                                  ? 'bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-gray-900 dark:border-white shadow-2xs'
-                                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750'
+                                  ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                                  : 'bg-zinc-50 dark:bg-zinc-950/60 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                               }`}
                             >
                               {d.label}
@@ -5948,13 +6086,13 @@ ${formattedLetter}`;
                       {/* Photo Toggle Switch */}
                       <div>
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <ImageIcon size={14} className="text-gray-500 dark:text-gray-400" />
-                          <label className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          <ImageIcon size={13} className="text-zinc-500 dark:text-zinc-400" />
+                          <label className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                             {t.showPhotoOnResume || 'Photo de profil'}
                           </label>
                         </div>
-                        <div className="flex items-center justify-between p-1.5 sm:p-2 rounded-xl bg-gray-50 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 min-h-[36px]">
-                          <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 min-h-[34px]">
+                          <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">
                             {showResumePhoto 
                               ? (t.showPhotoOn || 'Visible') 
                               : (t.showPhotoOff || 'Masquée')}
@@ -5962,15 +6100,15 @@ ${formattedLetter}`;
                           <button
                             type="button"
                             onClick={() => setShowResumePhoto(!showResumePhoto)}
-                            className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                              showResumePhoto ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-150 ease-in-out focus:outline-hidden ${
+                              showResumePhoto ? 'bg-blue-600' : 'bg-zinc-300 dark:bg-zinc-700'
                             }`}
                             role="switch"
                             aria-checked={showResumePhoto}
                           >
                             <span
-                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                                showResumePhoto ? 'translate-x-5' : 'translate-x-0'
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white transition duration-150 ease-in-out ${
+                                showResumePhoto ? 'translate-x-4' : 'translate-x-0'
                               }`}
                             />
                           </button>
@@ -5980,12 +6118,12 @@ ${formattedLetter}`;
                       {/* Photo Size Selector */}
                       <div>
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <ImageIcon size={14} className="text-gray-500 dark:text-gray-400" />
-                          <label className={`text-xs font-semibold ${showResumePhoto ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-500'}`}>
+                          <ImageIcon size={13} className="text-zinc-500 dark:text-zinc-400" />
+                          <label className={`text-xs font-medium ${showResumePhoto ? 'text-zinc-700 dark:text-zinc-300' : 'text-zinc-400 dark:text-zinc-500'}`}>
                             {t.photoSizeTitle || 'Taille de photo'}
                           </label>
                         </div>
-                        <div className="flex gap-1.5 min-h-[36px] items-center">
+                        <div className="flex gap-1.5 min-h-[34px] items-center">
                           {[
                             { id: 'sm', label: t.photoSizeSm || 'Petite' },
                             { id: 'md', label: t.photoSizeMd || 'Moyenne' },
@@ -5996,12 +6134,12 @@ ${formattedLetter}`;
                               type="button"
                               disabled={!showResumePhoto}
                               onClick={() => setResumePhotoSize(s.id)}
-                              className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold border transition-colors whitespace-nowrap ${
+                              className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors duration-150 whitespace-nowrap ${
                                 !showResumePhoto 
-                                  ? 'opacity-40 cursor-not-allowed bg-gray-100 dark:bg-gray-800 text-gray-400 border-gray-200 dark:border-gray-700'
+                                  ? 'opacity-40 cursor-not-allowed bg-zinc-100 dark:bg-zinc-800 text-zinc-400'
                                   : resumePhotoSize === s.id
-                                    ? 'bg-blue-600 text-white border-blue-600 shadow-2xs cursor-pointer'
-                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer'
+                                    ? 'bg-blue-600 text-white cursor-pointer'
+                                    : 'bg-zinc-50 dark:bg-zinc-950/60 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer'
                               }`}
                             >
                               {s.label}
@@ -6012,7 +6150,7 @@ ${formattedLetter}`;
                     </div>
                   </div>
 
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 p-2 sm:p-6 flex justify-center bg-gray-100 dark:bg-gray-900 overflow-x-auto print:p-0 print:m-0 print:border-none print:shadow-none print:bg-transparent print:rounded-none print:overflow-visible">
+                  <div className="rounded-lg p-2 sm:p-6 flex justify-center bg-zinc-200/60 dark:bg-zinc-900/80 overflow-x-auto print:p-0 print:m-0 print:border-none print:shadow-none print:bg-transparent print:rounded-none print:overflow-visible">
                     {renderCVTemplate()}
                   </div>
                 </div>
@@ -6020,12 +6158,12 @@ ${formattedLetter}`;
 
               {/* Display Letter Result */}
               {aiResult && generationMode === 'letter' && aiResult.coverLetter && (
-                <div className="space-y-4 sm:space-y-6">
-                  <div className="bg-white dark:bg-gray-800 p-4 sm:p-5 rounded-2xl shadow-xs border border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 no-print print:hidden">
+                <div className="space-y-4 sm:space-y-5">
+                  <div className="bg-white dark:bg-zinc-900 p-4 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 no-print print:hidden">
                     <div className="flex items-center gap-2">
-                      <Sparkles className="text-indigo-600 dark:text-indigo-400 shrink-0" size={18} />
-                      <h3 className="font-bold text-sm sm:text-base text-gray-800 dark:text-white">{t.coverLetterTitle}</h3>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300">
+                      <Sparkles className="text-blue-600 dark:text-blue-400 shrink-0" size={16} />
+                      <h3 className="font-semibold text-sm sm:text-base text-zinc-900 dark:text-zinc-100">{t.coverLetterTitle}</h3>
+                      <span className="px-2 py-0.5 rounded-sm font-mono tabular-nums text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                         {getCoverLetterParagraphList(aiResult.coverLetter, profile.fullName).length} {lang === 'en' ? 'paragraphs' : 'paragraphes'}
                       </span>
                     </div>
@@ -6035,19 +6173,19 @@ ${formattedLetter}`;
                         type="button"
                         onClick={handleReformatCoverLetter}
                         title={lang === 'en' ? 'Auto-separate paragraphs with clean linebreaks' : 'Séparer automatiquement les paragraphes avec des sauts de ligne clairs'}
-                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold shadow-2xs cursor-pointer transition-all"
+                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 font-medium cursor-pointer transition-colors duration-150"
                       >
-                        <AlignLeft size={14} className="text-indigo-600 dark:text-indigo-400" />
+                        <AlignLeft size={14} className="text-blue-600 dark:text-blue-400" />
                         <span>{t.reformatParagraphs || (lang === 'en' ? 'Format Paragraphs' : 'Aérer les paragraphes')}</span>
                       </button>
 
                       <button 
                         type="button"
                         onClick={() => setIsEditingLetter(!isEditingLetter)}
-                        className={`flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm rounded-xl font-semibold shadow-2xs cursor-pointer transition-all ${
+                        className={`flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm rounded-md font-medium cursor-pointer transition-colors duration-150 ${
                           isEditingLetter 
                             ? 'bg-emerald-600 hover:bg-emerald-700 text-white' 
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                         }`}
                       >
                         {isEditingLetter ? <Check size={14} /> : <Pencil size={14} />}
@@ -6057,9 +6195,9 @@ ${formattedLetter}`;
                       <button 
                         type="button"
                         onClick={handleCopyLetter} 
-                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 font-semibold shadow-2xs cursor-pointer transition-all"
+                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 font-medium cursor-pointer transition-colors duration-150"
                       >
-                        {isCopied ? <CheckCircle size={15} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={15} />} 
+                        {isCopied ? <CheckCircle size={14} className="text-emerald-600 dark:text-emerald-400" /> : <Copy size={14} />} 
                         {isCopied ? <span className="text-emerald-700 dark:text-emerald-400">{t.copied}</span> : t.copyText}
                       </button>
 
@@ -6067,16 +6205,16 @@ ${formattedLetter}`;
                         type="button"
                         onClick={handleDownloadLetterPDF} 
                         disabled={isExportingPdf}
-                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-xs cursor-pointer transition-all disabled:opacity-60"
+                        className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium cursor-pointer transition-colors duration-150 disabled:opacity-60"
                       >
-                        {isExportingPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                        {isExportingPdf ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                         <span>{isExportingPdf ? (lang === 'en' ? 'Generating PDF...' : 'Création PDF...') : (lang === 'en' ? 'Download PDF' : 'Télécharger PDF')}</span>
                       </button>
                     </div>
                   </div>
 
                   {letterFormatNotice && (
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 rounded-md text-xs font-medium flex items-center gap-2">
                       <CheckCircle2 size={15} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                       <span>{t.letterParagraphsFormatted || (lang === 'en' ? 'Paragraphs structured and formatted successfully!' : 'Paragraphes aérés et structurés avec succès !')}</span>
                     </div>
@@ -6084,16 +6222,16 @@ ${formattedLetter}`;
 
                   {/* Inline Editor if active */}
                   {isEditingLetter && (
-                    <div className="p-4 bg-white dark:bg-gray-800 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 shadow-sm space-y-3 no-print print:hidden">
+                    <div className="p-4 bg-white dark:bg-zinc-900 rounded-lg space-y-3 no-print print:hidden">
                       <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                          <Pencil size={14} className="text-indigo-600 dark:text-indigo-400" />
+                        <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                          <Pencil size={13} className="text-blue-600 dark:text-blue-400" />
                           <span>{lang === 'en' ? 'Edit Cover Letter Content (separate paragraphs with blank lines):' : 'Édition de la lettre (séparez vos paragraphes par une ligne vide) :'}</span>
                         </label>
                         <button
                           type="button"
                           onClick={handleReformatCoverLetter}
-                          className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                          className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1 cursor-pointer"
                         >
                           <AlignLeft size={12} />
                           <span>{lang === 'en' ? 'Auto-format spacing' : 'Aérer automatiquement'}</span>
@@ -6103,14 +6241,14 @@ ${formattedLetter}`;
                         rows={12}
                         value={aiResult.coverLetter}
                         onChange={(e) => setAiResult(prev => ({ ...prev, coverLetter: e.target.value }))}
-                        className="w-full p-3.5 text-xs sm:text-sm font-sans leading-relaxed rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/70 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 font-normal"
+                        className="w-full p-3.5 text-xs sm:text-sm font-sans leading-relaxed rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-blue-600 font-normal"
                         placeholder="Rédigez ou éditez votre lettre ici..."
                       />
                       <div className="flex justify-end">
                         <button
                           type="button"
                           onClick={() => setIsEditingLetter(false)}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-colors"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-medium cursor-pointer transition-colors duration-150"
                         >
                           <Check size={14} />
                           <span>{t.doneEditing || (lang === 'en' ? 'Done & Update Preview' : 'Valider et voir l\'aperçu')}</span>
@@ -6119,7 +6257,7 @@ ${formattedLetter}`;
                     </div>
                   )}
                   
-                  <div className="w-full flex justify-center bg-gray-100 dark:bg-gray-900 p-2 sm:p-6 md:p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
+                  <div className="w-full rounded-lg flex justify-center bg-zinc-200/60 dark:bg-zinc-900/80 p-2 sm:p-6 md:p-8 overflow-x-auto print:p-0 print:bg-white print:overflow-visible">
                     <style dangerouslySetInnerHTML={{__html: `
                       @media print {
                         @page {
@@ -6134,7 +6272,7 @@ ${formattedLetter}`;
                     `}} />
                     <div 
                       id="letter-render" 
-                      className="single-page-cv bg-white border border-gray-300 p-6 sm:p-10 md:p-12 pb-8 sm:pb-12 md:pb-14 w-full max-w-[210mm] min-h-[297mm] box-border shadow-md text-gray-800 font-sans select-text print:border-none print:shadow-none print:p-10 print:m-0 text-xs sm:text-[13px] leading-relaxed relative flex flex-col"
+                      className="single-page-cv bg-white p-6 sm:p-10 md:p-12 pb-8 sm:pb-12 md:pb-14 w-full max-w-[210mm] min-h-[297mm] box-border text-zinc-800 font-sans select-text print:border-none print:shadow-none print:p-10 print:m-0 text-xs sm:text-[13px] leading-relaxed relative flex flex-col"
                       style={{ 
                         userSelect: 'text', 
                         WebkitUserSelect: 'text', 
@@ -6153,13 +6291,13 @@ ${formattedLetter}`;
                           <p>{profile.email}</p>
                           <p>{profile.phone}</p>
                         </div>
-                        <div className="text-right text-gray-600">
+                        <div className="text-right text-zinc-600 font-mono tabular-nums">
                           <p>{profile.location?.split(',')[0] || (lang === 'en' ? 'City' : 'Paris')}, {lang === 'en' ? 'Date:' : 'le'} {new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'fr-FR')}</p>
                         </div>
                       </div>
                       <div className="space-y-4 sm:space-y-5 text-justify flex-1 cv-section">
                         {getCoverLetterParagraphList(aiResult.coverLetter, profile.fullName).map((paragraph, pIdx) => (
-                          <p key={pIdx} className="leading-relaxed text-gray-800">
+                          <p key={pIdx} className="leading-relaxed text-zinc-800">
                             {paragraph}
                           </p>
                         ))}
@@ -6196,32 +6334,32 @@ ${formattedLetter}`;
           )}
 
           {activeTab === 'profile' && (
-            <div className="max-w-4xl mx-auto space-y-6">
+            <div className="max-w-4xl mx-auto space-y-5">
               <div className="flex items-center justify-between pb-1 flex-wrap gap-3">
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">{t.profileTitle}</h2>
-                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">{t.profileSubtitle || 'Gérez votre profil professionnel, vos coordonnées et votre Master CV.'}</p>
+                  <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">{t.profileTitle}</h2>
+                  <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{t.profileSubtitle || 'Gérez votre profil professionnel, vos coordonnées et votre Master CV.'}</p>
                 </div>
                 <button 
                   type="button"
                   onClick={() => setActiveTab('onboarding')}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg border border-indigo-200 dark:border-indigo-800/60 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md transition-colors duration-150 cursor-pointer"
                 >
-                  <Rocket size={14} className="text-indigo-500" />
+                  <Rocket size={13} className="text-blue-600 dark:text-blue-400" />
                   {t.onboardingRestartGuide}
                 </button>
               </div>
 
-              <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('postutrack_profile', JSON.stringify(profile)); setSavedNotice(true); setTimeout(() => setSavedNotice(false), 3000); }} className="space-y-6">
+              <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('postutrack_profile', JSON.stringify(profile)); setSavedNotice(true); setTimeout(() => setSavedNotice(false), 3000); }} className="space-y-5">
                 
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl">
+                <div className="p-4 bg-white dark:bg-zinc-900 rounded-lg">
                   <div className="flex justify-between items-center flex-wrap gap-4">
                     <div>
-                      <h4 className="font-bold text-emerald-800 dark:text-emerald-400 text-sm">{t.autoImportTitle}</h4>
-                      <p className="text-xs text-emerald-700 dark:text-emerald-500 mt-0.5">{t.autoImportSubtitle}</p>
+                      <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">{t.autoImportTitle}</h4>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{t.autoImportSubtitle}</p>
                     </div>
-                    <label className="cursor-pointer text-xs flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2.5 rounded-lg shadow-sm hover:bg-emerald-700 font-medium transition-colors">
-                      <Upload size={16} /> {t.importCVBtn}
+                    <label className="cursor-pointer text-xs flex items-center gap-1.5 bg-blue-600 text-white px-3.5 py-2 rounded-md hover:bg-blue-700 font-medium transition-colors duration-150">
+                      <Upload size={14} /> {t.importCVBtn}
                       <input type="file" accept=".pdf,.txt" className="hidden" onChange={(e) => handleFileUpload(e, setProfile)} />
                     </label>
                   </div>
@@ -6237,68 +6375,87 @@ ${formattedLetter}`;
                   variant="card"
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div><label className="block text-sm font-medium mb-1">{t.fullName}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.fullName || ''} onChange={e => setProfile({...profile, fullName: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">{t.email}</label><input type="email" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">{t.phone}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.phone || ''} onChange={e => setProfile({...profile, phone: e.target.value})} /></div>
-                  <div><label className="block text-sm font-medium mb-1">{t.location}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.location || ''} onChange={e => setProfile({...profile, location: e.target.value})} /></div>
-                  <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">{t.website}</label><input type="text" className="w-full p-2.5 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white text-sm outline-none focus:ring-2 focus:ring-blue-500" value={profile.website || ''} onChange={e => setProfile({...profile, website: e.target.value})} /></div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">{t.masterCVLabel}</label>
-                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={profile.masterCV || ''} onChange={e => setProfile({...profile, masterCV: e.target.value})} />
-                </div>
-                <div>
-                  <div className="flex justify-between items-end mb-1">
-                    <label className="block text-sm font-medium">{t.masterLetterLabel}</label>
-                    <label className="cursor-pointer text-xs flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium transition-colors">
-                      <Upload size={14} /> {t.importLetterBtn}
-                      <input type="file" accept=".pdf,.txt" className="hidden" onChange={(e) => handleFileUpload(e, (text) => setProfile(prev => ({ ...prev, masterLetter: text })))} />
-                    </label>
+                <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.fullName}</label>
+                      <input type="text" className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-sm outline-none focus:ring-1 focus:ring-blue-600" value={profile.fullName || ''} onChange={e => setProfile({...profile, fullName: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.email}</label>
+                      <input type="email" className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-sm outline-none focus:ring-1 focus:ring-blue-600" value={profile.email || ''} onChange={e => setProfile({...profile, email: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.phone}</label>
+                      <input type="text" className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 font-mono text-sm outline-none focus:ring-1 focus:ring-blue-600" value={profile.phone || ''} onChange={e => setProfile({...profile, phone: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.location}</label>
+                      <input type="text" className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-sm outline-none focus:ring-1 focus:ring-blue-600" value={profile.location || ''} onChange={e => setProfile({...profile, location: e.target.value})} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.website}</label>
+                      <input type="text" className="w-full p-2.5 rounded-md bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 text-sm outline-none focus:ring-1 focus:ring-blue-600" value={profile.website || ''} onChange={e => setProfile({...profile, website: e.target.value})} />
+                    </div>
                   </div>
-                  <textarea rows={6} className="w-full p-3 border rounded-lg font-mono text-sm bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white outline-none focus:ring-2 focus:ring-blue-500" placeholder={t.masterLetterPlaceholder} value={profile.masterLetter || ''} onChange={e => setProfile({...profile, masterLetter: e.target.value})} />
+
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400 mb-1">{t.masterCVLabel}</label>
+                    <textarea rows={6} className="w-full p-3 rounded-md font-mono text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-blue-600" value={profile.masterCV || ''} onChange={e => setProfile({...profile, masterCV: e.target.value})} />
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-end mb-1.5">
+                      <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.masterLetterLabel}</label>
+                      <label className="cursor-pointer text-xs flex items-center gap-1.5 px-2.5 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 font-medium transition-colors duration-150">
+                        <Upload size={13} /> {t.importLetterBtn}
+                        <input type="file" accept=".pdf,.txt" className="hidden" onChange={(e) => handleFileUpload(e, (text) => setProfile(prev => ({ ...prev, masterLetter: text })))} />
+                      </label>
+                    </div>
+                    <textarea rows={6} className="w-full p-3 rounded-md font-mono text-xs sm:text-sm bg-zinc-50 dark:bg-zinc-950/60 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-1 focus:ring-blue-600" placeholder={t.masterLetterPlaceholder} value={profile.masterLetter || ''} onChange={e => setProfile({...profile, masterLetter: e.target.value})} />
+                  </div>
                 </div>
 
                 {/* Section Sauvegarde & Export */}
-                <div className="mt-8 p-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Download className="text-amber-600 dark:text-amber-400" size={20} />
-                    <h4 className="font-bold text-amber-800 dark:text-amber-400">{t.backupTitle}</h4>
+                <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Download className="text-zinc-500 dark:text-zinc-400" size={16} />
+                    <h4 className="font-semibold text-sm text-zinc-900 dark:text-zinc-100">{t.backupTitle}</h4>
                   </div>
-                  <p className="text-xs text-amber-700 dark:text-amber-500 mb-4">{t.backupSubtitle}</p>
-                  <div className="flex flex-wrap gap-3">
-                    <button type="button" onClick={handleExportProfile} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5" title={t.exportProfileTooltip}>
-                      <Download size={15} />
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3.5">{t.backupSubtitle}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={handleExportProfile} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer flex items-center gap-1.5" title={t.exportProfileTooltip}>
+                      <Download size={14} />
                       {t.exportProfileBtn}
                     </button>
-                    <button type="button" onClick={handleExportData} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5" title={t.exportDataTooltip}>
-                      <Download size={15} />
+                    <button type="button" onClick={handleExportData} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer flex items-center gap-1.5" title={t.exportDataTooltip}>
+                      <Download size={14} />
                       {t.exportDataBtn}
                     </button>
-                    <button type="button" onClick={handleExportCSV} className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 shadow-sm transition-colors cursor-pointer flex items-center gap-1.5" title={t.exportDataTooltip}>
-                      <Download size={15} />
+                    <button type="button" onClick={handleExportCSV} className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-md text-xs font-medium hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors duration-150 cursor-pointer flex items-center gap-1.5" title={t.exportDataTooltip}>
+                      <Download size={14} />
                       {t.exportCSVBtn}
                     </button>
                     <button 
                       type="button" 
                       onClick={() => setIsImportModalOpen(true)} 
-                      className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
+                      className="px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md text-xs font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
                       title={t.importApplicationsModalTitle || "Importer des candidatures (Excel, CSV, JSON)"}
                     >
-                      <Upload size={15} />
+                      <Upload size={14} />
                       {t.importApplicationsBtn || "Importer"} (Excel, CSV, JSON)
                     </button>
-                    <label className="cursor-pointer px-4 py-2 bg-white border border-amber-300 text-amber-700 dark:bg-gray-800 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-gray-700 rounded-lg text-sm font-medium hover:bg-amber-100/50 shadow-xs transition-colors flex items-center gap-1.5">
-                      <Upload size={15} />
+                    <label className="cursor-pointer px-3 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md text-xs font-medium transition-colors duration-150 flex items-center gap-1.5">
+                      <Upload size={14} />
                       {t.importBackupBtn}
                       <input type="file" accept=".json" className="hidden" onChange={handleImportData} />
                     </label>
                   </div>
                 </div>
 
-                {savedNotice && <div className="mt-6 p-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm font-medium flex items-center gap-2"><CheckCircle size={18} /> {t.profileSavedNotice}</div>}
-                <div className="flex justify-end mt-6">
-                  <button type="submit" className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-medium shadow-md transition-all cursor-pointer">
+                {savedNotice && <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 rounded-md text-xs sm:text-sm font-medium flex items-center gap-2"><CheckCircle size={16} /> {t.profileSavedNotice}</div>}
+                <div className="flex justify-end">
+                  <button type="submit" className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer">
                     {t.saveProfileBtn}
                   </button>
                 </div>
@@ -6419,35 +6576,35 @@ ${formattedLetter}`;
 
       {/* Modal de Confirmation de Réinitialisation Complète */}
       {isResetConfirmOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 max-w-md w-full p-6 text-left space-y-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg max-w-md w-full p-5 text-left space-y-4">
             <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
-              <div className="p-3 bg-rose-100 dark:bg-rose-900/40 rounded-xl">
-                <AlertTriangle size={24} />
+              <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 rounded-md">
+                <AlertTriangle size={20} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.resetConfirmTitle}</h3>
+                <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t.resetConfirmTitle}</h3>
               </div>
             </div>
             
-            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
               {t.resetConfirmDesc}
             </p>
 
-            <div className="flex justify-end items-center gap-3 pt-2">
+            <div className="flex justify-end items-center gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsResetConfirmOpen(false)}
-                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer"
               >
                 {t.resetCancelBtn}
               </button>
               <button
                 type="button"
                 onClick={handleResetAllData}
-                className="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-semibold shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
               >
-                <Trash2 size={16} />
+                <Trash2 size={14} />
                 {t.resetConfirmBtn}
               </button>
             </div>
@@ -6457,45 +6614,45 @@ ${formattedLetter}`;
 
       {/* Modal de Confirmation Démo John DEMO */}
       {isDemoConfirmOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 max-w-md w-full p-6 text-left space-y-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-zinc-900 rounded-lg max-w-md w-full p-5 text-left space-y-4">
             <div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.demoConfirmTitle}</h3>
+              <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{t.demoConfirmTitle}</h3>
             </div>
             
-            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
               {t.demoConfirmSubtitle}
             </p>
 
-            <div className="space-y-2.5 bg-amber-50/70 dark:bg-amber-950/30 p-3.5 rounded-xl border border-amber-200/70 dark:border-amber-800/50 text-xs text-amber-900 dark:text-amber-200">
+            <div className="space-y-2 bg-zinc-50 dark:bg-zinc-950/60 p-3.5 rounded-md text-xs text-zinc-700 dark:text-zinc-300">
               <div className="flex items-start gap-2">
-                <CheckCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <CheckCircle size={14} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                 <span><strong>{lang === 'fr' ? 'Profil John DEMO' : 'John DEMO Profile'}</strong> : {t.demoItemProfile}</span>
               </div>
               <div className="flex items-start gap-2">
-                <CheckCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <span><strong>{lang === 'fr' ? '200 candidatures' : '200 applications'}</strong> : {t.demoItemApps}</span>
+                <CheckCircle size={14} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                <span><strong className="font-mono tabular-nums">{lang === 'fr' ? '200 candidatures' : '200 applications'}</strong> : {t.demoItemApps}</span>
               </div>
               <div className="flex items-start gap-2">
-                <CheckCircle size={15} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <CheckCircle size={14} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                 <span><strong>{lang === 'fr' ? 'Bibliothèque de CVs' : 'CV Library'}</strong> : {t.demoItemResumes}</span>
               </div>
             </div>
 
-            <div className="flex justify-end items-center gap-3 pt-2">
+            <div className="flex justify-end items-center gap-2.5 pt-2">
               <button
                 type="button"
                 onClick={() => setIsDemoConfirmOpen(false)}
-                className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="px-3.5 py-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer"
               >
                 {t.demoCancelBtn}
               </button>
               <button
                 type="button"
                 onClick={handleLoadDemoData}
-                className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl text-sm font-semibold shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs sm:text-sm font-medium transition-colors duration-150 cursor-pointer flex items-center gap-1.5"
               >
-                <Sparkles size={16} />
+                <Sparkles size={14} />
                 {t.demoConfirmBtn}
               </button>
             </div>

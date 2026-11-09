@@ -12,7 +12,7 @@ import {
   Award,
   Layers,
   Sparkles
-} from 'lucide-react';
+} from './icons';
 
 export const RESUME_TEMPLATES = [
   {

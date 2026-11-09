@@ -34,7 +34,7 @@ import {
   FileCode,
   Check,
   Globe
-} from 'lucide-react';
+} from './icons';
 import { STATUS_KEYS, CONTRACT_KEYS, SOURCE_KEYS, isApplicationGhosted } from './App';
 
 /**
@@ -765,51 +765,51 @@ export const DetailedStatsView = ({
       const isAllTime = Boolean(data.isAllTimeAverage);
 
       return (
-        <div className="bg-white dark:bg-gray-800 p-3.5 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 text-xs 2xl:text-sm space-y-2.5 z-50 min-w-[230px]">
-          <div className="border-b border-gray-100 dark:border-gray-700/80 pb-2">
+        <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-lg text-xs 2xl:text-sm space-y-2.5 z-50 min-w-[230px]">
+          <div className="pb-1">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-bold text-gray-900 dark:text-white text-sm">
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm tracking-tight">
                 {data.fullPeriodLabel || data.periodLabel}
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300">
                 {isAllTime ? (lang === 'en' ? 'Al Time average' : 'Moyenne All-Time') : data.halfLabel}
               </span>
             </div>
             {isAllTime && data.yearsSpanLabel && (
-              <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 mt-0.5">
+              <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mt-0.5 font-mono tabular-nums">
                 {data.yearsSpanLabel}
               </p>
             )}
           </div>
 
           {/* TOTAL STATS FOR THIS POINT */}
-          <div className="bg-blue-50/50 dark:bg-blue-950/20 p-2.5 rounded-xl space-y-1.5 border border-blue-100/80 dark:border-blue-900/40">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-300">
+          <div className="bg-zinc-50 dark:bg-zinc-950/60 p-2.5 rounded-md space-y-1.5">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               {t.totalStatsForPoint || (lang === 'en' ? 'Total stats for this point' : 'Statistiques totales du point')}
             </div>
             {visibleLines.sent && (
-              <div className="flex items-center justify-between gap-4 text-blue-700 dark:text-blue-300 font-semibold">
+              <div className="flex items-center justify-between gap-4 text-blue-700 dark:text-blue-300 font-medium">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-600 inline-block shrink-0" />
                   {t.totalSentLabel || (lang === 'en' ? 'Total Sent' : 'Total envoyées')} :
                 </span>
-                <span className="font-mono font-bold text-gray-900 dark:text-white">{data.totalSent}</span>
+                <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">{data.totalSent}</span>
               </div>
             )}
             {visibleLines.interviews && (
-              <div className="flex items-center justify-between gap-4 text-purple-700 dark:text-purple-300 font-semibold">
+              <div className="flex items-center justify-between gap-4 text-purple-700 dark:text-purple-300 font-medium">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-purple-600 inline-block shrink-0" />
                   {t.totalInterviewsLabel || (lang === 'en' ? 'Total Interviews' : 'Total entretiens')} :
                 </span>
-                <span className="font-mono font-bold text-gray-900 dark:text-white">{data.totalInterviews}</span>
+                <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">{data.totalInterviews}</span>
               </div>
             )}
-            <div className="flex items-center justify-between gap-4 text-gray-600 dark:text-gray-300 border-t border-blue-100 dark:border-blue-900/40 pt-1">
-              <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-between gap-4 text-zinc-600 dark:text-zinc-300 pt-1">
+              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
                 {lang === 'en' ? 'Conversion Rate' : "Taux d'entretien"} :
               </span>
-              <span className={`font-mono font-bold text-xs ${data.conversionRate > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-gray-400'}`}>
+              <span className={`font-mono tabular-nums font-semibold text-xs ${data.conversionRate > 0 ? 'text-purple-600 dark:text-purple-400' : 'text-zinc-400'}`}>
                 {data.conversionRate}%
               </span>
             </div>
@@ -818,22 +818,22 @@ export const DetailedStatsView = ({
           {/* ALL-TIME AVERAGE FOR THIS POINT (in All Time mode) */}
           {isAllTime && (
             <div className="space-y-1.5 pt-0.5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
                 {t.allTimeAverageForPoint || (lang === 'en' ? 'All-Time Average / year' : 'Moyenne annuelle')}
               </div>
               {visibleLines.sent && (
                 <div className="flex items-center justify-between gap-4 text-blue-600 dark:text-blue-400 text-xs font-medium">
                   <span>{t.avgSentLabel || (lang === 'en' ? 'Avg. Sent' : 'Moyenne envoyées')} :</span>
-                  <span className="font-mono font-bold text-gray-900 dark:text-white">
-                    {data.avgSent} <span className="text-[10px] font-normal text-gray-400">/ {lang === 'en' ? 'yr' : 'an'}</span>
+                  <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
+                    {data.avgSent} <span className="text-[10px] font-normal text-zinc-400">/ {lang === 'en' ? 'yr' : 'an'}</span>
                   </span>
                 </div>
               )}
               {visibleLines.interviews && (
                 <div className="flex items-center justify-between gap-4 text-purple-600 dark:text-purple-400 text-xs font-medium">
                   <span>{t.avgInterviewsLabel || (lang === 'en' ? 'Avg. Interviews' : 'Moyenne entretiens')} :</span>
-                  <span className="font-mono font-bold text-gray-900 dark:text-white">
-                    {data.avgInterviews} <span className="text-[10px] font-normal text-gray-400">/ {lang === 'en' ? 'yr' : 'an'}</span>
+                  <span className="font-mono tabular-nums font-semibold text-zinc-900 dark:text-zinc-100">
+                    {data.avgInterviews} <span className="text-[10px] font-normal text-zinc-400">/ {lang === 'en' ? 'yr' : 'an'}</span>
                   </span>
                 </div>
               )}
@@ -850,31 +850,31 @@ export const DetailedStatsView = ({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white dark:bg-gray-800 p-3.5 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 text-xs 2xl:text-sm space-y-1.5 z-50">
-          <p className="font-bold text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-1">
+        <div className="bg-white dark:bg-zinc-900 p-3.5 rounded-lg text-xs 2xl:text-sm space-y-1.5 z-50">
+          <p className="font-semibold text-zinc-900 dark:text-zinc-100 pb-1">
             {data.source}
           </p>
           <div className="space-y-1 pt-0.5">
             <div className="flex items-center justify-between gap-4">
-              <span className="text-gray-600 dark:text-gray-400">{t.totalApplications || 'Candidatures'} :</span>
-              <span className="font-bold text-blue-600 dark:text-blue-400 font-mono">{data.total}</span>
+              <span className="text-zinc-600 dark:text-zinc-400">{t.totalApplications || 'Candidatures'} :</span>
+              <span className="font-semibold text-blue-600 dark:text-blue-400 font-mono tabular-nums">{data.total}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-gray-600 dark:text-gray-400">{t.repliesCount || 'Réponses reçues'} :</span>
-              <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">{data.answered}</span>
+              <span className="text-zinc-600 dark:text-zinc-400">{t.repliesCount || 'Réponses reçues'} :</span>
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">{data.answered}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-gray-600 dark:text-gray-400">{t.replyRate || 'Taux de réponse'} :</span>
-              <span className="font-bold text-purple-600 dark:text-purple-400 font-mono">{data.replyRate}%</span>
+              <span className="text-zinc-600 dark:text-zinc-400">{t.replyRate || 'Taux de réponse'} :</span>
+              <span className="font-semibold text-purple-600 dark:text-purple-400 font-mono tabular-nums">{data.replyRate}%</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-gray-600 dark:text-gray-400">{t.positiveRate || 'Intérêt positif'} :</span>
-              <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">{data.positive} ({data.positiveRate}%)</span>
+              <span className="text-zinc-600 dark:text-zinc-400">{t.positiveRate || 'Intérêt positif'} :</span>
+              <span className="font-semibold text-amber-600 dark:text-amber-400 font-mono tabular-nums">{data.positive} ({data.positiveRate}%)</span>
             </div>
             {data.avgDays && (
-              <div className="flex items-center justify-between gap-4 pt-1 border-t border-gray-100 dark:border-gray-700">
-                <span className="text-gray-500 dark:text-gray-400">{t.avgResponseTime || 'Délai moyen'} :</span>
-                <span className="font-semibold text-gray-800 dark:text-gray-200">~{data.avgDays} {t.avgDays || 'j'}</span>
+              <div className="flex items-center justify-between gap-4 pt-1">
+                <span className="text-zinc-500 dark:text-zinc-400">{t.avgResponseTime || 'Délai moyen'} :</span>
+                <span className="font-semibold font-mono tabular-nums text-zinc-800 dark:text-zinc-200">~{data.avgDays} {t.avgDays || 'j'}</span>
               </div>
             )}
           </div>
@@ -885,11 +885,11 @@ export const DetailedStatsView = ({
   };
 
   return (
-    <div className="space-y-6 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto animate-in fade-in duration-300">
+    <div className="space-y-4 max-w-6xl xl:max-w-7xl 2xl:max-w-[1700px] mx-auto">
       
       {/* Toast Notification */}
       {exportNotice && (
-        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5 text-sm font-semibold animate-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white px-4 py-3 rounded-lg flex items-center gap-2.5 text-sm font-medium">
           <Check size={18} className="shrink-0" />
           <span>{exportNotice}</span>
         </div>
@@ -898,123 +898,123 @@ export const DetailedStatsView = ({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-1">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white tracking-tight">
+          <h2 className="text-lg sm:text-xl font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
             {t.stats || 'Statistiques & Performance'}
           </h2>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-zinc-600 dark:text-zinc-400 mt-1">
             {t.statsSubtitle || 'Suivi complet de votre vélocité de candidature, taux de retours et performance par plateforme.'}
           </p>
         </div>
       </div>
 
-      {/* 1. ALL STATS METRICS GRID (Comprehensive View) */}
+      {/* 1. ALL STATS METRICS GRID (Borderless Zinc Surface Blocks) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2.5 sm:gap-3">
         {/* Total Applications */}
-        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+        <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between transition-colors duration-150">
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.totalApplications}</span>
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.totalApplications}</span>
             <div className="text-blue-600 dark:text-blue-400 shrink-0">
               <Briefcase size={15} />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{totalApplications}</p>
+          <p className="text-2xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">{totalApplications}</p>
         </div>
 
         {/* Interviews */}
-        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+        <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between transition-colors duration-150">
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.interviews}</span>
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.interviews}</span>
             <div className="text-purple-600 dark:text-purple-400 shrink-0">
               <Clock size={15} />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{interviewsCount}</p>
-            <p className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold mt-0.5">{interviewRate}% {t.interviewRate || 'taux'}</p>
+            <p className="text-2xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">{interviewsCount}</p>
+            <p className="text-[11px] font-mono tabular-nums text-purple-600 dark:text-purple-400 font-medium mt-0.5">{interviewRate}% {t.interviewRate || 'taux'}</p>
           </div>
         </div>
 
         {/* Offers */}
-        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+        <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between transition-colors duration-150">
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.offersReceived}</span>
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.offersReceived}</span>
             <div className="text-emerald-600 dark:text-emerald-400 shrink-0">
               <CheckCircle size={15} />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{offersCount}</p>
-            <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">{offerRate}% {t.offerRate || 'taux'}</p>
+            <p className="text-2xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">{offersCount}</p>
+            <p className="text-[11px] font-mono tabular-nums text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">{offerRate}% {t.offerRate || 'taux'}</p>
           </div>
         </div>
 
         {/* Rejections */}
-        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+        <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between transition-colors duration-150">
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.rejections}</span>
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.rejections}</span>
             <div className="text-rose-600 dark:text-rose-400 shrink-0">
               <XCircle size={15} />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{rejectionsCount}</p>
+          <p className="text-2xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">{rejectionsCount}</p>
         </div>
 
         {/* Ghosted */}
-        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+        <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between transition-colors duration-150">
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.ghostedCountLabel || 'Ghosté(s)'}</span>
-            <div className="text-slate-500 shrink-0">
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.ghostedCountLabel || 'Ghosté(s)'}</span>
+            <div className="text-zinc-400 dark:text-zinc-500 shrink-0">
               <Ghost size={15} />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{ghostedCount}</p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{t.ghostedTooltip || '> 14j sans retour'}</p>
+            <p className="text-2xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">{ghostedCount}</p>
+            <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-0.5">{t.ghostedTooltip || '> 14j sans retour'}</p>
           </div>
         </div>
 
         {/* Reply Rate */}
-        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+        <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between transition-colors duration-150">
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.replyRate}</span>
-            <div className="text-indigo-600 dark:text-indigo-400 shrink-0">
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.replyRate}</span>
+            <div className="text-blue-600 dark:text-blue-400 shrink-0">
               <Percent size={15} />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight">{overallReplyRate}%</p>
-            <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{answeredApps.length} / {totalApplications}</p>
+            <p className="text-2xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight">{overallReplyRate}%</p>
+            <p className="text-[10px] font-mono tabular-nums text-zinc-400 dark:text-zinc-500 mt-0.5">{answeredApps.length} / {totalApplications}</p>
           </div>
         </div>
 
         {/* Average Response Time */}
-        <div className="p-3.5 rounded-lg bg-gray-50/70 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700/60 flex flex-col justify-between transition-all">
+        <div className="p-4 rounded-lg bg-white dark:bg-zinc-900 flex flex-col justify-between transition-colors duration-150">
           <div className="flex items-start justify-between gap-2 mb-1.5">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">{t.avgResponseTime}</span>
+            <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{t.avgResponseTime}</span>
             <div className="text-amber-600 dark:text-amber-400 shrink-0">
               <Timer size={15} />
             </div>
           </div>
           <div>
             {avgResponseDays !== null ? (
-              <p className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-baseline gap-1">
-                {avgResponseDays} <span className="text-xs font-semibold text-gray-500">{t.avgDays || 'j'}</span>
+              <p className="text-2xl font-semibold font-mono tabular-nums text-zinc-900 dark:text-zinc-100 tracking-tight flex items-baseline gap-1">
+                {avgResponseDays} <span className="text-xs font-medium text-zinc-500">{t.avgDays || 'j'}</span>
               </p>
             ) : (
-              <p className="text-xs text-gray-400 dark:text-gray-500">-</p>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500">-</p>
             )}
           </div>
         </div>
       </div>
 
       {/* 2. DUAL-AXIS / VELOCITY GRAPH: APPLICATION VELOCITY */}
-      <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
           <div>
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+            <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
               {t.appVelocity || 'Vélocité des candidatures'}
             </h3>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               {timePeriod === 'all'
                 ? (lang === 'en'
                     ? `Bi-weekly trends: Al Time average ${velocityData[0]?.yearsSpanLabel ? `(${velocityData[0].yearsSpanLabel})` : ''} with total stats for each point.`
@@ -1023,16 +1023,16 @@ export const DetailedStatsView = ({
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-semibold">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs font-medium">
             {/* Time Period Selector */}
-            <div className="inline-flex items-center bg-gray-100 dark:bg-gray-700/80 p-1 rounded-xl border border-gray-200 dark:border-gray-600/70">
+            <div className="inline-flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-md">
               <button
                 type="button"
                 onClick={() => setTimePeriod('12m')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-md transition-colors duration-150 cursor-pointer ${
                   timePeriod === '12m'
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                 }`}
               >
                 {t.period12M || '12 mois'}
@@ -1040,10 +1040,10 @@ export const DetailedStatsView = ({
               <button
                 type="button"
                 onClick={() => setTimePeriod('6m')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-md transition-colors duration-150 cursor-pointer ${
                   timePeriod === '6m'
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                 }`}
               >
                 {t.period6M || '6 mois'}
@@ -1051,10 +1051,10 @@ export const DetailedStatsView = ({
               <button
                 type="button"
                 onClick={() => setTimePeriod('3m')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-md transition-colors duration-150 cursor-pointer ${
                   timePeriod === '3m'
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                 }`}
               >
                 {t.period3M || '3 mois'}
@@ -1062,10 +1062,10 @@ export const DetailedStatsView = ({
               <button
                 type="button"
                 onClick={() => setTimePeriod('all')}
-                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-md transition-colors duration-150 cursor-pointer ${
                   timePeriod === 'all'
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                 }`}
               >
                 {t.periodAll || 'Al Time average'}
@@ -1074,14 +1074,14 @@ export const DetailedStatsView = ({
 
             {/* In Al Time average mode: Toggle plotting Average vs Total stats */}
             {timePeriod === 'all' && (
-              <div className="inline-flex items-center bg-gray-100 dark:bg-gray-700/80 p-1 rounded-xl border border-gray-200 dark:border-gray-600/70">
+              <div className="inline-flex items-center bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-md">
                 <button
                   type="button"
                   onClick={() => setAllTimeMetric('avg')}
-                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md transition-colors duration-150 cursor-pointer ${
                     allTimeMetric === 'avg'
-                      ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                   }`}
                   title={lang === 'en' ? 'Plot average on graph' : 'Tracer la moyenne sur le graphique'}
                 >
@@ -1090,10 +1090,10 @@ export const DetailedStatsView = ({
                 <button
                   type="button"
                   onClick={() => setAllTimeMetric('total')}
-                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-md transition-colors duration-150 cursor-pointer ${
                     allTimeMetric === 'total'
-                      ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-zinc-900 text-blue-600 dark:text-blue-400 font-semibold'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
                   }`}
                   title={lang === 'en' ? 'Plot total stats on graph' : 'Tracer les totaux sur le graphique'}
                 >
@@ -1107,7 +1107,7 @@ export const DetailedStatsView = ({
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="bg-gray-100 dark:bg-gray-700/80 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600/70 rounded-xl px-2.5 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                className="bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md px-2.5 py-1.5 text-xs font-mono tabular-nums font-medium focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
                 aria-label={t.selectYear || 'Année'}
               >
                 {availableYears.map(yr => (
@@ -1117,19 +1117,19 @@ export const DetailedStatsView = ({
             )}
 
             {/* Line Toggles: Exactly 2 lines (Applications sent and Interviews) */}
-            <div className="flex items-center gap-1.5 pl-1 border-l border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-1.5">
               {/* Toggle Applications Sent */}
               <button
                 type="button"
                 onClick={() => toggleLine('sent')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors duration-150 cursor-pointer select-none ${
                   visibleLines.sent
-                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700 shadow-2xs'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 opacity-60 hover:opacity-100'
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 opacity-60 hover:opacity-100'
                 }`}
                 title={visibleLines.sent ? 'Cliquer pour masquer' : 'Cliquer pour afficher'}
               >
-                <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.sent ? 'bg-blue-600' : 'bg-gray-400'}`} />
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.sent ? 'bg-blue-600' : 'bg-zinc-400'}`} />
                 <span className={!visibleLines.sent ? 'line-through' : ''}>{t.appsSent || 'Candidatures envoyées'}</span>
               </button>
 
@@ -1137,14 +1137,14 @@ export const DetailedStatsView = ({
               <button
                 type="button"
                 onClick={() => toggleLine('interviews')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors duration-150 cursor-pointer select-none ${
                   visibleLines.interviews
-                    ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700 shadow-2xs'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 opacity-60 hover:opacity-100'
+                    ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 opacity-60 hover:opacity-100'
                 }`}
                 title={visibleLines.interviews ? 'Cliquer pour masquer' : 'Cliquer pour afficher'}
               >
-                <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.interviews ? 'bg-purple-600' : 'bg-gray-400'}`} />
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 transition-opacity ${visibleLines.interviews ? 'bg-purple-600' : 'bg-zinc-400'}`} />
                 <span className={!visibleLines.interviews ? 'line-through' : ''}>{t.interviewsCountLabel || t.interviews || 'Entretiens'}</span>
               </button>
             </div>
@@ -1155,15 +1155,15 @@ export const DetailedStatsView = ({
           <div className="h-72 sm:h-80 2xl:h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={velocityData} margin={{ top: 15, right: 15, left: 0, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-gray-700/60" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" className="dark:stroke-zinc-800" vertical={false} />
                 <XAxis 
                   dataKey="id" 
                   ticks={monthTicks}
                   tickFormatter={(id) => monthTickMap[id] || ''}
                   interval={0}
-                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} 
-                  axisLine={{ stroke: '#cbd5e1' }}
-                  tickLine={{ stroke: '#cbd5e1' }}
+                  tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} 
+                  axisLine={{ stroke: '#d4d4d8' }}
+                  tickLine={{ stroke: '#d4d4d8' }}
                   dy={4}
                   minTickGap={0}
                   padding={{ left: 16, right: 16 }}
@@ -1174,7 +1174,7 @@ export const DetailedStatsView = ({
                     domain={[0, maxVelocityValue]}
                     allowDecimals={timePeriod === 'all' && allTimeMetric === 'avg'}
                     tick={false}
-                    axisLine={{ stroke: '#cbd5e1' }}
+                    axisLine={{ stroke: '#d4d4d8' }}
                     tickLine={false}
                     width={10}
                   />
@@ -1187,9 +1187,9 @@ export const DetailedStatsView = ({
                     dataKey="sent"
                     name={t.appsSent || 'Candidatures envoyées'}
                     stroke="#2563eb"
-                    strokeWidth={3}
+                    strokeWidth={2.5}
                     dot={renderSentDot}
-                    activeDot={{ r: 6.5, strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
                   />
                 )}
                 {visibleLines.interviews && (
@@ -1199,29 +1199,29 @@ export const DetailedStatsView = ({
                     dataKey="interviews"
                     name={t.interviewsCountLabel || t.interviews || 'Entretiens'}
                     stroke="#8b5cf6"
-                    strokeWidth={3}
+                    strokeWidth={2.5}
                     dot={renderInterviewDot}
-                    activeDot={{ r: 6.5, strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }}
                   />
                 )}
               </LineChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+          <div className="p-8 text-center text-zinc-400 dark:text-zinc-500 text-sm">
             {t.noVelocityData || 'Ajoutez des candidatures avec des dates valides pour visualiser la courbe de vélocité.'}
           </div>
         )}
       </div>
 
       {/* 3. PLATFORM BAR CHART ANALYSIS (Without table) */}
-      <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
           <div>
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+            <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
               {t.platformAnalysisChart || 'Performance par Plateforme / ATS'}
             </h3>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               {t.platformAnalysisChartSubtitle || 'Comparatif visuel du volume de candidatures et des retours par canal.'}
             </p>
           </div>
@@ -1229,17 +1229,17 @@ export const DetailedStatsView = ({
           {/* Highlights summary badges */}
           <div className="flex items-center gap-2 flex-wrap">
             {platformHighlights.mostReplies && (
-              <div className="px-3 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
-                <TrendingUp size={14} className="text-emerald-600 shrink-0" />
+              <div className="px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-xs font-medium text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                <TrendingUp size={13} className="text-emerald-600 shrink-0" />
                 <span>{t.mostRepliesSource || 'Top réactive'} :</span>
-                <span className="font-bold">{platformHighlights.mostReplies.source} ({platformHighlights.mostReplies.replyRate}%)</span>
+                <span className="font-semibold font-mono tabular-nums">{platformHighlights.mostReplies.source} ({platformHighlights.mostReplies.replyRate}%)</span>
               </div>
             )}
             {platformHighlights.leastReplies && (
-              <div className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                <TrendingDown size={14} className="text-slate-500 shrink-0" />
+              <div className="px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-xs font-medium text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                <TrendingDown size={13} className="text-zinc-500 shrink-0" />
                 <span>{t.leastRepliesSource || 'Moins réactive'} :</span>
-                <span className="font-bold">{platformHighlights.leastReplies.source} ({platformHighlights.leastReplies.replyRate}%)</span>
+                <span className="font-semibold font-mono tabular-nums">{platformHighlights.leastReplies.source} ({platformHighlights.leastReplies.replyRate}%)</span>
               </div>
             )}
           </div>
@@ -1249,20 +1249,20 @@ export const DetailedStatsView = ({
           <div className="h-72 sm:h-80 2xl:h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={platformChartData} margin={{ top: 15, right: 15, left: -15, bottom: 25 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" className="dark:stroke-gray-700" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" className="dark:stroke-zinc-800" vertical={false} />
                 <XAxis 
                   dataKey="shortName" 
-                  tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} 
+                  tick={{ fill: '#71717a', fontSize: 11, fontWeight: 500 }} 
                   interval={0}
                   angle={-15}
                   textAnchor="end"
-                  axisLine={{ stroke: '#cbd5e1' }}
+                  axisLine={{ stroke: '#d4d4d8' }}
                   tickLine={false}
                 />
                 <YAxis 
                   allowDecimals={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                  axisLine={{ stroke: '#cbd5e1' }}
+                  tick={{ fill: '#71717a', fontSize: 12 }}
+                  axisLine={{ stroke: '#d4d4d8' }}
                   tickLine={false}
                 />
                 <Tooltip content={<CustomPlatformTooltip />} />
@@ -1270,61 +1270,61 @@ export const DetailedStatsView = ({
                   verticalAlign="top" 
                   align="right" 
                   height={36}
-                  formatter={(value) => <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">{value}</span>}
+                  formatter={(value) => <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{value}</span>}
                 />
                 <Bar 
                   dataKey="total" 
                   name={t.platformChartApplications || 'Candidatures envoyées'} 
-                  fill="#3b82f6" 
-                  radius={[6, 6, 0, 0]} 
+                  fill="#2563eb" 
+                  radius={[4, 4, 0, 0]} 
                 />
                 <Bar 
                   dataKey="answered" 
                   name={t.platformChartAnswers || 'Réponses reçues'} 
                   fill="#10b981" 
-                  radius={[6, 6, 0, 0]} 
+                  radius={[4, 4, 0, 0]} 
                 />
                 <Bar 
                   dataKey="positive" 
                   name={t.platformChartPositive || 'Intérêt positif (Entretiens / Offres)'} 
                   fill="#8b5cf6" 
-                  radius={[6, 6, 0, 0]} 
+                  radius={[4, 4, 0, 0]} 
                 />
               </BarChart>
             </ResponsiveContainer>
           </div>
         ) : (
-          <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+          <div className="p-8 text-center text-zinc-400 dark:text-zinc-500 text-sm">
             {t.noDataForPlatforms || 'Aucune donnée de plateforme disponible.'}
           </div>
         )}
       </div>
 
       {/* 4. ADVANCED FILTERED APPLICATIONS TABLE & EXPORT */}
-      <div className="pt-6 border-t border-gray-200 dark:border-gray-800 space-y-4">
+      <div className="p-4 sm:p-5 bg-white dark:bg-zinc-900 rounded-lg space-y-4">
         
         {/* Table Header & Export Actions */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+            <h3 className="text-base sm:text-lg font-semibold text-zinc-900 dark:text-zinc-100 tracking-tight">
               {t.filterOffersTitle || 'Tableau & Filtrage des offres'}
             </h3>
-            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               {t.filterOffersSubtitle || 'Recherchez, filtrez par statut, contrat ou plateforme, et exportez vos données.'}
             </p>
           </div>
 
           {/* Export Action Buttons */}
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={handleExportFilteredCSV}
               disabled={filteredApplications.length === 0}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer shadow-xs"
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-md text-xs font-medium flex items-center gap-2 transition-colors duration-150 cursor-pointer"
             >
-              <Download size={15} />
+              <Download size={14} />
               <span>{t.exportCSV || 'Exporter CSV'}</span>
-              <span className="px-1.5 py-0.5 rounded-full bg-emerald-700/60 text-[11px]">
+              <span className="px-1.5 py-0.5 rounded bg-blue-700/80 text-[11px] font-mono tabular-nums">
                 {filteredApplications.length}
               </span>
             </button>
@@ -1333,27 +1333,27 @@ export const DetailedStatsView = ({
               type="button"
               onClick={handleExportFilteredJSON}
               disabled={filteredApplications.length === 0}
-              className="px-3.5 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 disabled:opacity-50 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2 transition-all cursor-pointer border border-gray-200 dark:border-gray-600"
+              className="px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 disabled:opacity-50 rounded-md text-xs font-medium flex items-center gap-2 transition-colors duration-150 cursor-pointer"
             >
-              <FileCode size={15} className="text-indigo-500" />
+              <FileCode size={14} className="text-zinc-500" />
               <span>{t.exportJSON || 'Exporter JSON'}</span>
             </button>
           </div>
         </div>
 
         {/* Filter Controls Bar */}
-        <div className="p-4 bg-gray-50 dark:bg-zinc-950 rounded-xl border border-gray-200 dark:border-zinc-800 space-y-3.5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="p-3.5 bg-zinc-50 dark:bg-zinc-950/60 rounded-md space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
             
             {/* Search Bar */}
             <div className="relative">
-              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500" />
               <input
                 type="text"
                 placeholder={t.filterSearchPlaceholder || 'Rechercher une entreprise, poste...'}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm rounded-md border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600"
+                className="w-full pl-8 pr-3 py-1.5 text-xs sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600"
               />
             </div>
 
@@ -1362,7 +1362,7 @@ export const DetailedStatsView = ({
               <select
                 value={selectedStatus}
                 onChange={e => setSelectedStatus(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
+                className="w-full px-3 py-1.5 text-xs sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
               >
                 <option value="ALL">{t.filterAllStatuses || 'Tous les statuts'}</option>
                 {STATUS_KEYS.map(status => (
@@ -1378,7 +1378,7 @@ export const DetailedStatsView = ({
               <select
                 value={selectedContract}
                 onChange={e => setSelectedContract(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
+                className="w-full px-3 py-1.5 text-xs sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
               >
                 <option value="ALL">{t.filterAllContracts || 'Tous les contrats'}</option>
                 {CONTRACT_KEYS.map(contract => (
@@ -1394,7 +1394,7 @@ export const DetailedStatsView = ({
               <select
                 value={selectedSource}
                 onChange={e => setSelectedSource(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-md border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
+                className="w-full px-3 py-1.5 text-xs sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-zinc-600 cursor-pointer"
               >
                 <option value="ALL">{t.filterAllSources || 'Toutes les plateformes'}</option>
                 {availableSources.map(source => (
@@ -1407,23 +1407,23 @@ export const DetailedStatsView = ({
           </div>
 
           {/* Quick Stats Pill Counters & Reset button */}
-          <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mr-1">
+              <span className="text-xs font-medium font-mono tabular-nums text-zinc-500 dark:text-zinc-400 mr-1">
                 {t.filteredResultsCount ? t.filteredResultsCount.replace('{count}', filteredApplications.length) : `${filteredApplications.length} offre(s)`}
               </span>
               {selectedStatus !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-zinc-200">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
                   {selectedStatus}
                 </span>
               )}
               {selectedContract !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-zinc-200">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
                   {selectedContract}
                 </span>
               )}
               {selectedSource !== 'ALL' && (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-gray-100 dark:bg-zinc-800 text-gray-800 dark:text-zinc-200">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
                   {selectedSource}
                 </span>
               )}
@@ -1443,49 +1443,54 @@ export const DetailedStatsView = ({
         </div>
 
         {/* The Offers Table */}
-        <div className="overflow-x-auto -mx-5 sm:mx-0 px-5 sm:px-0 border border-gray-200 dark:border-zinc-800 rounded-md overflow-hidden">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 rounded-md overflow-hidden bg-zinc-50/50 dark:bg-zinc-950/40">
           <table className="w-full text-left border-collapse text-xs sm:text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 text-[11px] sm:text-xs uppercase tracking-wider border-b border-gray-200 dark:border-zinc-800">
-                <th className="p-3 font-semibold">{t.company || 'Entreprise'} & {t.role || 'Poste'}</th>
-                <th className="p-3 font-semibold">{t.contract || 'Contrat'}</th>
-                <th className="p-3 font-semibold">{t.source || 'Plateforme'}</th>
-                <th className="p-3 font-semibold">{t.date || 'Date candidature'}</th>
-                <th className="p-3 font-semibold">{t.avgResponseTime || 'Délai retour'}</th>
-                <th className="p-3 font-semibold">{t.status || 'Statut'}</th>
+              <tr className="bg-zinc-100/80 dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 text-[11px] uppercase tracking-wider">
+                <th className="p-3 font-medium">{t.company || 'Entreprise'} & {t.role || 'Poste'}</th>
+                <th className="p-3 font-medium">{t.contract || 'Contrat'}</th>
+                <th className="p-3 font-medium">{t.source || 'Plateforme'}</th>
+                <th className="p-3 font-medium">{t.date || 'Date candidature'}</th>
+                <th className="p-3 font-medium">{t.avgResponseTime || 'Délai retour'}</th>
+                <th className="p-3 font-medium">{t.status || 'Statut'}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-zinc-800 bg-white dark:bg-zinc-950">
-              {filteredApplications.map(app => {
+            <tbody className="bg-white dark:bg-zinc-900">
+              {filteredApplications.map((app, idx) => {
                 const responseDays = getAppResponseDays(app);
                 const isGhosted = isApplicationGhosted(app);
                 const formattedUrl = formatExternalUrl ? formatExternalUrl(app.url) : app.url;
 
                 return (
-                  <tr key={app.id} className="hover:bg-gray-50/70 dark:hover:bg-zinc-900/70 transition-colors">
+                  <tr
+                    key={app.id}
+                    className={`hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors duration-150 ${
+                      idx % 2 === 1 ? 'bg-zinc-50/40 dark:bg-zinc-950/30' : ''
+                    }`}
+                  >
                     
                     {/* Company & Role */}
-                    <td className="p-3 font-semibold text-gray-900 dark:text-white">
+                    <td className="p-3 font-medium text-zinc-900 dark:text-zinc-100">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 flex items-center justify-center font-bold text-xs shrink-0">
+                        <div className="w-7 h-7 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 flex items-center justify-center font-semibold text-xs shrink-0">
                           {app.company ? app.company.substring(0, 2).toUpperCase() : 'CO'}
                         </div>
                         <div className="min-w-0">
-                          <div className="font-bold text-gray-900 dark:text-white truncate flex items-center gap-1.5">
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate flex items-center gap-1.5">
                             <span>{app.company || 'Entreprise'}</span>
                             {formattedUrl && (
                               <a
                                 href={formattedUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                className="text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
                                 title="Voir l'offre"
                               >
                                 <ExternalLink size={12} />
                               </a>
                             )}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 font-normal truncate">
+                          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-normal truncate">
                             {app.role || 'Poste non spécifié'}
                           </div>
                         </div>
@@ -1494,43 +1499,43 @@ export const DetailedStatsView = ({
 
                     {/* Contract */}
                     <td className="p-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                         {app.type || 'CDI'}
                       </span>
                     </td>
 
                     {/* Source / ATS */}
                     <td className="p-3">
-                      <span className={`inline-flex items-center whitespace-nowrap px-2.5 py-0.5 rounded-full text-xs font-medium border ${getSourceBadgeStyle(app.source || 'Workday')}`}>
+                      <span className={`inline-flex items-center whitespace-nowrap px-2 py-0.5 rounded-md text-xs font-medium ${getSourceBadgeStyle(app.source || 'Workday')}`}>
                         {app.source || 'Workday'}
                       </span>
                     </td>
 
                     {/* Application Date */}
-                    <td className="p-3 font-mono text-gray-600 dark:text-gray-300 text-xs">
+                    <td className="p-3 font-mono tabular-nums text-zinc-600 dark:text-zinc-400 text-xs">
                       {app.date || '-'}
                     </td>
 
                     {/* Response Delay */}
                     <td className="p-3">
                       {responseDays !== null ? (
-                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400 text-xs">
+                        <span className="inline-flex items-center gap-1 font-medium font-mono tabular-nums text-emerald-700 dark:text-emerald-400 text-xs">
                           <Timer size={13} className="text-emerald-500 shrink-0" />
                           <span>{responseDays} {t.avgDays || 'j'}</span>
                         </span>
                       ) : isGhosted ? (
-                        <span className="inline-flex items-center gap-1 text-slate-500 dark:text-slate-400 text-xs font-medium">
+                        <span className="inline-flex items-center gap-1 font-mono tabular-nums text-zinc-500 dark:text-zinc-400 text-xs font-medium">
                           <Ghost size={13} className="shrink-0" />
                           <span>&gt; 14j</span>
                         </span>
                       ) : (
-                        <span className="text-gray-400 dark:text-gray-500 text-xs">-</span>
+                        <span className="text-zinc-400 dark:text-zinc-500 text-xs">-</span>
                       )}
                     </td>
 
                     {/* Status */}
                     <td className="p-2.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-semibold border ${getStatusColor(app.status)}`}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${getStatusColor(app.status)}`}>
                         {app.status || 'Postulé'}
                       </span>
                     </td>
@@ -1540,7 +1545,7 @@ export const DetailedStatsView = ({
 
               {filteredApplications.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">
+                  <td colSpan="6" className="p-8 text-center text-zinc-400 dark:text-zinc-500 text-sm">
                     {t.noApplications || 'Aucune offre ne correspond aux critères sélectionnés.'}
                   </td>
                 </tr>
